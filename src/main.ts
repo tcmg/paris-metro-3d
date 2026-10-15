@@ -1,0 +1,285 @@
+import * as THREE from 'three';
+import { VoxelParisBuilder } from './world/VoxelParisBuilder';
+import { MetroNetworkRenderer } from './world/MetroNetworkRenderer';
+import { SceneManager } from './scene/SceneManager';
+import { ArtDecoHUD } from './ui/ArtDecoHUD';
+import { STATIONS_MAP } from './data/parisMetroData';
+import {
+  getParisTerrainElevation,
+  PARIS_MONUMENTS
+} from './data/parisHistoricalData';
+
+function bootstrapApp(): void {
+  const appContainer = document.getElementById('app');
+  if (!appContainer) return;
+
+  const voxelParis = new VoxelParisBuilder();
+  const metroNetwork = new MetroNetworkRenderer();
+
+  let currentYear = 2026;
+  let selectedLineId: string | null = null;
+  let showGhostStations = true;
+
+  let hud: ArtDecoHUD;
+
+  const syncWorldToState = () => {
+    voxelParis.updateYear(currentYear);
+    const stats = metroNetwork.updateState(currentYear, selectedLineId, showGhostStations);
+    if (hud) {
+      hud.updateTelemetry(
+        currentYear,
+        stats.activeLinesCount,
+        stats.activeStationsCount,
+        stats.closedGhostStationsCount
+      );
+    }
+  };
+
+  const sceneManager = new SceneManager(
+    appContainer,
+    voxelParis,
+    metroNetwork,
+    (hovered) => {
+      if (hud) {
+        hud.showHoveredEntity(hovered);
+      }
+    },
+    (hours) => {
+      if (hud) {
+        hud.syncTimeOfDayReadout(hours);
+      }
+    },
+    (clicked) => {
+      if (hud) {
+        hud.handleCanvasEntityClick(clicked);
+      }
+    },
+    (cityOrbitActive) => {
+      if (hud) {
+        hud.setCityOrbitActiveUI(cityOrbitActive);
+      }
+    }
+  );
+
+  hud = new ArtDecoHUD(appContainer, {
+    onYearChange: (year: number) => {
+      currentYear = year;
+      syncWorldToState();
+    },
+    onLineSelect: (lineId: string | null) => {
+      selectedLineId = lineId;
+      syncWorldToState();
+    },
+    onOpacityChange: (opacity: number) => {
+      voxelParis.setSurfaceOpacity(opacity);
+      const isUnderground = opacity <= 0.02;
+      voxelParis.setUndergroundDarkMode(isUnderground);
+      sceneManager.setUndergroundDarkMode(isUnderground);
+      if (opacity >= 0.85) {
+        hud.setActiveCameraPresetUI('overground');
+      } else if (opacity > 0.02) {
+        hud.setActiveCameraPresetUI('xray');
+      } else {
+        hud.setActiveCameraPresetUI('underground');
+      }
+    },
+    onLiftChange: (liftProgress: number, isToggleAction?: boolean) => {
+      metroNetwork.setLiftProgress(liftProgress);
+      if (isToggleAction) {
+        sceneManager.frameLiftedMetro(liftProgress < 0.5);
+      }
+    },
+    onToggleLightColumns: (show: boolean) => {
+      metroNetwork.setShowLightColumns(show);
+    },
+    onBokehChange: (aperture: number) => {
+      sceneManager.setBokehAperture(aperture);
+    },
+    onCameraPreset: (preset) => {
+      sceneManager.setCameraPreset(preset);
+      if (preset === 'overground') {
+        voxelParis.setUndergroundDarkMode(false);
+        sceneManager.setUndergroundDarkMode(false);
+        voxelParis.setSurfaceOpacity(1.0);
+        hud.setOpacityValue(1.0);
+        metroNetwork.setShowLightColumns(true);
+        hud.setLightColumnsValue(true);
+      } else if (preset === 'xray') {
+        voxelParis.setUndergroundDarkMode(false);
+        sceneManager.setUndergroundDarkMode(false);
+        voxelParis.setSurfaceOpacity(0.14);
+        hud.setOpacityValue(0.14);
+        metroNetwork.setShowLightColumns(false);
+        hud.setLightColumnsValue(false);
+      } else if (preset === 'underground') {
+        voxelParis.setUndergroundDarkMode(true);
+        sceneManager.setUndergroundDarkMode(true);
+        voxelParis.setSurfaceOpacity(0.0);
+        hud.setOpacityValue(0.0);
+        metroNetwork.setShowLightColumns(false);
+        hud.setLightColumnsValue(false);
+      }
+    },
+    onAtmosphereChange: (mode) => {
+      sceneManager.setAtmosphereMode(mode);
+    },
+    onTimeOfDayChange: (hours: number) => {
+      sceneManager.setTimeOfDay(hours);
+    },
+    onToggleAutoTimeCycle: (enabled: boolean) => {
+      sceneManager.setAutoCycleTime(enabled);
+    },
+    onWeatherChange: (weather) => {
+      sceneManager.setWeatherMode(weather);
+      voxelParis.setWeatherSurfaceSheen(weather === 'rain');
+    },
+    onToggleGhostStations: (show: boolean) => {
+      showGhostStations = show;
+      syncWorldToState();
+    },
+    onTogglePaperModel: (enabled: boolean) => {
+      voxelParis.setPaperModelMode(enabled);
+    },
+    onToggleMonumentOrbit: (enabled: boolean) => {
+      sceneManager.setMonumentAutoOrbit(enabled);
+    },
+    onToggleCityOrbit: (enabled: boolean) => {
+      sceneManager.setCityAutoOrbit(enabled);
+    },
+    onToggleEiffelSparkle: (enabled: boolean) => {
+      if (enabled && currentYear < 1889) {
+        hud.triggerYear(1889);
+      }
+      voxelParis.setManualEiffelSparkle(enabled);
+    },
+    onStepCityOrbit: (deltaRadians: number) => {
+      sceneManager.orbitCityByAngle(deltaRadians);
+    },
+    onZoomCamera: (factor: number) => {
+      sceneManager.zoomCameraByFactor(factor);
+    },
+    onFocusTarget: (kind: 'station' | 'monument', id: string) => {
+      if (kind === 'station') {
+        sceneManager.setSelectedMonument(null);
+        const st = STATIONS_MAP.get(id);
+        if (!st) return;
+        if (currentYear < st.openedYear) {
+          hud.triggerYear(st.openedYear);
+        }
+        const liftY = metroNetwork.getLiftOffsetY();
+        const surfaceY = getParisTerrainElevation(st.x, st.z) + 0.25;
+        sceneManager.focusOnWorldPoint(st.x, -2.5 + liftY, st.z, false);
+        const radiusScale = st.lines.length >= 3 ? 1.18 : 0.92;
+        const colorHex = metroNetwork.getStationHoverColorHex(st);
+        metroNetwork.setTourPinnedPosition(
+          new THREE.Vector3(st.x, liftY > 1 ? Math.max(surfaceY, liftY - 4) : surfaceY, st.z),
+          radiusScale,
+          colorHex,
+          false
+        );
+      } else {
+        const m = PARIS_MONUMENTS.find((item) => item.id === id);
+        if (!m) return;
+        sceneManager.setSelectedMonument(m.id);
+        const minYr = m.constructionStartYear ?? m.builtYear;
+        if (currentYear < minYr) {
+          hud.triggerYear(m.builtYear);
+        }
+        // If user focuses on an overground monument while in Underground (0% opacity) view, switch to Overground
+        if (voxelParis.getSurfaceOpacity() <= 0.02) {
+          voxelParis.setUndergroundDarkMode(false);
+          sceneManager.setUndergroundDarkMode(false);
+          voxelParis.setSurfaceOpacity(1.0);
+          hud.setOpacityValue(1.0);
+          hud.setActiveCameraPresetUI('overground');
+        }
+        const terrainY = getParisTerrainElevation(m.x, m.z);
+        sceneManager.focusOnWorldPoint(m.x, terrainY + 2, m.z, true);
+        const radiusScale = Math.max(1.22, Math.min(2.05, m.radius * 0.42));
+        metroNetwork.setTourPinnedPosition(
+          new THREE.Vector3(m.x, terrainY + 0.25, m.z),
+          radiusScale,
+          MetroNetworkRenderer.MONUMENT_HALO_COLOR_HEX,
+          true
+        );
+      }
+    },
+    onSelectTourStop: (stop) => {
+      sceneManager.setSelectedMonument(null);
+      if (!stop) {
+        metroNetwork.setTourPinnedPosition(null);
+        return;
+      }
+      if (currentYear < stop.timelineYear) {
+        hud.triggerYear(stop.timelineYear);
+      }
+      const terrainY = getParisTerrainElevation(stop.x, stop.z);
+      sceneManager.focusOnWorldPoint(stop.x, terrainY + 1.8, stop.z, false);
+      metroNetwork.setTourPinnedPosition(
+        new THREE.Vector3(stop.x, terrainY + 0.3, stop.z),
+        stop.radiusScale,
+        0xffe07d,
+        false
+      );
+    }
+  });
+
+  voxelParis.setSurfaceOpacity(1.0);
+  syncWorldToState();
+
+  const viewParam = new URLSearchParams(window.location.search).get('view');
+  if (viewParam === 'louvre') {
+    sceneManager.setCameraImmediate(-7.8, 15.2, 14.5, -1.8, 0.2, 0.8);
+  } else if (viewParam === 'bnf') {
+    sceneManager.setCameraImmediate(31.0, 7.8, 38.5, 25.26, 0.8, 30.5);
+  } else if (viewParam === 'alexandre') {
+    sceneManager.setCameraImmediate(-16.5, 11.5, 10.5, -26.2, 0.6, -3.0);
+  }
+
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      hud.stepActiveExplorerSelection(-1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      hud.stepActiveExplorerSelection(1);
+    } else if (e.key === 'l' || e.key === 'L') {
+      hud.toggleLift();
+    } else if (e.key === 'c' || e.key === 'C') {
+      hud.toggleLightColumns();
+    } else if (e.key === 't' || e.key === 'T') {
+      hud.toggleAutoTimeCycle();
+    } else if (e.key === 'e' || e.key === 'E') {
+      hud.toggleEiffelSparkle();
+    } else if (e.key === 'b' || e.key === 'B') {
+      hud.cycleBokehMode();
+    } else if (e.key === 'm' || e.key === 'M') {
+      hud.togglePaperModel();
+    } else if (e.key === 'o' || e.key === 'O') {
+      hud.toggleMonumentOrbit();
+    } else if (e.key === 'r' || e.key === 'R') {
+      hud.toggleCityOrbit();
+    } else if (e.key === '[') {
+      sceneManager.orbitCityByAngle(-Math.PI / 4);
+    } else if (e.key === ']') {
+      sceneManager.orbitCityByAngle(Math.PI / 4);
+    }
+  });
+
+  const clock = new THREE.Clock();
+  const animate = () => {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    const elapsed = clock.getElapsedTime();
+
+    hud.tickPlayback(delta);
+    sceneManager.update(elapsed, delta);
+  };
+
+  animate();
+}
+
+bootstrapApp();
