@@ -28,7 +28,7 @@
       "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/metroData.ts",
       "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/railTerminiData.ts",
       "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/districtsData.ts",
-      "lineCount": 4,
+      "lineCount": 9,
       "terminusCount": 1,
       "districtCount": 4
     },
@@ -46,5 +46,5 @@
       "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/index.ts"
     }
   },
-  "completedAt": "2026-10-16T12:23:26.578Z"
+  "completedAt": "2026-10-16T12:51:00.220Z"
 }

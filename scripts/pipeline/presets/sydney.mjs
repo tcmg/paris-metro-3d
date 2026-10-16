@@ -329,14 +329,14 @@ export const SYDNEY_PRESET = {
   metroLines: [
     {
       id: 'M1',
-      name: 'M1 — Sydney Metro City & Southwest (Crows Nest ↔ Sydenham)',
+      name: 'M1 — Metro North West & Bankstown Line (Crows Nest ↔ Sydenham)',
       shortLabel: 'M1',
       color: '#009b77',
       textColor: '#ffffff',
-      openedYear: 2024,
+      openedYear: 2019,
       depthOffset: -3.4,
-      historicCompany: 'Sydney Metro',
-      summary: 'Australia’s first fully automated rapid transit line diving beneath Sydney Harbour between the North Shore, Barangaroo, Martin Place, Gadigal, and Central.',
+      historicCompany: 'Sydney Metro (Alstom Metropolis)',
+      summary: 'Australia’s first fully automated driverless rapid transit line (opened 2019 in the North West and extended beneath Sydney Harbour in August 2024 through Barangaroo, Martin Place, Gadigal, Central, Waterloo, and Sydenham).',
       stations: [
         { id: 'crows-nest', name: 'Crows Nest', lat: -33.8268, lon: 151.2032, openedYear: 2024, arrondissement: 'North Shore', architecture: 'Deep Brick & Solar Canopy Box Station', description: 'Northern gateway of the 2024 City & Southwest under-harbour tunnel.' },
         { id: 'victoria-cross', name: 'Victoria Cross (North Sydney)', lat: -33.8380, lon: 151.2072, openedYear: 2024, arrondissement: 'North Sydney', architecture: 'Sandstone-Ribbed Subterranean Cavern', description: 'Deep cavern beneath Miller Street before M1 plunges under Port Jackson.' },
@@ -344,58 +344,84 @@ export const SYDNEY_PRESET = {
         { id: 'martin-place', name: 'Martin Place', lat: -33.8678, lon: 151.2112, openedYear: 1979, arrondissement: 'CBD', architecture: '1979 Red Ochre Ceramic & 2024 Twin-Cavern Interchange', landmark: 'Martin Place Civic Spine', description: 'Major subterranean cathedral connecting the 1979 T4 Eastern Suburbs platforms with the 2024 M1 Metro.' },
         { id: 'gadigal', name: 'Gadigal (Pitt Street)', lat: -33.8732, lon: 151.2082, openedYear: 2024, arrondissement: 'CBD', architecture: 'Aboriginal Ochre & Track-Line Artwork Vault', landmark: 'Sydney Tower & QVB', description: 'Named in honor of the Gadigal people, Traditional Custodians of the Sydney CBD.' },
         { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: '1906 Sandstone Terminus & 2024 Central Walk Underground Box', landmark: 'Central Station Clock Tower', description: 'Australia’s grandest railway interchange.' },
-        { id: 'waterloo', name: 'Waterloo', lat: -33.8950, lon: 151.2035, openedYear: 2024, arrondissement: 'Waterloo', architecture: 'Indigenous Dot & Footprint Ceiling Motif Box', description: 'Serves the inner-south Waterloo precinct.' }
-      ]
-    },
-    {
-      id: 'T2',
-      name: 'T2 / T8 — Bradfield City Circle & Harbour Loop',
-      shortLabel: 'CC',
-      color: '#0072ce',
-      textColor: '#ffffff',
-      openedYear: 1926,
-      depthOffset: -2.1,
-      historicCompany: 'NSWGR (Bradfield)',
-      summary: 'Dr. John Bradfield’s historic underground loop linking Central, Museum, St James, Circular Quay viaduct, Wynyard, and Town Hall.',
-      stations: [
-        { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Edwardian Sandstone Terminus', description: 'Southern anchor of the City Circle.' },
-        { id: 'museum', name: 'Museum', lat: -33.8762, lon: 151.2098, openedYear: 1926, arrondissement: 'Hyde Park South', architecture: '1926 Heritage Cream & Maroon Subway Tile Vault', description: 'Opened on December 20, 1926 beneath southern Hyde Park as Australia’s first underground station alongside St James.' },
-        { id: 'st-james', name: 'St James (with Ghost Platforms)', lat: -33.8702, lon: 151.2118, openedYear: 1926, isGhostStation: true, arrondissement: 'Hyde Park North', architecture: '1926 Quad-Track Arch with Flooded Ghost Tunnels', landmark: "St Mary's Cathedral", description: 'Inaugural 1926 station featuring two active City Circle tracks flanking two unused center ghost platforms built for a never-completed East–West line.' },
-        { id: 'circular-quay', name: 'Circular Quay (Warrane)', lat: -33.8613, lon: 151.2108, openedYear: 1956, elevated: true, arrondissement: 'Circular Quay', architecture: 'Elevated Harbour Viaduct & Ferry Terminal', landmark: 'Sydney Opera House & Harbour Bridge', description: 'Opened in January 1956 atop the Cahill Expressway viaduct, offering panoramic views of both the Opera House and Harbour Bridge.' },
-        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 1932, isGhostStation: true, arrondissement: 'CBD West', architecture: '1932 Multi-Deck Harbour Bridge Approach Hub', description: 'Opened on March 19, 1932 with the Harbour Bridge; platforms 1 & 2 originally carried North Shore trams until 1958.' },
-        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 1932, arrondissement: 'CBD', architecture: 'Dual-Level Six-Platform Underground Hub', landmark: 'Queen Victoria Building', description: 'Opened in 1932 directly beneath George Street beside Sydney Town Hall and the QVB.' }
+        { id: 'waterloo', name: 'Waterloo', lat: -33.8950, lon: 151.2035, openedYear: 2024, arrondissement: 'Waterloo', architecture: 'Indigenous Dot & Footprint Ceiling Motif Box', description: 'Serves the inner-south Waterloo precinct with First Nations artwork by Nicole Monks.' },
+        { id: 'sydenham', name: 'Sydenham', lat: -33.9145, lon: 151.1658, openedYear: 1884, arrondissement: 'Inner West', architecture: '6-Platform Surface Interchange (M1 / T3 / T4 / T8)', description: 'Southern portal of the M1 City & Southwest tunnels and major Inner West junction.' }
       ]
     },
     {
       id: 'T1',
-      name: 'T1 — North Shore & Harbour Bridge Line',
+      name: 'T1 — North Shore & Western Line',
       shortLabel: 'T1',
       color: '#f99d1c',
       textColor: '#10141c',
-      openedYear: 1932,
+      openedYear: 1855,
       depthOffset: -2.4,
-      historicCompany: 'Sydney Trains',
-      summary: 'Crosses the deck of the Sydney Harbour Bridge from Milsons Point to Wynyard, Town Hall, Central, and Redfern.',
+      historicCompany: 'NSWGR / Sydney Trains (Waratah Double-Deck)',
+      summary: 'Follows NSW’s inaugural 1855 Western railway spine from Redfern and Central before diving through the CBD and crossing the deck of the Sydney Harbour Bridge (1932) to the North Shore.',
       stations: [
+        { id: 'st-leonards', name: 'St Leonards', lat: -33.8228, lon: 151.1942, openedYear: 1890, arrondissement: 'Lower North Shore', architecture: 'Deep Cutting & Over-Station Plaza', description: 'Opened in 1890 on the North Shore Line ridge.' },
+        { id: 'waverton', name: 'Waverton', lat: -33.8378, lon: 151.1972, openedYear: 1932, arrondissement: 'North Sydney', architecture: 'Curved Stone Cutting on Berry Bay Approach', description: 'Opened in 1932 when the North Shore line was rerouted onto the Harbour Bridge.' },
         { id: 'north-sydney', name: 'North Sydney', lat: -33.8415, lon: 151.2075, openedYear: 1932, arrondissement: 'North Sydney', architecture: 'Twin Rock-Cut Tunnels in Sandstone Escarpment', description: 'Opened with the Harbour Bridge electrification in March 1932.' },
         { id: 'milsons-point', name: 'Milsons Point', lat: -33.8462, lon: 151.2118, openedYear: 1932, elevated: true, arrondissement: 'Milsons Point', architecture: 'Elevated Northern Harbour Bridge Approach Viaduct', landmark: 'Sydney Harbour Bridge & Luna Park', description: 'Perched directly on the northern approach ramp of the Sydney Harbour Bridge.' },
-        { id: 'wynyard', name: 'Wynyard', lat: -33.8655, lon: 151.2060, openedYear: 1932, arrondissement: 'CBD West', architecture: 'Southern Harbour Bridge Portal', description: 'Dives underground off the southern span of the Harbour Bridge.' },
-        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 1932, arrondissement: 'CBD', architecture: 'Underground Trunk Hub', description: 'Central CBD interchange.' },
+        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 1932, isGhostStation: true, arrondissement: 'CBD West', architecture: '1932 Multi-Deck Harbour Bridge Approach Hub', description: 'Opened on March 19, 1932 with the Harbour Bridge; platforms 1 & 2 originally carried North Shore trams until 1958.' },
+        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 1932, arrondissement: 'CBD', architecture: 'Dual-Level Six-Platform Underground Hub', landmark: 'Queen Victoria Building', description: 'Central CBD underground interchange beneath George Street.' },
         { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Mainline & Suburban Hub', description: 'Through-platforms 16–23.' },
         { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1855, arrondissement: 'Redfern', architecture: '1855 Historic Railway Birthplace & 12-Platform Cutting', description: 'Site of NSW’s first railway departure in September 1855 and historic heart of Aboriginal civil rights in Sydney.' }
       ]
     },
     {
+      id: 'T2',
+      name: 'T2 — Leppington & Inner West Line (City Circle)',
+      shortLabel: 'T2',
+      color: '#0098cd',
+      textColor: '#ffffff',
+      openedYear: 1926,
+      depthOffset: -2.1,
+      historicCompany: 'NSWGR (Bradfield City Circle)',
+      summary: 'Combines Dr. John Bradfield’s 1926–1956 City Circle underground/viaduct loop (Museum, St James, Circular Quay, Wynyard, Town Hall) with the historic 1855 Inner West spine through Newtown and Stanmore.',
+      stations: [
+        { id: 'circular-quay', name: 'Circular Quay (Warrane)', lat: -33.8613, lon: 151.2108, openedYear: 1956, elevated: true, arrondissement: 'Circular Quay', architecture: 'Elevated Harbour Viaduct & Ferry Terminal', landmark: 'Sydney Opera House & Harbour Bridge', description: 'Opened in January 1956 atop the Cahill Expressway viaduct, offering panoramic views of both the Opera House and Harbour Bridge.' },
+        { id: 'st-james', name: 'St James (with Ghost Platforms)', lat: -33.8702, lon: 151.2118, openedYear: 1926, isGhostStation: true, arrondissement: 'Hyde Park North', architecture: '1926 Quad-Track Arch with Flooded Ghost Tunnels', landmark: "St Mary's Cathedral", description: 'Inaugural 1926 station featuring two active City Circle tracks flanking two unused center ghost platforms built for a never-completed East–West line.' },
+        { id: 'museum', name: 'Museum', lat: -33.8762, lon: 151.2098, openedYear: 1926, arrondissement: 'Hyde Park South', architecture: '1926 Heritage Cream & Maroon Subway Tile Vault', description: 'Opened on December 20, 1926 beneath southern Hyde Park as Australia’s first underground station alongside St James.' },
+        { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Edwardian Sandstone Terminus', description: 'Southern anchor of the City Circle.' },
+        { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1855, arrondissement: 'Redfern', architecture: '1855 Six-Track Main Suburban Junction', description: 'Western portal where City Circle trains join the 1855 Parramatta alignment.' },
+        { id: 'macdonaldtown', name: 'Macdonaldtown', lat: -33.8968, lon: 151.1862, openedYear: 1878, arrondissement: 'Eveleigh / Erskineville', architecture: 'Victorian Island Platform Beside Eveleigh Railway Workshops', description: 'Flanks the historic 1887 Eveleigh Locomotive Workshops.' },
+        { id: 'newtown', name: 'Newtown', lat: -33.8979, lon: 151.1795, openedYear: 1855, arrondissement: 'Newtown', architecture: '1892 Overhead Brick Concourse on King Street', description: 'One of the original six stations opened on September 26, 1855.' },
+        { id: 'stanmore', name: 'Stanmore', lat: -33.8946, lon: 151.1645, openedYear: 1878, arrondissement: 'Inner West', architecture: 'Victorian Brick & Cast-Iron Canopy', description: 'Heritage-listed Victorian suburban station on the Inner West trunk.' }
+      ]
+    },
+    {
+      id: 'T3',
+      name: 'T3 — Liverpool & Inner West Line (City Circle ↔ Sydenham)',
+      shortLabel: 'T3',
+      color: '#f37021',
+      textColor: '#ffffff',
+      openedYear: 1895,
+      depthOffset: -2.25,
+      historicCompany: 'NSWGR / Sydney Trains',
+      summary: 'Opened to Sydenham and Belmore in 1895 to relieve the Main Suburban line; links the City Circle with Erskineville, St Peters, and the Inner West.',
+      stations: [
+        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 1932, isGhostStation: true, arrondissement: 'CBD West', architecture: 'City Circle Underground Platform', description: 'Western City Circle interchange.' },
+        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 1932, arrondissement: 'CBD', architecture: 'City Circle Upper Level', description: 'George Street underground hub.' },
+        { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Suburban Platforms 17–22', description: 'Connects City Circle to the Illawarra relief tracks.' },
+        { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1855, arrondissement: 'Redfern', architecture: 'Inner South Junction', description: 'Junction for the Erskineville & Sydenham alignment.' },
+        { id: 'erskineville', name: 'Erskineville', lat: -33.9002, lon: 151.1865, openedYear: 1884, arrondissement: 'Erskineville', architecture: 'Island Platform in Brick Cutting', description: 'Serves the Erskineville village precinct.' },
+        { id: 'st-peters', name: 'St Peters', lat: -33.9075, lon: 151.1808, openedYear: 1884, arrondissement: 'St Peters', architecture: '1884 Polychrome Brick Station Beside Sydney Park', description: 'Overlooks the historic brick kilns of Sydney Park.' },
+        { id: 'sydenham', name: 'Sydenham', lat: -33.9145, lon: 151.1658, openedYear: 1884, arrondissement: 'Inner West', architecture: 'Major 6-Platform Junction', description: 'Historic junction where the 1895 Bankstown line diverges west.' }
+      ]
+    },
+    {
       id: 'T4',
-      name: 'T4 — Eastern Suburbs & Illawarra Line (Redfern ↔ Bondi Junction)',
+      name: 'T4 — Eastern Suburbs & Illawarra Line (Sydenham ↔ Bondi Junction)',
       shortLabel: 'T4',
       color: '#005aa3',
       textColor: '#ffffff',
       openedYear: 1979,
       depthOffset: -2.9,
       historicCompany: 'PTC / Sydney Trains',
-      summary: 'Deep underground railway linking Central, Town Hall, Martin Place, Kings Cross, Edgecliff, and Bondi Junction.',
+      summary: 'Pairs the 1884 Illawarra trunk from Sydenham with the deep 1979 underground Eastern Suburbs railway through Central, Town Hall, Martin Place, Kings Cross, Edgecliff, and Bondi Junction.',
       stations: [
+        { id: 'sydenham', name: 'Sydenham', lat: -33.9145, lon: 151.1658, openedYear: 1884, arrondissement: 'Inner West', architecture: 'Illawarra Express & Local Interchange', description: 'Opened October 15, 1884 on the original Illawarra Line.' },
         { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1979, arrondissement: 'Redfern', architecture: 'Subterranean Platforms 11–12', description: 'Underground portal of the Eastern Suburbs line.' },
         { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1979, arrondissement: 'Haymarket', architecture: 'Deep Platforms 24–25 (plus Ghost Platforms 26–27)', isGhostStation: true, description: 'Contains two completed but unused ghost platforms (26–27) directly above the active T4 tracks.' },
         { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 1979, arrondissement: 'CBD', architecture: 'Lower-Level Cross-Platform Interchange', description: 'Cross-platform transfer with T1.' },
@@ -403,6 +429,79 @@ export const SYDNEY_PRESET = {
         { id: 'kings-cross', name: 'Kings Cross', lat: -33.8745, lon: 151.2248, openedYear: 1979, arrondissement: 'Potts Point / Darlinghurst', architecture: 'Deep Ridge Cavern between Woolloomooloo & Rushcutters Bay Viaducts', description: 'Bored inside the Potts Point sandstone ridge.' },
         { id: 'edgecliff', name: 'Edgecliff', lat: -33.8798, lon: 151.2368, openedYear: 1979, arrondissement: 'Edgecliff', architecture: 'Brutalist Bus-Rail Concrete Interchange', description: 'Serves Double Bay and Eastern Suburbs bays.' },
         { id: 'bondi-junction', name: 'Bondi Junction', lat: -33.8915, lon: 151.2485, openedYear: 1979, arrondissement: 'Bondi Junction', architecture: 'Eastern Terminus & Turning Loop Cavern', description: 'Eastern terminus serving Bondi Beach.' }
+      ]
+    },
+    {
+      id: 'T5',
+      name: 'T5 — Cumberland Line (Western & South West Orbital)',
+      shortLabel: 'T5',
+      color: '#c4258f',
+      textColor: '#ffffff',
+      openedYear: 1996,
+      depthOffset: -2.0,
+      historicCompany: 'CityRail / Sydney Trains',
+      summary: 'Opened in 1996 via the Merrylands Y-Link to create an orbital cross-suburban rail corridor linking the Western and South Lines without requiring a transfer at Central.',
+      stations: [
+        { id: 'stanmore', name: 'Stanmore', lat: -33.8946, lon: 151.1645, openedYear: 1878, arrondissement: 'Inner West', architecture: 'Western Corridor Junction', description: 'Connects with the Western/South orbital relief corridor.' },
+        { id: 'petersham', name: 'Petersham', lat: -33.8942, lon: 151.1558, openedYear: 1857, arrondissement: 'Inner West', architecture: '1886 Victorian Gothic Sandstone Station Building', description: 'Features one of Sydney’s finest heritage station buildings (1886).' },
+        { id: 'lewisham', name: 'Lewisham', lat: -33.8920, lon: 151.1475, openedYear: 1886, arrondissement: 'Inner West', architecture: 'Long Creek Viaduct & L1 Dulwich Hill Light Rail Transfer', description: 'Adjacent to the 1886 Long Cove Creek railway viaduct.' }
+      ]
+    },
+    {
+      id: 'T7',
+      name: 'T7 — Olympic Park Line (Special Event & Express Spine)',
+      shortLabel: 'T7',
+      color: '#6f818e',
+      textColor: '#ffffff',
+      openedYear: 1998,
+      depthOffset: -1.95,
+      historicCompany: 'CityRail Olympic Express',
+      summary: 'Built in 1998 for the Sydney 2000 Summer Olympics with a dramatic balloon-loop cavern station designed by Hassell; runs direct event express trains from Central and Redfern.',
+      stations: [
+        { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Grand Concourse Intercity & Olympic Express Platforms', description: 'Origin of T7 Major Event express services to Sydney Olympic Park.' },
+        { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1855, arrondissement: 'Redfern', architecture: 'Main Suburban Fast Tracks', description: 'Major Inner-City pickup for T7 Olympic Park event trains.' },
+        { id: 'newtown', name: 'Newtown', lat: -33.8979, lon: 151.1795, openedYear: 1855, arrondissement: 'Newtown', architecture: 'Main Western Fast Line Bypass', description: 'Express corridor heading west toward Lidcombe and Olympic Park.' },
+        { id: 'lewisham', name: 'Lewisham', lat: -33.8920, lon: 151.1475, openedYear: 1886, arrondissement: 'Inner West', architecture: 'Six-Track Main Suburban Corridor', description: 'Western express approach toward the Olympic Park balloon loop.' }
+      ]
+    },
+    {
+      id: 'T8',
+      name: 'T8 — Airport & South Line (City Circle ↔ Sydney Airport)',
+      shortLabel: 'T8',
+      color: '#00954c',
+      textColor: '#ffffff',
+      openedYear: 2000,
+      depthOffset: -3.1,
+      historicCompany: 'Airport Link / Sydney Trains',
+      summary: 'Opened in May 2000 ahead of the Sydney Olympics, boring a 10 km tunnel beneath Green Square, Mascot, and the Domestic & International terminals of Kingsford Smith Airport from Central and the City Circle.',
+      stations: [
+        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 1932, isGhostStation: true, arrondissement: 'CBD West', architecture: 'City Circle Underground Hub', description: 'Northern City Circle interchange for Airport trains.' },
+        { id: 'circular-quay', name: 'Circular Quay (Warrane)', lat: -33.8613, lon: 151.2108, openedYear: 1956, elevated: true, arrondissement: 'Circular Quay', architecture: 'Harbour Viaduct Station', description: 'Direct rail link from Sydney’s ferry terminal and Opera House to the Airport.' },
+        { id: 'st-james', name: 'St James (with Ghost Platforms)', lat: -33.8702, lon: 151.2118, openedYear: 1926, isGhostStation: true, arrondissement: 'Hyde Park North', architecture: '1926 Heritage Arch', description: 'Eastern City Circle stop on the T8 Airport loop.' },
+        { id: 'museum', name: 'Museum', lat: -33.8762, lon: 151.2098, openedYear: 1926, arrondissement: 'Hyde Park South', architecture: '1926 Subway Vault', description: 'Southern Hyde Park stop before diving into the Airport tunnel.' },
+        { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Platforms 21 & 23 Airport Link Portal', description: 'Portal where T8 trains dive south into the 2000 New Southern Railway tunnel.' },
+        { id: 'green-square', name: 'Green Square', lat: -33.9062, lon: 151.2028, openedYear: 2000, arrondissement: 'Zetland / Alexandria', architecture: 'Subterranean Cut-and-Cover Concrete & Glass Plaza', description: 'Opened May 21, 2000 as the first underground station on the Airport Link.' }
+      ]
+    },
+    {
+      id: 'T9',
+      name: 'T9 — Northern Line (North Shore ↔ Central ↔ Strathfield)',
+      shortLabel: 'T9',
+      color: '#d11f2f',
+      textColor: '#ffffff',
+      openedYear: 1886,
+      depthOffset: -2.55,
+      historicCompany: 'NSWGR / Sydney Trains',
+      summary: 'Connects the Northern Line and North Shore across the Sydney Harbour Bridge through Wynyard, Town Hall, Central, and Redfern onto the six-track Main Suburban express corridor.',
+      stations: [
+        { id: 'st-leonards', name: 'St Leonards', lat: -33.8228, lon: 151.1942, openedYear: 1890, arrondissement: 'Lower North Shore', architecture: 'North Shore Trunk Station', description: 'Shared T1 / T9 North Shore express stop.' },
+        { id: 'north-sydney', name: 'North Sydney', lat: -33.8415, lon: 151.2075, openedYear: 1932, arrondissement: 'North Sydney', architecture: 'Subterranean Sandstone Cavern', description: 'Major North Sydney employment hub station.' },
+        { id: 'milsons-point', name: 'Milsons Point', lat: -33.8462, lon: 151.2118, openedYear: 1932, elevated: true, arrondissement: 'Milsons Point', architecture: 'Harbour Bridge Northern Viaduct', description: 'Crosses the eastern pair of tracks on the Sydney Harbour Bridge.' },
+        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 1932, isGhostStation: true, arrondissement: 'CBD West', architecture: 'Harbour Bridge Southern Portal', description: 'Connects North Shore and Western/Northern tracks.' },
+        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 1932, arrondissement: 'CBD', architecture: 'Underground Trunk Platforms', description: 'Central CBD interchange.' },
+        { id: 'central-sydney', name: 'Central', lat: -33.8832, lon: 151.2062, openedYear: 1906, arrondissement: 'Haymarket', architecture: 'Suburban Through-Platforms 16–19', description: 'Connects Harbour Bridge spine to the Main Northern corridor.' },
+        { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1855, arrondissement: 'Redfern', architecture: '12-Platform Main Junction', description: 'All T9 trains stop here before running express toward Burwood and Strathfield.' },
+        { id: 'stanmore', name: 'Stanmore', lat: -33.8946, lon: 151.1645, openedYear: 1878, arrondissement: 'Inner West', architecture: 'Main Suburban Six-Track Corridor', description: 'Inner West corridor toward Strathfield and the Hawkesbury River.' }
       ]
     }
   ],
