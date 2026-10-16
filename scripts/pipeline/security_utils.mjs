@@ -21,6 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import https from 'node:https';
+import net from 'node:net';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -121,18 +122,33 @@ export function writeSafeFile(targetPath, content) {
 export function createProjector(geoConfig) {
   const centerLat = geoConfig.centerLat;
   const centerLon = geoConfig.centerLon;
-  const mPerDegLat =
-    geoConfig.mPerDegLat || (geoConfig.kmPerDegLat ? geoConfig.kmPerDegLat * 1000 : 111132);
-  const mPerDegLon =
-    geoConfig.mPerDegLon ||
-    (geoConfig.kmPerDegLon
-      ? geoConfig.kmPerDegLon * 1000
-      : Math.round(111320 * Math.cos((centerLat * Math.PI) / 180)));
+  const kmPerDegLat =
+    geoConfig.kmPerDegLat || (geoConfig.mPerDegLat ? geoConfig.mPerDegLat / 1000 : 111.132);
+  const kmPerDegLon =
+    geoConfig.kmPerDegLon ||
+    (geoConfig.mPerDegLon
+      ? geoConfig.mPerDegLon / 1000
+      : Number((111.32 * Math.cos((centerLat * Math.PI) / 180)).toFixed(2)));
+  const worldUnitsPerKm = geoConfig.worldUnitsPerKm || 10.8;
+  const coreRadiusKm = geoConfig.coreRadiusKm || 7.5;
 
   function projectLatLon(lat, lon) {
-    const x = (lon - centerLon) * mPerDegLon;
-    const z = -((lat - centerLat) * mPerDegLat);
-    return [Math.round(x * 10) / 10, Math.round(z * 10) / 10];
+    const rawKmX = (lon - centerLon) * kmPerDegLon;
+    const rawKmZ = -(lat - centerLat) * kmPerDegLat;
+
+    const distKm = Math.hypot(rawKmX, rawKmZ);
+    let effectiveKm = distKm;
+    if (distKm > coreRadiusKm) {
+      const excess = distKm - coreRadiusKm;
+      effectiveKm = coreRadiusKm + Math.log1p(excess * 0.30) * 5.6;
+    }
+
+    const scale =
+      distKm > 0.0001 ? (effectiveKm / distKm) * worldUnitsPerKm : worldUnitsPerKm;
+    return [
+      Math.round(rawKmX * scale * 100) / 100,
+      Math.round(rawKmZ * scale * 100) / 100
+    ];
   }
 
   projectLatLon.project = projectLatLon;
@@ -347,6 +363,68 @@ export function stitchWaysIntoRings(wayGeoms) {
   return closedRings;
 }
 
+const BLENDER_MCP_HOST = '127.0.0.1';
+const BLENDER_MCP_DEFAULT_PORT = Number(process.env.BLENDER_MCP_PORT) || 9876;
+
+/**
+ * Sends a single JSON command to the live MCP for Blender addon socket on 127.0.0.1:9876.
+ */
+export function sendBlenderMcpCommand(commandObj, port = BLENDER_MCP_DEFAULT_PORT, timeoutMs = 60000) {
+  return new Promise((resolve, reject) => {
+    const socket = new net.Socket();
+    let buffer = '';
+    let settled = false;
+
+    const finish = (err, val) => {
+      if (settled) return;
+      settled = true;
+      try {
+        socket.destroy();
+      } catch {
+        // ignore close errors
+      }
+      if (err) reject(err);
+      else resolve(val);
+    };
+
+    socket.setTimeout(timeoutMs);
+    socket.on('timeout', () => finish(new Error(`Blender MCP socket timeout after ${timeoutMs}ms`)));
+    socket.on('error', (err) => finish(err));
+
+    socket.connect(port, BLENDER_MCP_HOST, () => {
+      socket.write(JSON.stringify(commandObj));
+    });
+
+    socket.on('data', (chunk) => {
+      buffer += chunk.toString('utf8');
+      try {
+        const parsed = JSON.parse(buffer);
+        finish(null, parsed);
+      } catch {
+        // Wait for remaining chunks if JSON is not yet complete
+      }
+    });
+
+    socket.on('close', () => {
+      if (!settled) {
+        finish(new Error('Blender MCP socket closed before sending complete JSON response'));
+      }
+    });
+  });
+}
+
+/**
+ * Returns true if Blender is currently open with the Blender MCP addon server active.
+ */
+export async function isBlenderMcpOpen(port = BLENDER_MCP_DEFAULT_PORT) {
+  try {
+    const res = await sendBlenderMcpCommand({ type: 'ping', params: {} }, port, 1200);
+    return Boolean(res && res.status === 'success' && res.result && res.result.pong);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Discovers an allow-listed local Blender executable if installed on the machine.
  */
@@ -400,10 +478,77 @@ export function runBlenderScriptHeadless(pythonScriptPath, arg2, arg3, arg4) {
     resolvedOut
   ];
 
-  console.log(`[Blender] Executing ${blenderBin} -> ${path.relative(WORKSPACE_ROOT, resolvedOut)}...`);
+  console.log(`[Blender Headless] Executing ${blenderBin} -> ${path.relative(WORKSPACE_ROOT, resolvedOut)}...`);
   execFileSync(blenderBin, args, {
     cwd: WORKSPACE_ROOT,
     stdio: 'inherit',
     timeout: 180000
   });
+}
+
+/**
+ * Always prefers the live open Blender session via Blender MCP (127.0.0.1:9876)
+ * when Blender is open, building the monuments inside a dedicated `Scene_<City>`
+ * scene and exporting the GLB live. Falls back to headless Blender CLI only if
+ * Blender is not currently open.
+ */
+export async function runBlenderMonumentBuild(pythonScriptPath, specJsonPath, outGlbPath) {
+  const rootWithSep = WORKSPACE_ROOT.endsWith(path.sep)
+    ? WORKSPACE_ROOT
+    : WORKSPACE_ROOT + path.sep;
+
+  const resolvedScript = path.resolve(WORKSPACE_ROOT, pythonScriptPath);
+  const resolvedSpec = path.resolve(WORKSPACE_ROOT, specJsonPath);
+  const resolvedOut = path.resolve(WORKSPACE_ROOT, outGlbPath);
+
+  for (const p of [resolvedScript, resolvedSpec, resolvedOut]) {
+    if (!p.startsWith(rootWithSep)) {
+      throw new Error(`Security violation: Blender argument path escapes workspace: ${p}`);
+    }
+  }
+
+  const mcpAvailable = await isBlenderMcpOpen();
+  if (mcpAvailable) {
+    console.log(
+      `  [Blender MCP] Live Blender instance detected on ${BLENDER_MCP_HOST}:${BLENDER_MCP_DEFAULT_PORT}! Building monuments in live Blender session...`
+    );
+    const scriptDir = path.dirname(resolvedScript);
+    const pyCode = [
+      'import importlib, sys',
+      `script_dir = ${JSON.stringify(scriptDir)}`,
+      'if script_dir not in sys.path:',
+      '    sys.path.insert(0, script_dir)',
+      'import build_city_monuments',
+      'importlib.reload(build_city_monuments)',
+      `build_city_monuments.build_city_monuments_from_spec(${JSON.stringify(resolvedSpec)}, ${JSON.stringify(resolvedOut)})`
+    ].join('\n');
+
+    const response = await sendBlenderMcpCommand(
+      {
+        type: 'execute_code',
+        params: { code: pyCode }
+      },
+      BLENDER_MCP_DEFAULT_PORT,
+      120000
+    );
+
+    if (response && response.status === 'success') {
+      const outputMsg =
+        response.result && response.result.result ? response.result.result.trim() : '';
+      if (outputMsg) {
+        console.log(`  [Blender MCP] ${outputMsg}`);
+      }
+      return { usedBlenderMcp: true, mode: 'blender-mcp-live' };
+    }
+    console.warn(
+      `  [Blender MCP] Warning: live execution returned error (${response?.message || 'unknown'}), falling back to headless Blender...`
+    );
+  } else {
+    console.log(
+      `  [Blender MCP] Live Blender MCP not open on ${BLENDER_MCP_HOST}:${BLENDER_MCP_DEFAULT_PORT}; falling back to headless Blender CLI...`
+    );
+  }
+
+  runBlenderScriptHeadless(pythonScriptPath, specJsonPath, outGlbPath);
+  return { usedBlenderMcp: false, mode: 'blender-headless-cli' };
 }

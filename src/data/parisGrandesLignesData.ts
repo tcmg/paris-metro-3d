@@ -15,6 +15,7 @@
  */
 
 import { projectLatLon } from './parisGeoData';
+import { ACTIVE_PIPELINE_CITY_DATASET } from '../cities/activeCityRuntime';
 
 export interface GrandeGareCorridorData {
   id: string;
@@ -370,7 +371,7 @@ const RAW_GRANDES_LIGNES: RawGrandeGareCorridor[] = [
   }
 ];
 
-export const PARIS_GRANDES_LIGNES: GrandeGareCorridorData[] = RAW_GRANDES_LIGNES.map((raw) => {
+const PARIS_DEFAULT_GRANDES_LIGNES: GrandeGareCorridorData[] = RAW_GRANDES_LIGNES.map((raw) => {
   const { x, z } = projectLatLon(raw.lat, raw.lon);
   const corridorPoints = raw.corridorLatLon.map(([lat, lon]) => projectLatLon(lat, lon));
   return {
@@ -381,6 +382,63 @@ export const PARIS_GRANDES_LIGNES: GrandeGareCorridorData[] = RAW_GRANDES_LIGNES
   };
 });
 
+const PIPELINE_TERMINUS_LINK_MAP: Record<string, { metroStationId: string; monumentId?: string }> = {
+  'gl-central-station-sydney': {
+    metroStationId: 'central',
+    monumentId: 'monument-central-station-sydney'
+  },
+  'gl-grand-central-terminal': {
+    metroStationId: 'grand-central-42-st',
+    monumentId: 'monument-grand-central'
+  },
+  'gl-penn-station-nyc': {
+    metroStationId: '34-st-penn-station'
+  }
+};
+
+export const PARIS_GRANDES_LIGNES: GrandeGareCorridorData[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.railTermini.map((terminus) => {
+      const dataset = ACTIVE_PIPELINE_CITY_DATASET!;
+      const { x, z } = projectLatLon(terminus.lat, terminus.lon);
+      const rawTrack = terminus.trackPaths[0] ?? [];
+      const corridorPoints = rawTrack.map(([tx, tz]) => ({ x: tx, z: tz }));
+      const linked = PIPELINE_TERMINUS_LINK_MAP[terminus.id] ?? {
+        metroStationId: terminus.id
+      };
+      return {
+        id: terminus.id,
+        metroStationId: linked.metroStationId,
+        monumentId: linked.monumentId,
+        name: terminus.name,
+        shortName: terminus.name,
+        historicCompany: terminus.trainType,
+        modernNetwork: terminus.trainType,
+        openedYear: terminus.year,
+        trainStartYear: Math.max(1900, terminus.year),
+        trainEndYear: 2026,
+        buildingEndYear: 2026,
+        arrondissement: dataset.name,
+        destinationLabel: terminus.destinations,
+        colorHex: terminus.color,
+        lat: terminus.lat,
+        lon: terminus.lon,
+        x,
+        z,
+        rotationY: (terminus.azimuth * Math.PI) / 180,
+        trackCount: Math.max(6, terminus.trackPaths.length * 4),
+        shedWidth: 2.3,
+        shedLength: 3.4,
+        shedHeight: 0.62,
+        shedSpans: 2,
+        hasClockTower: terminus.id === 'gl-central-station-sydney',
+        description: terminus.fact,
+        corridorLatLon: [],
+        corridorPoints
+      };
+    })
+  : PARIS_DEFAULT_GRANDES_LIGNES;
+
 export const STATION_GRANDE_LIGNE_MAP: Map<string, GrandeGareCorridorData> = new Map(
   PARIS_GRANDES_LIGNES.map((g) => [g.metroStationId, g])
 );
+

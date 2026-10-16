@@ -1,0 +1,245 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Sydney, Australia
+ * Theme Vibe: First Nations Aboriginal Dot-Art, Red Ochre Country & Sydney Sandstone (aboriginal_ochre_dot_art)
+ * Inspiration: GADIGAL COUNTRY, HARBOUR SAILS & METRO • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="sydney"] {
+  --city-font-display: 'Fraunces', 'Cinzel', Georgia, serif;
+  --city-font-serif: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'JetBrains Mono', monospace;
+  --city-badge-shape: ochre-dot-ring;
+
+  /* Core HUD variable overrides for warm Gadigal Red Ochre, Golden Wattle & Charcoal Bark */
+  --bg-obsidian: #180c07;
+  --bg-panel: rgba(34, 17, 11, 0.90);
+  --bg-panel-elevated: rgba(48, 24, 15, 0.95);
+  --gold-bright: #f6b93b;
+  --gold-primary: #e06d3b;
+  --gold-muted: #b85228;
+  --gold-border: rgba(224, 109, 59, 0.52);
+  --gold-border-strong: rgba(246, 185, 59, 0.88);
+  --gold-glow: rgba(224, 109, 59, 0.32);
+  --ivory: #fbf3e4;
+  --ivory-dim: #dfc8ad;
+  --ivory-subtle: #a88b6d;
+  --emerald-guimard: #00a896;
+  --crimson-ghost: #e55039;
+
+  --city-bg-primary: #180c07;
+  --city-bg-glass: rgba(34, 17, 11, 0.90);
+  --city-bg-card: rgba(48, 24, 15, 0.95);
+  --city-text-primary: #fbf3e4;
+  --city-text-muted: #dfc8ad;
+  --city-accent-primary: #f6b93b;
+  --city-accent-secondary: #00a896;
+  --city-accent-tertiary: #e06d3b;
+  --city-border-color: rgba(224, 109, 59, 0.52);
+  --city-badge-bg: linear-gradient(135deg, #e06d3b 0%, #f6b93b 100%);
+  --city-badge-text: #180c07;
+  --city-water-color: #0c5278;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #dec8a8;
+
+  /* Concentric Aboriginal Dot-Art (Ngura Camp/Waterhole Rings & Songline Tracks) */
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'84'%20height%3D'84'%20viewBox%3D'0%200%2084%2084'%3E%3Ccircle%20cx%3D'42'%20cy%3D'42'%20r%3D'7'%20fill%3D'none'%20stroke%3D'%23e06d3b'%20stroke-width%3D'2.6'%20stroke-linecap%3D'round'%20stroke-dasharray%3D'0.5%205'%20stroke-opacity%3D'0.36'%2F%3E%3Ccircle%20cx%3D'42'%20cy%3D'42'%20r%3D'15'%20fill%3D'none'%20stroke%3D'%23f6b93b'%20stroke-width%3D'2.6'%20stroke-linecap%3D'round'%20stroke-dasharray%3D'0.5%206'%20stroke-opacity%3D'0.30'%2F%3E%3Ccircle%20cx%3D'42'%20cy%3D'42'%20r%3D'24'%20fill%3D'none'%20stroke%3D'%23fbf3e4'%20stroke-width%3D'2.2'%20stroke-linecap%3D'round'%20stroke-dasharray%3D'0.5%207'%20stroke-opacity%3D'0.20'%2F%3E%3Ccircle%20cx%3D'42'%20cy%3D'42'%20r%3D'33'%20fill%3D'none'%20stroke%3D'%2300a896'%20stroke-width%3D'2'%20stroke-linecap%3D'round'%20stroke-dasharray%3D'0.5%208'%20stroke-opacity%3D'0.22'%2F%3E%3Ccircle%20cx%3D'42'%20cy%3D'42'%20r%3D'3'%20fill%3D'%23f6b93b'%20fill-opacity%3D'0.34'%2F%3E%3C%2Fsvg%3E");
+
+  /* Corner Medallion SVG for .deco-corner */
+  --sydney-corner-medallion: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'18'%20height%3D'18'%20viewBox%3D'0%200%2018%2018'%3E%3Ccircle%20cx%3D'9'%20cy%3D'9'%20r%3D'7'%20fill%3D'none'%20stroke%3D'%23f6b93b'%20stroke-width%3D'2'%20stroke-linecap%3D'round'%20stroke-dasharray%3D'0.4%203.6'%2F%3E%3Ccircle%20cx%3D'9'%20cy%3D'9'%20r%3D'3.8'%20fill%3D'none'%20stroke%3D'%23e06d3b'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-dasharray%3D'0.4%202.8'%2F%3E%3Ccircle%20cx%3D'9'%20cy%3D'9'%20r%3D'1.6'%20fill%3D'%2300a896'%2F%3E%3C%2Fsvg%3E");
+
+  /* Horizontal Dotted Songline Ribbon SVG */
+  --sydney-songline-border: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'32'%20height%3D'6'%20viewBox%3D'0%200%2032%206'%3E%3Ccircle%20cx%3D'4'%20cy%3D'3'%20r%3D'2'%20fill%3D'%23f6b93b'%2F%3E%3Ccircle%20cx%3D'12'%20cy%3D'3'%20r%3D'2'%20fill%3D'%23e06d3b'%2F%3E%3Ccircle%20cx%3D'20'%20cy%3D'3'%20r%3D'1.8'%20fill%3D'%23fbf3e4'%2F%3E%3Ccircle%20cx%3D'28'%20cy%3D'3'%20r%3D'2'%20fill%3D'%2300a896'%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Viewport frame in warm sandstone with dotted inner border */
+:root[data-city-theme="sydney"] .deco-viewport-frame {
+  border-radius: 18px;
+  border: 1.5px solid rgba(224, 109, 59, 0.32);
+}
+
+:root[data-city-theme="sydney"] .deco-viewport-frame::before {
+  border-radius: 15px;
+  border: 2px dotted rgba(246, 185, 59, 0.28);
+}
+
+/* All HUD panels (.deco-panel & .city-selector-bar) get Aboriginal dot-art texture + organic rounded sandstone form */
+:root[data-city-theme="sydney"] .deco-panel,
+:root[data-city-theme="sydney"] .city-selector-bar,
+:root[data-city-theme="sydney"] .city-themed-panel {
+  background-color: rgba(34, 17, 11, 0.90);
+  background-image:
+    radial-gradient(circle at 88% 14%, rgba(224, 109, 59, 0.24), transparent 52%),
+    radial-gradient(circle at 12% 86%, rgba(0, 168, 150, 0.14), transparent 48%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 100% 100%, 84px 84px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(224, 109, 59, 0.62);
+  box-shadow:
+    0 14px 38px rgba(16, 7, 4, 0.72),
+    inset 0 0 0 1px rgba(246, 185, 59, 0.24);
+}
+
+/* Inner dotted ochre border inside every panel */
+:root[data-city-theme="sydney"] .deco-panel::before {
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border-radius: 12px;
+  border: 1.5px dotted rgba(246, 185, 59, 0.44);
+}
+
+/* Transform square Art Deco corners into circular Aboriginal dot-ring medallions */
+:root[data-city-theme="sydney"] .deco-corner {
+  width: 16px;
+  height: 16px;
+  border: none !important;
+  background-image: var(--sydney-corner-medallion);
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.92;
+}
+
+:root[data-city-theme="sydney"] .deco-corner.tl {
+  top: 3px;
+  left: 3px;
+}
+:root[data-city-theme="sydney"] .deco-corner.tr {
+  top: 3px;
+  right: 3px;
+}
+:root[data-city-theme="sydney"] .deco-corner.bl {
+  bottom: 3px;
+  left: 3px;
+}
+:root[data-city-theme="sydney"] .deco-corner.br {
+  bottom: 3px;
+  right: 3px;
+}
+
+/* Multi-colored Aboriginal dot-art songline dividers beneath headers */
+:root[data-city-theme="sydney"] .explorer-tabs-header,
+:root[data-city-theme="sydney"] .skyline-bars-chart {
+  border-bottom: none;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+:root[data-city-theme="sydney"] .explorer-tabs-header::after,
+:root[data-city-theme="sydney"] .skyline-bars-chart::after,
+:root[data-city-theme="sydney"] .city-themed-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+  height: 5px;
+  background-image: var(--sydney-songline-border);
+  background-size: 32px 5px;
+  background-repeat: repeat-x;
+  opacity: 0.9;
+}
+
+/* Rounded sandstone pill buttons & tabs */
+:root[data-city-theme="sydney"] .deco-btn,
+:root[data-city-theme="sydney"] .explorer-tab-btn,
+:root[data-city-theme="sydney"] .filter-chip-btn,
+:root[data-city-theme="sydney"] .city-selector-btn {
+  border-radius: 999px;
+  border-color: rgba(224, 109, 59, 0.45);
+  background: rgba(224, 109, 59, 0.10);
+}
+
+:root[data-city-theme="sydney"] .deco-btn.active,
+:root[data-city-theme="sydney"] .explorer-tab-btn.active,
+:root[data-city-theme="sydney"] .filter-chip-btn.active,
+:root[data-city-theme="sydney"] .city-selector-btn.active {
+  background: linear-gradient(135deg, rgba(224, 109, 59, 0.48), rgba(246, 185, 59, 0.28));
+  border-color: #f6b93b;
+  color: #fff6e5;
+  box-shadow: 0 0 12px rgba(224, 109, 59, 0.4);
+}
+
+/* Spotlight & Skyline boxes in warm Uluru ochre & harbour teal */
+:root[data-city-theme="sydney"] .explorer-spotlight-card,
+:root[data-city-theme="sydney"] .station-explorer-card,
+:root[data-city-theme="sydney"] .station-search-row {
+  border-radius: 10px;
+  background: rgba(24, 11, 7, 0.72);
+  border-color: rgba(224, 109, 59, 0.42);
+}
+
+:root[data-city-theme="sydney"] .skyline-silhouette-box {
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(180, 72, 34, 0.35) 0%, rgba(12, 82, 120, 0.38) 60%, rgba(24, 11, 7, 0.85) 100%);
+  border-color: rgba(246, 185, 59, 0.42);
+}
+
+/* Timeline scrubber track & circular waterhole target thumb */
+:root[data-city-theme="sydney"] .timeline-range-input {
+  border-radius: 999px;
+  height: 7px;
+  background: linear-gradient(
+    90deg,
+    #e06d3b 0%,
+    #f6b93b 50%,
+    #00a896 var(--progress, 100%),
+    rgba(255, 255, 255, 0.12) var(--progress, 100%)
+  );
+}
+
+:root[data-city-theme="sydney"] .timeline-range-input::-webkit-slider-thumb {
+  border-radius: 50%;
+  transform: none;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, #180c07 25%, #f6b93b 28%, #f6b93b 55%, #e06d3b 58%);
+  border: 2px solid #fbf3e4;
+  box-shadow: 0 0 14px rgba(246, 185, 59, 0.9);
+}
+
+:root[data-city-theme="sydney"] .milestone-diamond {
+  border-radius: 50%;
+  transform: none;
+  width: 7px;
+  height: 7px;
+}
+
+:root[data-city-theme="sydney"] .city-cultural-banner {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(196, 77, 36, 0.36) 0%, rgba(28, 13, 8, 0.88) 65%, rgba(0, 168, 150, 0.24) 100%);
+  border: 1.5px solid rgba(246, 185, 59, 0.62);
+  position: relative;
+  padding-bottom: 10px;
+}
+
+:root[data-city-theme="sydney"] .city-cultural-banner::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 2px;
+  height: 5px;
+  background-image: var(--sydney-songline-border);
+  background-size: 32px 5px;
+  background-repeat: repeat-x;
+}
+

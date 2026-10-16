@@ -15,6 +15,7 @@
  */
 
 import { projectLatLon, SEINE_CENTERLINE_LATLON } from './parisGeoData';
+import { ACTIVE_PIPELINE_CITY_DATASET } from '../cities/activeCityRuntime';
 
 export interface HistoricalMilestone {
   year: number;
@@ -46,7 +47,7 @@ export interface ParisMonumentData {
   description: string;
 }
 
-export const TIMELINE_MILESTONES: HistoricalMilestone[] = [
+const DEFAULT_PARIS_MILESTONES: HistoricalMilestone[] = [
   {
     year: 1900,
     shortLabel: '1900',
@@ -104,7 +105,15 @@ export const TIMELINE_MILESTONES: HistoricalMilestone[] = [
   }
 ];
 
-export const HISTORICAL_ERAS: HistoricalEra[] = [
+export const TIMELINE_MILESTONES: HistoricalMilestone[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.milestones.map((ms) => ({
+      year: Math.max(1900, Math.min(2026, ms.year)),
+      shortLabel: ms.title ?? ms.shortLabel ?? String(ms.year),
+      headline: ms.description ?? ms.headline ?? ms.title ?? String(ms.year)
+    }))
+  : DEFAULT_PARIS_MILESTONES;
+
+const DEFAULT_PARIS_ERAS: HistoricalEra[] = [
   {
     startYear: 1900,
     endYear: 1905,
@@ -197,6 +206,17 @@ export const HISTORICAL_ERAS: HistoricalEra[] = [
     ]
   }
 ];
+
+export const HISTORICAL_ERAS: HistoricalEra[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.eras.map((e) => ({
+      startYear: e.yearRange[0],
+      endYear: e.yearRange[1],
+      eraTag: e.tagline,
+      title: e.name,
+      description: e.summary,
+      urbanChanges: [e.summary]
+    }))
+  : DEFAULT_PARIS_ERAS;
 
 const RAW_MONUMENTS: Omit<ParisMonumentData, 'x' | 'z'>[] = [
   {
@@ -467,10 +487,24 @@ const RAW_MONUMENTS: Omit<ParisMonumentData, 'x' | 'z'>[] = [
   }
 ];
 
-export const PARIS_MONUMENTS: ParisMonumentData[] = RAW_MONUMENTS.map((m) => {
-  const { x, z } = projectLatLon(m.lat, m.lon);
-  return { ...m, x, z };
-});
+export const PARIS_MONUMENTS: ParisMonumentData[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.monuments.map((m) => ({
+      id: m.id,
+      name: m.name,
+      lat: m.lat,
+      lon: m.lon,
+      x: m.x,
+      z: m.z,
+      builtYear: m.completedYear ?? m.year,
+      radius: 3.4,
+      style: m.architecturalStyle || m.architect,
+      arrondissement: m.metroConnection || ACTIVE_PIPELINE_CITY_DATASET!.name,
+      description: m.historicalSummary || m.fact
+    }))
+  : RAW_MONUMENTS.map((m) => {
+      const { x, z } = projectLatLon(m.lat, m.lon);
+      return { ...m, x, z };
+    });
 
 export function getEraForYear(year: number): HistoricalEra {
   for (const era of HISTORICAL_ERAS) {
@@ -503,7 +537,7 @@ interface TopographicHill {
  * Real topographic hills (Buttes) and plateaus of the Paris Basin (Cuvette Parisienne)
  * at true 1:1 vertical scale (1.0 world unit = 89.3 meters above the 28m ASL Seine river datum).
  */
-const PARIS_TOPOGRAPHIC_HILLS: TopographicHill[] = [
+const DEFAULT_PARIS_TOPOGRAPHIC_HILLS: TopographicHill[] = [
   // Butte Montmartre (130m ASL -> +102m above Seine = +1.15 world units)
   { cx: 1.69, cz: -34.08, height: 1.15, rx: 10.8, rz: 7.8 },
   // Montmartre / Clignancourt / Poissonniers broader northern shoulder
@@ -527,6 +561,20 @@ const PARIS_TOPOGRAPHIC_HILLS: TopographicHill[] = [
   // Meudon / Clamart / Châtillon Escarpment (South-West Plateau, 155m ASL -> +1.22 world units)
   { cx: -58.0, cz: 68.0, height: 1.22, rx: 32.0, rz: 16.0 }
 ];
+
+const PARIS_TOPOGRAPHIC_HILLS: TopographicHill[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.topography.map((peak) => {
+      const proj = projectLatLon(peak.lat, peak.lon);
+      const unitsPerKm = ACTIVE_PIPELINE_CITY_DATASET!.geo.worldUnitsPerKm ?? 10.5;
+      return {
+        cx: peak.x ?? proj.x,
+        cz: peak.z ?? proj.z,
+        height: Math.min(1.4, (peak.peakElevationMeters / 89.3) * 0.45),
+        rx: Math.max(8.0, (peak.radiusMeters / 1000) * unitsPerKm),
+        rz: Math.max(8.0, (peak.radiusMeters / 1000) * unitsPerKm)
+      };
+    })
+  : DEFAULT_PARIS_TOPOGRAPHIC_HILLS;
 
 // Exact 1:1 Seine river valley centerline derived directly from SEINE_CENTERLINE_LATLON
 // so the river channel, islands, and quaysides (especially around Trocadéro / Eiffel Tower / Passy) stay flat at y = 0.0
@@ -884,14 +932,36 @@ const RAW_NATURALISATION_TOUR_STOPS: Omit<ParisNaturalisationTourStop, 'x' | 'z'
   }
 ];
 
-export const PARIS_NATURALISATION_TOUR_STOPS: ParisNaturalisationTourStop[] =
-  RAW_NATURALISATION_TOUR_STOPS.map((stop) => {
-    const { x, z } = projectLatLon(stop.lat, stop.lon);
-    return {
-      ...stop,
-      x,
-      z
-    };
-  });
+export const PARIS_NATURALISATION_TOUR_STOPS: ParisNaturalisationTourStop[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.tourStops.map((stop, idx) => {
+      const cityName = ACTIVE_PIPELINE_CITY_DATASET!.name;
+      return {
+        id: stop.id,
+        stopNumber: idx + 1,
+        title: stop.title,
+        historicalDate: String(stop.year),
+        timelineYear: Math.max(1900, Math.min(2026, stop.year)),
+        locationName: stop.title.split(':')[0].trim(),
+        arrondissement: cityName,
+        lat: stop.lat,
+        lon: stop.lon,
+        x: stop.x,
+        z: stop.z,
+        radiusScale: 1.65,
+        monumentId: stop.highlightMonumentId,
+        stationId: undefined,
+        interviewQuestion: `How did ${stop.title.split(':')[0].trim()} shape the urban and transit history of ${cityName}?`,
+        fact: stop.narrative
+      };
+    })
+  : RAW_NATURALISATION_TOUR_STOPS.map((stop) => {
+      const { x, z } = projectLatLon(stop.lat, stop.lon);
+      return {
+        ...stop,
+        x,
+        z
+      };
+    });
+
 
 

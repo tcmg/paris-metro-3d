@@ -37,6 +37,7 @@ export interface TSLInstancedBasicMaterialOptions {
   polygonOffsetFactor?: number;
   polygonOffsetUnits?: number;
   stationDotOutline?: boolean;
+  enableProximityBias?: boolean;
 }
 
 export interface TSLInstancedStandardMaterialOptions {
@@ -44,6 +45,32 @@ export interface TSLInstancedStandardMaterialOptions {
   emissive?: THREE.ColorRepresentation;
   roughness?: number;
   metalness?: number;
+}
+
+/**
+ * Applies a zero-parallax clip-space depth bias (`attribute float aProximityBias`)
+ * to a 3-lane ground strip material so the strip renders semi-transparently in front of
+ * trees and buildings immediately straddling the line (within ~25m / 1 building height),
+ * while foreground buildings further away and all 3D Monuments naturally occlude it.
+ */
+export function applyProximityDepthBiasShaderHook(
+  mat: THREE.MeshBasicMaterial
+): THREE.MeshBasicMaterial {
+  mat.customProgramCacheKey = () => 'tsl-ground-strip-proximity-bias';
+  mat.onBeforeCompile = (shader) => {
+    shader.vertexShader =
+      `attribute float aProximityBias;\n` +
+      shader.vertexShader.replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        if (aProximityBias > 0.001) {
+          float biasedViewZ = min(-0.25, mvPosition.z + aProximityBias);
+          vec4 biasedClip = projectionMatrix * vec4(mvPosition.xy, biasedViewZ, 1.0);
+          gl_Position.z = biasedClip.z * (gl_Position.w / max(0.0001, biasedClip.w));
+        }`
+      );
+  };
+  return mat;
 }
 
 /**
@@ -66,10 +93,14 @@ export function createTSLInstancedBasicMaterial(
     polygonOffsetUnits: opts.polygonOffsetUnits ?? 0
   });
 
+  mat.customProgramCacheKey = () =>
+    `tsl-instanced-basic-dot:${Boolean(opts.stationDotOutline)}-prox:${Boolean(opts.enableProximityBias)}`;
+
   mat.onBeforeCompile = (shader) => {
+    const proxAttr = opts.enableProximityBias ? `attribute float aInstanceProximityBias;\n` : '';
     if (opts.stationDotOutline) {
       shader.vertexShader =
-        `attribute float aInstanceOpacity;\nvarying float vInstanceOpacity;\nvarying vec2 vStationDotUv;\n` +
+        `${proxAttr}attribute float aInstanceOpacity;\nvarying float vInstanceOpacity;\nvarying vec2 vStationDotUv;\n` +
         shader.vertexShader.replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>\nvInstanceOpacity = aInstanceOpacity;\nvStationDotUv = uv;`
@@ -82,22 +113,18 @@ export function createTSLInstancedBasicMaterial(
           `#include <color_fragment>
           if (vInstanceOpacity <= 0.002) discard;
           float rDot = length(vStationDotUv - vec2(0.5)) * 2.0;
-          float aaDot = max(0.02, fwidth(rDot));
+          float aaDot = max(0.025, fwidth(rDot));
           if (rDot > 1.0 + aaDot) discard;
           float outerMask = 1.0 - smoothstep(1.0 - aaDot, 1.0 + aaDot, rDot);
-          vec3 baseLineCol = diffuseColor.rgb;
-          vec3 burnedOutlineCol = pow(clamp(baseLineCol, 0.02, 1.0), vec3(1.38)) * 0.13 + vec3(0.012);
-          vec3 ivoryCol = vec3(0.99, 0.97, 0.92);
-          float inIvoryRing = 1.0 - smoothstep(0.68 - aaDot, 0.68 + aaDot, rDot);
-          float inCenterDot = 1.0 - smoothstep(0.42 - aaDot, 0.42 + aaDot, rDot);
-          vec3 stationCol = mix(burnedOutlineCol, ivoryCol, inIvoryRing);
-          stationCol = mix(stationCol, baseLineCol, inCenterDot);
-          diffuseColor.rgb = stationCol;
+          vec3 outlineCol = diffuseColor.rgb;
+          vec3 whiteCenterCol = vec3(0.99, 0.99, 0.98);
+          float inWhiteCenter = 1.0 - smoothstep(0.54 - aaDot, 0.54 + aaDot, rDot);
+          diffuseColor.rgb = mix(outlineCol, whiteCenterCol, inWhiteCenter);
           diffuseColor.a *= vInstanceOpacity * outerMask;`
         );
     } else {
       shader.vertexShader =
-        `attribute float aInstanceOpacity;\nvarying float vInstanceOpacity;\n` +
+        `${proxAttr}attribute float aInstanceOpacity;\nvarying float vInstanceOpacity;\n` +
         shader.vertexShader.replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>\nvInstanceOpacity = aInstanceOpacity;`
@@ -111,6 +138,18 @@ export function createTSLInstancedBasicMaterial(
           if (vInstanceOpacity <= 0.002) discard;
           diffuseColor.a *= vInstanceOpacity;`
         );
+    }
+
+    if (opts.enableProximityBias) {
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        if (aInstanceProximityBias > 0.001) {
+          float biasedViewZ = min(-0.25, mvPosition.z + aInstanceProximityBias);
+          vec4 biasedClip = projectionMatrix * vec4(mvPosition.xy, biasedViewZ, 1.0);
+          gl_Position.z = biasedClip.z * (gl_Position.w / max(0.0001, biasedClip.w));
+        }`
+      );
     }
   };
 

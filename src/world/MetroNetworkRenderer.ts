@@ -22,9 +22,13 @@ import {
   MetroStationData,
   STATIONS_MAP
 } from '../data/parisMetroData';
-import { getParisTerrainElevation } from '../data/parisHistoricalData';
+import {
+  getParisTerrainElevation,
+  PARIS_MONUMENTS
+} from '../data/parisHistoricalData';
 import { applyPaperModelShaderHook } from './ParisMonumentsBuilder';
 import {
+  applyProximityDepthBiasShaderHook,
   createTSLInstancedBasicMaterial,
   createTSLInstancedStandardMaterial,
   WebGPUStationComputeAccelerator,
@@ -42,6 +46,8 @@ interface SegmentRuntime {
   tubeMaterial: THREE.MeshStandardMaterial;
   surfaceTraceMesh?: THREE.Mesh;
   surfaceTraceMat?: THREE.MeshBasicMaterial;
+  surfaceProximityMesh?: THREE.Mesh;
+  surfaceProximityMat?: THREE.MeshBasicMaterial;
   lightCurtainMesh: THREE.Mesh;
   lightCurtainMat: THREE.MeshBasicMaterial;
   viaductMesh?: THREE.Group;
@@ -64,7 +70,7 @@ export interface StationRuntime {
   nodeHeight: number;
   isHub: boolean;
   primaryColor: THREE.Color;
-  lightColIndices: { lineId: string; colIdx: number; color: THREE.Color }[];
+  primaryBurnedColor: THREE.Color;
 }
 
 export class MetroNetworkRenderer {
@@ -85,10 +91,10 @@ export class MetroNetworkRenderer {
   private shaftOpacityAttr!: THREE.InstancedBufferAttribute;
   private surfaceRingInstanced!: THREE.InstancedMesh;
   private ringOpacityAttr!: THREE.InstancedBufferAttribute;
-  private lightColumnInstanced!: THREE.InstancedMesh;
-  private lightColOpacityAttr!: THREE.InstancedBufferAttribute;
+  private surfaceRingProximityInstanced!: THREE.InstancedMesh;
+  private ringProximityOpacityAttr!: THREE.InstancedBufferAttribute;
   private lineColorLookup = new Map<string, THREE.Color>();
-  private lineGlowColorLookup = new Map<string, THREE.Color>();
+  private lineBurnedColorLookup = new Map<string, THREE.Color>();
   private webgpuCompute?: WebGPUStationComputeAccelerator;
 
   private hoverReticleGroup = new THREE.Group();
@@ -123,6 +129,10 @@ export class MetroNetworkRenderer {
   private showGhostStations = true;
   private showLightColumns = true;
   private liftProgress = 0.0;
+  private liveMetroLinesById: Record<
+    string,
+    { trainSpeedMultiplier: number; serviceQualityPercent: number }
+  > | null = null;
 
   constructor() {
     this.rootGroup.name = 'ParisMetroNetwork3D';
@@ -137,7 +147,7 @@ export class MetroNetworkRenderer {
     for (const l of METRO_LINES) {
       const c = new THREE.Color(l.color);
       this.lineColorLookup.set(l.id, c);
-      this.lineGlowColorLookup.set(l.id, this.computeCurtainGlowColor(c));
+      this.lineBurnedColorLookup.set(l.id, this.computeBurnedLineColor(c));
     }
 
     this.lightCurtainTexture = this.createLightCurtainTexture();
@@ -197,12 +207,28 @@ export class MetroNetworkRenderer {
   }
 
   /**
-   * Computes the local ground surface height at (x, z) just above the terrain height itself
-   * so the flat 3-lane Metro ground line hugs the terrain while passing naturally beneath
-   * buildings, monuments, trees, and Seine bridges.
+   * Computes the local ground surface height at (x, z) just above the terrain mesh and street ribbons:
+   * - Accounts for both the analytic `getParisTerrainElevation(x, z)` and the exact `2.0 × 2.0`
+   *   `PlaneGeometry(340, 260, 170, 130)` triangle chord of `terrainMesh` (which otherwise sits higher
+   *   than the analytic curve across concave valley/hill slopes), plus `+0.062` street-ribbon clearance
+   *   above OSM Grand Boulevards (`+0.050`) and parks (`+0.033`).
    */
   public getGroundSurfaceElevation(x: number, z: number): number {
-    return getParisTerrainElevation(x, z) + 0.044;
+    const exactElev = getParisTerrainElevation(x, z);
+    const cell = 2.0;
+    const x0 = Math.floor(x / cell) * cell;
+    const z0 = Math.floor(z / cell) * cell;
+    const tx = (x - x0) / cell;
+    const tz = (z - z0) / cell;
+    const e00 = getParisTerrainElevation(x0, z0);
+    const e10 = getParisTerrainElevation(x0 + cell, z0);
+    const e01 = getParisTerrainElevation(x0, z0 + cell);
+    const e11 = getParisTerrainElevation(x0 + cell, z0 + cell);
+    const triElev =
+      tx + tz <= 1.0
+        ? e00 + tx * (e10 - e00) + tz * (e01 - e00)
+        : e11 + (1.0 - tx) * (e01 - e11) + (1.0 - tz) * (e10 - e11);
+    return Math.max(exactElev, triElev) + 0.062;
   }
 
   /**
@@ -239,6 +265,37 @@ export class MetroNetworkRenderer {
   }
 
   /**
+   * Computes a monument-protected proximity depth bias (in world units along the camera view ray)
+   * at ground coordinate `(x, z)`:
+   * - On regular streets and blocks (`0.56` world units ≈ 1 Haussmannian building / tree height),
+   *   the semi-transparent proximity pass renders in front of local trees and buildings immediately
+   *   straddling the line (~25m), while foreground buildings further away naturally occlude it.
+   * - Directly inside the 3D Monument mesh footprint (`innerR ≈ 0.95` world units), the bias smoothly
+   *   drops to `0.0` so that 3D Monuments always strictly occlude the Metro ground strip.
+   */
+  private getMonumentSafeProximityBias(x: number, z: number): number {
+    const MAX_PROXIMITY_BIAS = 0.56;
+    let minFactor = 1.0;
+    for (let i = 0; i < PARIS_MONUMENTS.length; i++) {
+      const m = PARIS_MONUMENTS[i];
+      const dist = Math.hypot(x - m.x, z - m.z);
+      const innerR = Math.min(1.10, Math.max(0.75, m.radius * 0.26));
+      const outerR = innerR + 0.45;
+      if (dist <= innerR) {
+        return 0.0;
+      }
+      if (dist < outerR) {
+        const t = (dist - innerR) / (outerR - innerR);
+        const smooth = t * t * (3.0 - 2.0 * t);
+        if (smooth < minFactor) {
+          minFactor = smooth;
+        }
+      }
+    }
+    return MAX_PROXIMITY_BIAS * minFactor;
+  }
+
+  /**
    * Builds a crisp 3-lane two-tone horizontal ground strip (plus 3D side curb edges)
    * that hugs the exact 3D terrain & street topography at every sample point:
    * - Center Inner Lane (40% width): True RATP line colour (`innerColor`)
@@ -255,6 +312,7 @@ export class MetroNetworkRenderer {
     const positions: number[] = [];
     const colors: number[] = [];
     const uvs: number[] = [];
+    const proximityBiases: number[] = [];
     const indices: number[] = [];
 
     const halfW = width * 0.5;
@@ -291,6 +349,7 @@ export class MetroNetworkRenderer {
       const topY = this.getGroundSurfaceElevation(p.x, p.z);
       const crownY = topY + 0.003;
       const botY = topY - thickness;
+      const proxBias = this.getMonumentSafeProximityBias(p.x, p.z);
 
       // 8 vertices per cross-section with unshared hard-edged vertex colors between the 3 lanes:
       // 0, 1: Left outer lane (-halfW .. -innerHalfW) -> Burned Outer Colour
@@ -330,6 +389,17 @@ export class MetroNetworkRenderer {
         u, 1.0
       );
 
+      proximityBiases.push(
+        proxBias,
+        proxBias,
+        proxBias,
+        proxBias,
+        proxBias,
+        proxBias,
+        proxBias,
+        proxBias
+      );
+
       if (i < pts.length - 1) {
         const b = i * 8;
         const n = (i + 1) * 8;
@@ -349,6 +419,7 @@ export class MetroNetworkRenderer {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setAttribute('aProximityBias', new THREE.Float32BufferAttribute(proximityBiases, 1));
     geo.setIndex(indices);
     geo.computeVertexNormals();
     return geo;
@@ -546,17 +617,37 @@ export class MetroNetworkRenderer {
           burnedOuterColor,
           0.32
         );
+
+        // Pass 1: Proximity-only semi-transparent ground strip (renders in front of local trees & buildings
+        // within ~25m / 1 building height, while foreground cityscape and all 3D Monuments naturally occlude it)
+        const surfaceProximityMat = applyProximityDepthBiasShaderHook(
+          new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.42,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          })
+        );
+        const surfaceProximityMesh = new THREE.Mesh(surfGeo, surfaceProximityMat);
+        surfaceProximityMesh.renderOrder = 2;
+        this.surfaceGroup.add(surfaceProximityMesh);
+
+        // Pass 2: Crisp unoccluded ground strip on open streets & boulevards
         const surfaceTraceMat = new THREE.MeshBasicMaterial({
           color: 0xffffff,
           vertexColors: true,
           transparent: true,
-          opacity: 0.96,
+          opacity: 0.94,
           side: THREE.DoubleSide,
+          depthWrite: false,
           polygonOffset: true,
-          polygonOffsetFactor: -1,
-          polygonOffsetUnits: -1
+          polygonOffsetFactor: -4,
+          polygonOffsetUnits: -4
         });
         const surfaceTraceMesh = new THREE.Mesh(surfGeo, surfaceTraceMat);
+        surfaceTraceMesh.renderOrder = 3;
         this.surfaceGroup.add(surfaceTraceMesh);
 
         // Upward-Radiating Sky Light Curtain with guaranteed minimum height above terrain & viaducts
@@ -625,6 +716,8 @@ export class MetroNetworkRenderer {
           tubeMaterial,
           surfaceTraceMesh,
           surfaceTraceMat,
+          surfaceProximityMesh,
+          surfaceProximityMat,
           lightCurtainMesh,
           lightCurtainMat,
           viaductMesh,
@@ -672,21 +765,15 @@ export class MetroNetworkRenderer {
     }
 
     const stationCount = ALL_STATIONS.length;
-    const totalLightColumns = ALL_STATIONS.reduce(
-      (acc, st) => acc + Math.max(1, st.lines.length),
-      0
-    );
     const hitGeo = new THREE.SphereGeometry(0.82, 10, 10);
     const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
-    // Shared unit geometries for the 4 GPU-instanced station layers (collapsing 1,232+ meshes into 4 draw calls!)
+    // Shared unit geometries for the GPU-instanced station layers
     const unitSubGeo = new THREE.CylinderGeometry(1.0, 1.0, 1.0, 16);
     const unitShaftGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.0, 8);
     const unitRingGeo = new THREE.CircleGeometry(0.76, 32);
     unitRingGeo.rotateX(-Math.PI * 0.5);
-    // Unit-height open-ended sky light column (base at y = 0.0, top at y = 1.0) so `sy` is exact height above terrain!
-    const skyColumnGeo = new THREE.CylinderGeometry(0.15, 0.25, 1.0, 12, 1, true);
-    skyColumnGeo.translate(0, 0.5, 0);
+    const unitRingProximityGeo = unitRingGeo.clone();
 
     // 1. Instanced Subterranean/Viaduct Station Platform Cylinders
     this.subNodeOpacityEmissiveAttr = new THREE.InstancedBufferAttribute(
@@ -715,52 +802,59 @@ export class MetroNetworkRenderer {
     this.shaftInstanced.frustumCulled = false;
     this.rootGroup.add(this.shaftInstanced);
 
-    // 3. Instanced Street-Level Station Circle Dots with Burned Outlines on the 3-lane lanes
+    // 3a. Proximity-Biased Semi-Transparent Station Circle Dots (visible through local trees/buildings within ~25m)
+    this.ringProximityOpacityAttr = new THREE.InstancedBufferAttribute(
+      new Float32Array(stationCount),
+      1
+    );
+    const ringProximityBiasAttr = new THREE.InstancedBufferAttribute(
+      new Float32Array(stationCount),
+      1
+    );
+    unitRingProximityGeo.setAttribute('aInstanceOpacity', this.ringProximityOpacityAttr);
+    unitRingProximityGeo.setAttribute('aInstanceProximityBias', ringProximityBiasAttr);
+    const ringProximityMat = createTSLInstancedBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      stationDotOutline: true,
+      enableProximityBias: true
+    });
+    this.surfaceRingProximityInstanced = new THREE.InstancedMesh(
+      unitRingProximityGeo,
+      ringProximityMat,
+      stationCount
+    );
+    this.surfaceRingProximityInstanced.renderOrder = 4;
+    this.surfaceRingProximityInstanced.frustumCulled = false;
+    this.surfaceGroup.add(this.surfaceRingProximityInstanced);
+
+    // 3b. Unoccluded Crisp Street-Level Station Circle Dots with Burned Outlines on open streets
     this.ringOpacityAttr = new THREE.InstancedBufferAttribute(new Float32Array(stationCount), 1);
     unitRingGeo.setAttribute('aInstanceOpacity', this.ringOpacityAttr);
     const ringMat = createTSLInstancedBasicMaterial({
       color: 0xffffff,
       side: THREE.DoubleSide,
+      depthWrite: false,
       polygonOffset: true,
-      polygonOffsetFactor: -3,
-      polygonOffsetUnits: -3,
+      polygonOffsetFactor: -6,
+      polygonOffsetUnits: -6,
       stationDotOutline: true
     });
     this.surfaceRingInstanced = new THREE.InstancedMesh(unitRingGeo, ringMat, stationCount);
+    this.surfaceRingInstanced.renderOrder = 5;
     this.surfaceRingInstanced.frustumCulled = false;
     this.surfaceGroup.add(this.surfaceRingInstanced);
 
-    // 4. Instanced Upward-Radiating Sky Light Columns (per-line at every station so no line is ever hidden at hubs)
-    this.lightColOpacityAttr = new THREE.InstancedBufferAttribute(
-      new Float32Array(totalLightColumns),
-      1
-    );
-    skyColumnGeo.setAttribute('aInstanceOpacity', this.lightColOpacityAttr);
-    const lightColMat = createTSLInstancedBasicMaterial({
-      color: 0xffffff,
-      map: this.lightCurtainTexture,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    this.lightColumnInstanced = new THREE.InstancedMesh(
-      skyColumnGeo,
-      lightColMat,
-      totalLightColumns
-    );
-    this.lightColumnInstanced.frustumCulled = false;
-    this.lightColumnsGroup.add(this.lightColumnInstanced);
-
     const hubNodeColor = new THREE.Color(0xebd9a0);
     const hubShaftColor = new THREE.Color(0xe5c158);
-    const hubRingColor = new THREE.Color(0xffdf70);
+    const multiLineBlackColor = new THREE.Color(0x111318);
     const stationStaticData = new Float32Array(stationCount * 8);
 
     const subMatArr = this.subNodeInstanced.instanceMatrix.array as Float32Array;
     const shaftMatArr = this.shaftInstanced.instanceMatrix.array as Float32Array;
     const ringMatArr = this.surfaceRingInstanced.instanceMatrix.array as Float32Array;
-    const lightColMatArr = this.lightColumnInstanced.instanceMatrix.array as Float32Array;
-
-    let colCursor = 0;
+    const ringProxMatArr = this.surfaceRingProximityInstanced.instanceMatrix.array as Float32Array;
 
     for (let idx = 0; idx < stationCount; idx++) {
       const st = ALL_STATIONS[idx];
@@ -772,6 +866,8 @@ export class MetroNetworkRenderer {
       const firstLineId = st.lines[0] ?? '1';
       const primaryColorHex = lineColorMap.get(firstLineId) ?? '#FFCD00';
       const primaryColor = new THREE.Color(primaryColorHex);
+      const primaryBurnedColor =
+        this.lineBurnedColorLookup.get(firstLineId) ?? this.computeBurnedLineColor(primaryColor);
 
       let minDepth = -2.2;
       let maxDepth = -2.2;
@@ -785,6 +881,7 @@ export class MetroNetworkRenderer {
       }
       const avgY = st.elevated ? surfaceElev + 1.35 : (minDepth + maxDepth) * 0.5;
       const isHub = st.lines.length >= 3;
+      const isMultiLine = st.lines.length > 1;
       const radius = isHub ? 0.65 : st.lines.length === 2 ? 0.52 : 0.4;
       const nodeHeight = st.elevated ? 0.45 : Math.max(0.55, Math.abs(maxDepth - minDepth) + 0.6);
 
@@ -821,7 +918,7 @@ export class MetroNetworkRenderer {
       this.shaftInstanced.setColorAt(idx, isHub ? hubShaftColor : primaryColor);
       this.shaftOpacityAttr.setX(idx, 0.38);
 
-      // 3. Surface Station Circle Dot with Outline static matrix & color
+      // 3. Surface Station Circle Dot with Outline static matrix & color (both crisp & proximity-biased passes)
       const ringSurfaceY = groundSurfaceY + 0.009;
       writeTranslationScaleMatrix(
         ringMatArr,
@@ -833,42 +930,24 @@ export class MetroNetworkRenderer {
         1.0,
         radius
       );
-      this.surfaceRingInstanced.setColorAt(idx, isHub ? hubRingColor : primaryColor);
-      this.ringOpacityAttr.setX(idx, 0.98);
+      writeTranslationScaleMatrix(
+        ringProxMatArr,
+        idx,
+        st.x,
+        ringSurfaceY,
+        st.z,
+        radius,
+        1.0,
+        radius
+      );
+      const initialRingOutlineColor = isMultiLine ? multiLineBlackColor : primaryBurnedColor;
+      this.surfaceRingInstanced.setColorAt(idx, initialRingOutlineColor);
+      this.surfaceRingProximityInstanced.setColorAt(idx, initialRingOutlineColor);
+      this.ringOpacityAttr.setX(idx, 0.96);
+      this.ringProximityOpacityAttr.setX(idx, 0.52);
+      ringProximityBiasAttr.setX(idx, this.getMonumentSafeProximityBias(st.x, st.z));
 
-      // 4. Sky Light Columns: guaranteed minimum height above terrain (or above viaduct for elevated stations)
-      const stationLines = st.lines.length > 0 ? st.lines : [firstLineId];
-      const colBaseY = st.elevated ? surfaceElev + 1.38 : groundSurfaceY + 0.01;
-      const minColHeightAboveBase = isHub ? 4.25 : 3.75;
-      const lightColIndices: { lineId: string; colIdx: number; color: THREE.Color }[] = [];
-
-      for (let lIdx = 0; lIdx < stationLines.length; lIdx++) {
-        const lineId = stationLines[lIdx];
-        const colIdx = colCursor++;
-        const glowCol =
-          this.lineGlowColorLookup.get(lineId) ??
-          this.computeCurtainGlowColor(
-            new THREE.Color(lineColorMap.get(lineId) ?? primaryColorHex)
-          );
-        // Concentric slight radial layering for multi-line hubs so every line's column glow is visible
-        const colScaleXZ = (isHub ? 1.28 : 1.05) + lIdx * 0.08;
-        const colHeight = minColHeightAboveBase + lIdx * 0.12;
-        writeTranslationScaleMatrix(
-          lightColMatArr,
-          colIdx,
-          st.x,
-          colBaseY,
-          st.z,
-          colScaleXZ,
-          colHeight,
-          colScaleXZ
-        );
-        this.lightColumnInstanced.setColorAt(colIdx, glowCol);
-        this.lightColOpacityAttr.setX(colIdx, isHub ? 0.90 : 0.86);
-        lightColIndices.push({ lineId, colIdx, color: glowCol });
-      }
-
-      // 5. Optional Ghost Station (Station Fantôme) Crimson Halo
+      // 4. Optional Ghost Station (Station Fantôme) Crimson Halo
       let ghostHaloMesh: THREE.Mesh | undefined;
       if (st.isGhostStation || st.closedYear) {
         const ghostGeo = new THREE.RingGeometry(0.32, 0.52, 6);
@@ -885,7 +964,7 @@ export class MetroNetworkRenderer {
         group.add(ghostHaloMesh);
       }
 
-      // 6. Invisible Raycast Hit Target
+      // 5. Invisible Raycast Hit Target
       const hitMesh = new THREE.Mesh(hitGeo, hitMat);
       hitMesh.position.set(0, (avgY + groundSurfaceY + 0.6) * 0.5, 0);
       hitMesh.scale.set(1, Math.max(1.5, Math.abs(groundSurfaceY + 0.8 - avgY) * 0.52), 1);
@@ -911,20 +990,21 @@ export class MetroNetworkRenderer {
         nodeHeight,
         isHub,
         primaryColor,
-        lightColIndices
+        primaryBurnedColor
       });
     }
 
     this.subNodeInstanced.instanceMatrix.needsUpdate = true;
     this.shaftInstanced.instanceMatrix.needsUpdate = true;
     this.surfaceRingInstanced.instanceMatrix.needsUpdate = true;
-    this.lightColumnInstanced.instanceMatrix.needsUpdate = true;
+    this.surfaceRingProximityInstanced.instanceMatrix.needsUpdate = true;
+    ringProximityBiasAttr.needsUpdate = true;
     if (this.subNodeInstanced.instanceColor) this.subNodeInstanced.instanceColor.needsUpdate = true;
     if (this.shaftInstanced.instanceColor) this.shaftInstanced.instanceColor.needsUpdate = true;
     if (this.surfaceRingInstanced.instanceColor)
       this.surfaceRingInstanced.instanceColor.needsUpdate = true;
-    if (this.lightColumnInstanced.instanceColor)
-      this.lightColumnInstanced.instanceColor.needsUpdate = true;
+    if (this.surfaceRingProximityInstanced.instanceColor)
+      this.surfaceRingProximityInstanced.instanceColor.needsUpdate = true;
 
     // Initialize WebGPU WGSL Compute Accelerator (with automatic WebGL2 fallback)
     this.webgpuCompute = new WebGPUStationComputeAccelerator(stationStaticData, stationCount);
@@ -1190,6 +1270,9 @@ export class MetroNetworkRenderer {
       if (seg.surfaceTraceMesh) {
         seg.surfaceTraceMesh.visible = isActive;
       }
+      if (seg.surfaceProximityMesh) {
+        seg.surfaceProximityMesh.visible = isActive;
+      }
       if (seg.viaductMesh) {
         seg.viaductMesh.visible = isActive;
       }
@@ -1202,18 +1285,21 @@ export class MetroNetworkRenderer {
         seg.tubeMaterial.emissiveIntensity = isLineSelected ? 0.68 : 0.12;
         seg.lightCurtainMat.opacity = isLineSelected ? 0.82 : 0.12;
         if (seg.surfaceTraceMat) {
-          seg.surfaceTraceMat.opacity = isLineSelected ? 0.96 : 0.22;
+          seg.surfaceTraceMat.opacity = isLineSelected ? 0.94 : 0.20;
+        }
+        if (seg.surfaceProximityMat) {
+          seg.surfaceProximityMat.opacity = isLineSelected ? 0.42 : 0.09;
         }
       }
     }
 
-    // 2. Update GPU-instanced stations (4 instanced draw calls for all 308 stations)
+    // 2. Update GPU-instanced stations
     let activeStationsCount = 0;
     let closedGhostStationsCount = 0;
     const ghostCrimsonColor = new THREE.Color(0xff5e57);
     const hubNodeColor = new THREE.Color(0xebd9a0);
-    const hubRingColor = new THREE.Color(0xffdf70);
     const hubShaftColor = new THREE.Color(0xe5c158);
+    const multiLineBlackColor = new THREE.Color(0x111318);
 
     for (const stRun of this.stationRuntimes) {
       const idx = stRun.index;
@@ -1227,9 +1313,7 @@ export class MetroNetworkRenderer {
         this.subNodeOpacityEmissiveAttr.setXY(idx, 0.0, 0.0);
         this.shaftOpacityAttr.setX(idx, 0.0);
         this.ringOpacityAttr.setX(idx, 0.0);
-        for (const lc of stRun.lightColIndices) {
-          this.lightColOpacityAttr.setX(lc.colIdx, 0.0);
-        }
+        this.ringProximityOpacityAttr.setX(idx, 0.0);
         continue;
       }
 
@@ -1241,9 +1325,7 @@ export class MetroNetworkRenderer {
           this.subNodeOpacityEmissiveAttr.setXY(idx, 0.0, 0.0);
           this.shaftOpacityAttr.setX(idx, 0.0);
           this.ringOpacityAttr.setX(idx, 0.0);
-          for (const lc of stRun.lightColIndices) {
-            this.lightColOpacityAttr.setX(lc.colIdx, 0.0);
-          }
+          this.ringProximityOpacityAttr.setX(idx, 0.0);
           continue;
         }
         stRun.group.visible = true;
@@ -1253,15 +1335,9 @@ export class MetroNetworkRenderer {
         this.subNodeInstanced.setColorAt(idx, ghostCrimsonColor);
         this.subNodeOpacityEmissiveAttr.setXY(idx, 0.82, 0.85);
         this.surfaceRingInstanced.setColorAt(idx, ghostCrimsonColor);
-        for (let cIdx = 0; cIdx < stRun.lightColIndices.length; cIdx++) {
-          const lc = stRun.lightColIndices[cIdx];
-          this.lightColumnInstanced.setColorAt(lc.colIdx, ghostCrimsonColor);
-          this.lightColOpacityAttr.setX(
-            lc.colIdx,
-            this.showLightColumns && cIdx === 0 ? 0.68 : 0.0
-          );
-        }
+        this.surfaceRingProximityInstanced.setColorAt(idx, ghostCrimsonColor);
         this.ringOpacityAttr.setX(idx, 0.92);
+        this.ringProximityOpacityAttr.setX(idx, 0.46);
         this.shaftOpacityAttr.setX(idx, 0.38);
         continue;
       }
@@ -1274,10 +1350,12 @@ export class MetroNetworkRenderer {
 
       const matchesFilter = !selectedLineId || st.lines.includes(selectedLineId);
       const isHub = stRun.isHub;
+      const isMultiLine = st.lines.length > 1;
       const selectedLineColor =
         selectedLineId && st.lines.includes(selectedLineId)
           ? this.lineColorLookup.get(selectedLineId)
           : undefined;
+      const targetRingColor = isMultiLine ? multiLineBlackColor : stRun.primaryBurnedColor;
 
       this.subNodeInstanced.setColorAt(
         idx,
@@ -1289,47 +1367,28 @@ export class MetroNetworkRenderer {
         matchesFilter ? 0.75 : 0.15
       );
 
-      this.surfaceRingInstanced.setColorAt(
-        idx,
-        selectedLineColor ?? (isHub ? hubRingColor : stRun.primaryColor)
-      );
+      this.surfaceRingInstanced.setColorAt(idx, targetRingColor);
+      this.surfaceRingProximityInstanced.setColorAt(idx, targetRingColor);
       this.shaftInstanced.setColorAt(
         idx,
         selectedLineColor ?? (isHub ? hubShaftColor : stRun.primaryColor)
       );
 
-      for (const lc of stRun.lightColIndices) {
-        this.lightColumnInstanced.setColorAt(lc.colIdx, lc.color);
-        const colMatchesLine = !selectedLineId || lc.lineId === selectedLineId;
-        const lineOpened = activeLineSet.has(lc.lineId);
-        const colOpacity =
-          this.showLightColumns && lineOpened
-            ? colMatchesLine
-              ? isHub
-                ? 0.92
-                : 0.86
-              : 0.12
-            : 0.0;
-        this.lightColOpacityAttr.setX(lc.colIdx, colOpacity);
-      }
-
-      this.ringOpacityAttr.setX(
-        idx,
-        matchesFilter ? 0.98 : 0.20
-      );
+      this.ringOpacityAttr.setX(idx, matchesFilter ? 0.96 : 0.18);
+      this.ringProximityOpacityAttr.setX(idx, matchesFilter ? 0.52 : 0.10);
       this.shaftOpacityAttr.setX(idx, matchesFilter ? 0.44 : 0.08);
     }
 
     this.subNodeOpacityEmissiveAttr.needsUpdate = true;
     this.shaftOpacityAttr.needsUpdate = true;
     this.ringOpacityAttr.needsUpdate = true;
-    this.lightColOpacityAttr.needsUpdate = true;
+    this.ringProximityOpacityAttr.needsUpdate = true;
     if (this.subNodeInstanced.instanceColor) this.subNodeInstanced.instanceColor.needsUpdate = true;
     if (this.surfaceRingInstanced.instanceColor)
       this.surfaceRingInstanced.instanceColor.needsUpdate = true;
+    if (this.surfaceRingProximityInstanced.instanceColor)
+      this.surfaceRingProximityInstanced.instanceColor.needsUpdate = true;
     if (this.shaftInstanced.instanceColor) this.shaftInstanced.instanceColor.needsUpdate = true;
-    if (this.lightColumnInstanced.instanceColor)
-      this.lightColumnInstanced.instanceColor.needsUpdate = true;
 
     // Re-apply lift geometry to active stations
     this.setLiftProgress(this.liftProgress);
@@ -1436,7 +1495,16 @@ export class MetroNetworkRenderer {
     for (const seg of this.segments) {
       if (!seg.trainGroup.visible) continue;
 
-      const raw = (elapsedTime * seg.trainSpeed + seg.trainPhase) % 2.0;
+      let speedMult = 1.0;
+      if (this.liveMetroLinesById) {
+        const liveLine = this.liveMetroLinesById[seg.line.id];
+        if (liveLine) {
+          const qosFactor = Math.max(0.5, Math.min(1.05, (liveLine.serviceQualityPercent || 100) / 100));
+          speedMult = (liveLine.trainSpeedMultiplier || 1.0) * qosFactor;
+        }
+      }
+
+      const raw = (elapsedTime * seg.trainSpeed * speedMult + seg.trainPhase) % 2.0;
       const t = raw <= 1.0 ? 0.04 + raw * 0.92 : 0.04 + (2.0 - raw) * 0.92;
       const nextT = Math.min(0.99, Math.max(0.01, raw <= 1.0 ? t + 0.02 : t - 0.02));
 
@@ -1446,5 +1514,11 @@ export class MetroNetworkRenderer {
       seg.trainGroup.position.copy(pos);
       seg.trainGroup.lookAt(lookAtPos);
     }
+  }
+
+  public setLiveMetroData(
+    linesById: Record<string, { trainSpeedMultiplier: number; serviceQualityPercent: number }> | null
+  ): void {
+    this.liveMetroLinesById = linesById;
   }
 }

@@ -1,0 +1,49 @@
+{
+  "cityId": "nyc",
+  "cityName": "New York City",
+  "country": "United States",
+  "startedAt": "2026-10-16T11:02:11.994Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/nyc_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 279,
+        "waterLines": 12,
+        "parks": 7970,
+        "trees": 6000,
+        "roads": 7373,
+        "buildings": 100457,
+        "topographyPeaks": 4
+      }
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/districtsData.ts",
+      "lineCount": 5,
+      "terminusCount": 2,
+      "districtCount": 4
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/nyc_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/historicalData.ts",
+      "glbRelPath": "public/models/nyc_monuments.glb",
+      "glbExported": true,
+      "monumentCount": 8
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/nyc.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/index.ts"
+    }
+  },
+  "completedAt": "2026-10-16T11:27:54.273Z"
+}

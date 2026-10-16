@@ -22,6 +22,11 @@ import {
   PARIS_MONUMENTS,
   ParisMonumentData
 } from '../data/parisHistoricalData';
+import {
+  ACTIVE_CITY_ID,
+  ACTIVE_CITY_META,
+  ACTIVE_PIPELINE_CITY_DATASET
+} from '../cities/activeCityRuntime';
 
 export const MONUMENT_OUTLINE_LAYER = 2;
 
@@ -48,7 +53,7 @@ interface BlenderMonumentPlacement {
   maxYear: number;
 }
 
-const BLENDER_MONUMENT_PLACEMENTS: BlenderMonumentPlacement[] = [
+const PARIS_DEFAULT_MONUMENT_PLACEMENTS: BlenderMonumentPlacement[] = [
   {
     glbNodeName: 'monument-eiffel',
     monumentId: 'monument-eiffel',
@@ -212,6 +217,17 @@ const BLENDER_MONUMENT_PLACEMENTS: BlenderMonumentPlacement[] = [
     maxYear: 2026
   }
 ];
+
+const BLENDER_MONUMENT_PLACEMENTS: BlenderMonumentPlacement[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.monuments.map((m) => ({
+      glbNodeName: m.nodeName,
+      monumentId: m.id,
+      rotationY: Math.abs(m.rotationY) <= Math.PI * 2 ? m.rotationY : (m.rotationY * Math.PI) / 180,
+      scale: m.scale * 0.75,
+      minYear: Math.min(1900, m.completedYear ?? m.year),
+      maxYear: 2026
+    }))
+  : PARIS_DEFAULT_MONUMENT_PLACEMENTS;
 
 export const PAPER_MODEL_UNIFORM = { value: 0.0 };
 const DEFAULT_NO_COLOR_REVEAL_UNIFORM = { value: 0.0 };
@@ -471,7 +487,7 @@ export class ParisMonumentsBuilder {
    * and the 1,500-point full-tower diamond xenon strobe system (Scintillement de la Tour Eiffel).
    */
   private buildEiffelSearchlightBeacon(): void {
-    const { x, z } = this.getMonumentCoords('monument-eiffel');
+    const { x, z } = this.getMonumentCoords(ACTIVE_CITY_META.beaconMonumentId);
     const terrainY = getParisTerrainElevation(x, z);
     const eiffelScale = 0.72;
     const baseY = 0.02 + terrainY;
@@ -949,8 +965,9 @@ export class ParisMonumentsBuilder {
    */
   private loadBlenderMonumentsGLB(): void {
     const loader = new GLTFLoader();
+    const glbUrl = `./models/${ACTIVE_CITY_ID}_monuments.glb?v=20261016a`;
     loader.load(
-      './models/paris_monuments.glb?v=20261014g',
+      glbUrl,
       (gltf) => {
         const scene = gltf.scene;
         const monumentMap = new Map<string, ParisMonumentData>();
@@ -987,7 +1004,7 @@ export class ParisMonumentsBuilder {
           const monumentData = placement.monumentId
             ? monumentMap.get(placement.monumentId)
             : undefined;
-          const isEiffel = placement.monumentId === 'monument-eiffel';
+          const isEiffel = placement.monumentId === ACTIVE_CITY_META.beaconMonumentId;
           const localMeshBoxes: THREE.Box3[] = [];
 
           clone.traverse((child) => {

@@ -1,33 +1,71 @@
-/**
- * Copyright 2025 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-export type SupportedCityId = 'paris' | 'rio' | 'sydney' | 'london' | 'nyc' | string;
+export type SupportedCityId =
+  | 'paris'
+  | 'rio'
+  | 'sydney'
+  | 'london'
+  | 'nyc'
+  | 'san-francisco'
+  | 'las-vegas'
+  | 'kyoto'
+  | 'melbourne'
+  | 'porto'
+  | 'barcelona'
+  | string;
 
 export interface CityGeoConfig {
-  cityId: SupportedCityId;
-  cityName: string;
-  countryName: string;
+  cityId?: SupportedCityId;
+  cityName?: string;
+  countryName?: string;
   centerLat: number;
   centerLon: number;
   bbox: [number, number, number, number]; // [S, W, N, E]
-  kmPerDegLat: number;
-  kmPerDegLon: number;
-  worldUnitsPerKm: number;
-  coreRadiusKm: number;
-  isCoastal: boolean;
+  mPerDegLat: number;
+  mPerDegLon: number;
+  kmPerDegLat?: number;
+  kmPerDegLon?: number;
+  worldUnitsPerKm?: number;
+  coreRadiusKm?: number;
+  isCoastal?: boolean;
+  defaultElevationMeters?: number;
+}
+
+export interface CityWaterBody {
+  id: string;
+  name: string;
+  kind: 'river' | 'bay' | 'ocean' | 'lagoon' | 'harbor' | 'canal' | string;
+  type: 'polygon' | 'polyline' | string;
+  widthMeters?: number;
+  color?: string;
+  outerRingLatLon?: [number, number][];
+  pathLatLon?: [number, number][];
+}
+
+export interface CityTopographyPeak {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  x?: number;
+  z?: number;
+  peakElevationMeters: number;
+  radiusMeters: number;
+  steepness: number;
+  ridgeAzimuthDeg?: number;
+  ridgeElongation?: number;
 }
 
 export interface CityTopographicHill {
@@ -71,8 +109,19 @@ export interface CityPlaceDef {
 
 export interface CityHistoricalMilestone {
   year: number;
-  shortLabel: string;
-  headline: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  shortLabel?: string;
+  headline?: string;
+}
+
+export interface CityEraDescription {
+  id: string;
+  name: string;
+  yearRange: [number, number];
+  tagline: string;
+  summary: string;
 }
 
 export interface CityHistoricalEra {
@@ -84,20 +133,34 @@ export interface CityHistoricalEra {
   urbanChanges: string[];
 }
 
-export interface CityMonumentData {
+export interface CityMonument {
   id: string;
+  nodeName: string;
   name: string;
+  localName?: string;
+  year: number;
+  completedYear?: number;
+  architect: string;
+  architecturalStyle: string;
   lat: number;
   lon: number;
   x: number;
   z: number;
-  builtYear: number;
-  constructionStartYear?: number;
-  radius: number;
-  style: string;
-  arrondissement: string; // District / Borough / Bairro / Precinct label
-  description: string;
+  baseElevationMeters: number;
+  scale: number;
+  rotationY: number;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  archetype: string;
+  fact: string;
+  facts: string[];
+  historicalSummary: string;
+  metroConnection?: string;
+  svgPath: string;
 }
+
+export type CityMonumentData = CityMonument;
 
 export interface CityBlenderMonumentPlacement {
   glbNodeName: string;
@@ -119,24 +182,21 @@ export interface CityMonumentRichMetadata {
   silhouettePath: string;
 }
 
-export interface CityTourStopData {
+export interface CityTourStop {
   id: string;
-  stopNumber: number;
   title: string;
-  historicalDate: string;
-  timelineYear: number;
-  locationName: string;
-  arrondissement: string;
+  year: number;
   lat: number;
   lon: number;
   x: number;
   z: number;
-  radiusScale: number;
-  monumentId?: string;
-  stationId?: string;
-  interviewQuestion: string;
-  fact: string;
+  cameraOffset: [number, number, number];
+  narrative: string;
+  highlightMonumentId?: string;
+  highlightStationName?: string;
 }
+
+export type CityTourStopData = CityTourStop;
 
 export interface CityMetroSegmentDef {
   openedYear: number;
@@ -145,92 +205,80 @@ export interface CityMetroSegmentDef {
   stations: string[];
 }
 
-export interface CityMetroLineConfig {
-  id: string;
-  name: string;
-  shortLabel: string;
-  color: string;
-  textColor: string;
-  openedYear: number;
-  depthOffset: number;
-  historicCompany: string;
-  summary: string;
-  segments: CityMetroSegmentDef[];
-}
-
-export interface CityMetroStationData {
-  id: string;
+export interface CityMetroStation {
   name: string;
   lat: number;
   lon: number;
   x: number;
   z: number;
-  openedYear: number;
-  closedYear?: number;
-  isGhostStation?: boolean;
-  elevated?: boolean;
-  arrondissement: string;
-  architecture: string;
-  landmark?: string;
-  description: string;
+  year: number;
   lines: string[];
+  fact?: string;
+  isGhost?: boolean;
 }
 
-export interface CityRailTerminusData {
-  id: string;
-  metroStationId: string;
-  monumentId?: string;
+export interface CityMetroLine {
+  line: string;
   name: string;
-  shortName: string;
-  historicCompany: string;
-  modernNetwork: string;
+  color: string;
+  textColor?: string;
   openedYear: number;
-  trainStartYear: number;
-  trainEndYear: number;
-  buildingEndYear: number;
-  arrondissement: string;
-  destinationLabel: string;
-  colorHex: string;
+  rollingStockStyle?: string;
+  stations: CityMetroStation[];
+}
+
+export type CityMetroLineConfig = CityMetroLine;
+export type CityMetroStationData = CityMetroStation;
+
+export interface CityRailTerminus {
+  id: string;
+  name: string;
+  year: number;
   lat: number;
   lon: number;
   x: number;
   z: number;
-  rotationY: number;
-  trackCount: number;
-  shedWidth: number;
-  shedLength: number;
-  shedHeight: number;
-  shedSpans: number;
-  hasClockTower?: boolean;
-  hasPontEurope?: boolean;
-  hasViaductPortal?: boolean;
-  isViaductLine?: boolean;
-  description: string;
-  corridorLatLon: [number, number][];
-  corridorPoints: { x: number; z: number }[];
+  azimuth: number;
+  color: string;
+  fact: string;
+  destinations: string;
+  trainType: string;
+  trackPaths: [number, number][][];
 }
 
-export interface CityDistrictData {
+export type CityRailTerminusData = CityRailTerminus;
+
+export interface CityDistrict {
   id: string;
   number: number;
-  shortLabel: string;
   name: string;
-  officialName: string;
-  quartiers: string;
-  bank: string;
-  filterGroup: string;
-  eraBadge: string;
-  foundedLabel: string;
+  localLabel: string;
+  subtitle: string;
   lat: number;
   lon: number;
   x: number;
   z: number;
-  standOffRadius: number;
-  cameraHeightOffset: number;
-  haloRadiusScale: number;
-  metroLines: string[];
-  history: string;
-  notableLandmarks: string;
+  yearEstablished?: number;
+  population?: string;
+  landmarks: string[];
+  fact: string;
+}
+
+export type CityDistrictData = CityDistrict;
+
+export interface CityCulturalTheme {
+  cityId: SupportedCityId;
+  themeName: string;
+  culturalVibe: string;
+  inspirationSummary: string;
+  typography: {
+    displayFont: string;
+    bodyFont: string;
+    monoFont: string;
+  };
+  cssVariables: Record<string, string>;
+  patternSvgDataUri: string;
+  badgeShape: string;
 }
 
 export interface CityCulturalUITheme {
@@ -273,4 +321,28 @@ export interface CityCulturalUITheme {
     mono: string;
   };
   svgOrnamentPaths: string[];
+}
+
+export interface CityDataset {
+  id: SupportedCityId;
+  name: string;
+  localName: string;
+  country: string;
+  region: string;
+  tagline: string;
+  metroSystemName: string;
+  timelineRange: [number, number];
+  geo: CityGeoConfig;
+  waterBodies: CityWaterBody[];
+  topography: CityTopographyPeak[];
+  monuments: CityMonument[];
+  milestones: CityHistoricalMilestone[];
+  eras: CityEraDescription[];
+  tourStops: CityTourStop[];
+  metroLines: CityMetroLine[];
+  railTermini: CityRailTerminus[];
+  districts: CityDistrict[];
+  uiTheme: CityCulturalTheme;
+  osmDataPath: string;
+  monumentsGlbPath: string;
 }

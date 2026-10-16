@@ -1,0 +1,232 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: New York City, United States
+ * Theme Vibe: Gotham Skyscraper Art Deco, Oxidized Liberty Copper & Vignelli Subway Modernism (gotham_art_deco_vignelli)
+ * Inspiration: GOTHAM ART DECO, IRT/IND & VIGNELLI MODERNISM • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="nyc"] {
+  --city-font-display: 'Bebas Neue', 'Syne', 'Plus Jakarta Sans', sans-serif;
+  --city-font-serif: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  --city-badge-shape: octagon-deco;
+
+  /* Core HUD variable overrides for Gotham Skyscraper Brass, Nirosta Chrome & Liberty Verdigris */
+  --bg-obsidian: #05080d;
+  --bg-panel: rgba(8, 12, 18, 0.92);
+  --bg-panel-elevated: rgba(13, 19, 28, 0.96);
+  --gold-bright: #ffd147;
+  --gold-primary: #48b89f;
+  --gold-muted: #2d7a6b;
+  --gold-border: rgba(72, 184, 159, 0.50);
+  --gold-border-strong: rgba(255, 209, 71, 0.88);
+  --gold-glow: rgba(72, 184, 159, 0.34);
+  --ivory: #f4f7fa;
+  --ivory-dim: #b8c7d6;
+  --ivory-subtle: #788a9c;
+  --emerald-guimard: #48b89f;
+  --crimson-ghost: #ee352e;
+
+  --city-bg-primary: #05080d;
+  --city-bg-glass: rgba(8, 12, 18, 0.92);
+  --city-bg-card: rgba(13, 19, 28, 0.96);
+  --city-text-primary: #f4f7fa;
+  --city-text-muted: #b8c7d6;
+  --city-accent-primary: #ffd147;
+  --city-accent-secondary: #48b89f;
+  --city-accent-tertiary: #ee352e;
+  --city-border-color: rgba(72, 184, 159, 0.50);
+  --city-badge-bg: linear-gradient(135deg, #48b89f 0%, #ffd147 100%);
+  --city-badge-text: #05080d;
+  --city-water-color: #16425b;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #d4cfc4;
+
+  /* Chrysler Building Sunburst Crown Arches & Skyscraper Vertical Fluting Pattern */
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'72'%20height%3D'72'%20viewBox%3D'0%200%2072%2072'%3E%3Cpath%20d%3D'M36%2072%20L36%208%20M36%2072%20L10%2018%20M36%2072%20L62%2018%20M36%2072%20L2%2038%20M36%2072%20L70%2038'%20stroke%3D'%23ffd147'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.18'%20fill%3D'none'%2F%3E%3Cpath%20d%3D'M12%2072%20A24%2024%200%200%201%2060%2072'%20stroke%3D'%2348b89f'%20stroke-width%3D'1.2'%20stroke-opacity%3D'0.22'%20fill%3D'none'%2F%3E%3Cpath%20d%3D'M22%2072%20A14%2014%200%200%201%2050%2072'%20stroke%3D'%23ffd147'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.20'%20fill%3D'none'%2F%3E%3Crect%20x%3D'3'%20y%3D'3'%20width%3D'66'%20height%3D'66'%20stroke%3D'%2348b89f'%20stroke-width%3D'0.8'%20stroke-opacity%3D'0.14'%20fill%3D'none'%2F%3E%3C%2Fsvg%3E");
+
+  /* Stepped Ziggurat Skyscraper Corner SVG for .deco-corner */
+  --nyc-ziggurat-corner: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'16'%20height%3D'16'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M1%2015%20L1%201%20L15%201'%20fill%3D'none'%20stroke%3D'%23ffd147'%20stroke-width%3D'2.2'%2F%3E%3Cpath%20d%3D'M4.5%2012%20L4.5%204.5%20L12%204.5'%20fill%3D'none'%20stroke%3D'%2348b89f'%20stroke-width%3D'1.6'%2F%3E%3Crect%20x%3D'1'%20y%3D'1'%20width%3D'3.5'%20height%3D'3.5'%20fill%3D'%23ffd147'%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Viewport frame with double Gotham Art Deco brass & verdigris keylines */
+:root[data-city-theme="nyc"] .deco-viewport-frame {
+  border: 1.5px solid rgba(255, 209, 71, 0.28);
+  box-shadow: inset 0 0 0 3px rgba(72, 184, 159, 0.14);
+}
+
+/* All HUD panels (.deco-panel & .city-selector-bar): Chrysler Sunburst + Massimo Vignelli top white keyline */
+:root[data-city-theme="nyc"] .deco-panel,
+:root[data-city-theme="nyc"] .city-selector-bar,
+:root[data-city-theme="nyc"] .city-themed-panel {
+  background-color: rgba(8, 12, 18, 0.93);
+  background-image:
+    linear-gradient(180deg, rgba(255, 209, 71, 0.10) 0%, rgba(72, 184, 159, 0.07) 38%, rgba(6, 10, 16, 0.95) 100%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 72px 72px;
+  border-radius: 0px;
+  border: 1.5px solid rgba(72, 184, 159, 0.62);
+  border-top: 3px solid #f4f7fa; /* Iconic Massimo Vignelli NYC Subway white header stripe */
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.80),
+    inset 0 0 0 2px rgba(255, 209, 71, 0.22);
+}
+
+/* Stepped Art Deco double-keyline inner frame */
+:root[data-city-theme="nyc"] .deco-panel::before {
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 1px solid rgba(255, 209, 71, 0.34);
+  box-shadow: inset 0 0 0 2px rgba(72, 184, 159, 0.16);
+}
+
+/* Stepped Gotham Ziggurat Corner Brackets */
+:root[data-city-theme="nyc"] .deco-corner {
+  width: 15px;
+  height: 15px;
+  border: none !important;
+  background-image: var(--nyc-ziggurat-corner);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+:root[data-city-theme="nyc"] .deco-corner.tl {
+  top: 2px;
+  left: 2px;
+  transform: none;
+}
+:root[data-city-theme="nyc"] .deco-corner.tr {
+  top: 2px;
+  right: 2px;
+  transform: scaleX(-1);
+}
+:root[data-city-theme="nyc"] .deco-corner.bl {
+  bottom: 2px;
+  left: 2px;
+  transform: scaleY(-1);
+}
+:root[data-city-theme="nyc"] .deco-corner.br {
+  bottom: 2px;
+  right: 2px;
+  transform: scale(-1, -1);
+}
+
+/* Bold Skyscraper Art Deco Display Typography on Titles */
+:root[data-city-theme="nyc"] .spot-title,
+:root[data-city-theme="nyc"] .dossier-title,
+:root[data-city-theme="nyc"] .special-station-title {
+  font-family: 'Bebas Neue', 'Syne', sans-serif;
+  font-size: 19px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffd147;
+  text-shadow: 0 1px 8px rgba(255, 209, 71, 0.25);
+}
+
+:root[data-city-theme="nyc"] .timeline-event-banner {
+  font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* Stepped Chrysler Brass & Verdigris Chevron Divider beneath headers */
+:root[data-city-theme="nyc"] .explorer-tabs-header,
+:root[data-city-theme="nyc"] .skyline-bars-chart {
+  border-bottom: 2px solid #ffd147;
+  box-shadow: 0 2px 0 0 #48b89f;
+}
+
+/* Sharp geometric Art Deco buttons & tabs with Nirosta chrome / brass highlights */
+:root[data-city-theme="nyc"] .deco-btn,
+:root[data-city-theme="nyc"] .explorer-tab-btn,
+:root[data-city-theme="nyc"] .filter-chip-btn,
+:root[data-city-theme="nyc"] .city-selector-btn {
+  border-radius: 0px;
+  border: 1px solid rgba(72, 184, 159, 0.48);
+  background: rgba(15, 23, 34, 0.85);
+}
+
+:root[data-city-theme="nyc"] .deco-btn.active,
+:root[data-city-theme="nyc"] .explorer-tab-btn.active,
+:root[data-city-theme="nyc"] .filter-chip-btn.active,
+:root[data-city-theme="nyc"] .city-selector-btn.active {
+  background: linear-gradient(135deg, rgba(255, 209, 71, 0.32) 0%, rgba(72, 184, 159, 0.28) 100%);
+  border-color: #ffd147;
+  color: #ffd147;
+  box-shadow: inset 0 2px 0 #ffffff, 0 0 12px rgba(255, 209, 71, 0.35);
+}
+
+/* Spotlight & Skyline boxes in Gotham Steel, Brass & Liberty Verdigris */
+:root[data-city-theme="nyc"] .explorer-spotlight-card,
+:root[data-city-theme="nyc"] .station-explorer-card,
+:root[data-city-theme="nyc"] .station-search-row {
+  border-radius: 0px;
+  background: rgba(6, 10, 16, 0.82);
+  border-color: rgba(72, 184, 159, 0.45);
+  border-left: 3px solid #ffd147;
+}
+
+:root[data-city-theme="nyc"] .skyline-silhouette-box {
+  border-radius: 0px;
+  background:
+    linear-gradient(180deg, rgba(255, 209, 71, 0.18) 0%, rgba(72, 184, 159, 0.22) 55%, rgba(5, 8, 13, 0.92) 100%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 48px 48px;
+  border: 1px solid rgba(255, 209, 71, 0.48);
+}
+
+/* Timeline scrubber track in Subway Verdigris & Empire Gold */
+:root[data-city-theme="nyc"] .timeline-range-input {
+  height: 7px;
+  background: linear-gradient(
+    90deg,
+    #48b89f 0%,
+    #ffd147 var(--progress, 100%),
+    rgba(255, 255, 255, 0.12) var(--progress, 100%)
+  );
+  border: 1px solid #ffd147;
+}
+
+:root[data-city-theme="nyc"] .timeline-range-input::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #ffd147 0%, #48b89f 100%);
+  border: 2px solid #ffffff;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 2px #05080d, 0 0 16px rgba(255, 209, 71, 0.9);
+}
+
+:root[data-city-theme="nyc"] .city-cultural-banner {
+  border-radius: 0px;
+  background: linear-gradient(90deg, #05070b 0%, rgba(16, 26, 36, 0.95) 65%, rgba(72, 184, 159, 0.22) 100%);
+  border: 1px solid #ffd147;
+  border-top: 2.5px solid #ffffff;
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.9), 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-city-theme="nyc"] .city-cultural-banner-title {
+  font-family: 'Bebas Neue', 'Syne', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: #ffd147;
+}
+

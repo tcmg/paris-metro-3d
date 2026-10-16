@@ -24,14 +24,23 @@
  * - 12 Major Parisian Parks & Gardens
  */
 
-export const CENTER_LAT = 48.8584;
-export const CENTER_LON = 2.3440;
+import {
+  ACTIVE_PIPELINE_BRIDGES,
+  ACTIVE_PIPELINE_CITY_DATASET,
+  ACTIVE_PIPELINE_PARKS,
+  ACTIVE_PIPELINE_PLACES,
+  ACTIVE_PIPELINE_WATER_CENTERLINES
+} from '../cities/activeCityRuntime';
+
+export const CENTER_LAT = ACTIVE_PIPELINE_CITY_DATASET?.geo.centerLat ?? 48.8584;
+export const CENTER_LON = ACTIVE_PIPELINE_CITY_DATASET?.geo.centerLon ?? 2.3440;
 
 // At 48.8584° N: 1 deg lat = 111.2 km, 1 deg lon = 73.15 km.
-// Scale: 1 km = 11.2 world units inside Paris core.
-const KM_PER_DEG_LAT = 111.2;
-const KM_PER_DEG_LON = 73.15;
-const WORLD_UNITS_PER_KM = 11.2;
+// Scale: 1 km = 11.2 world units inside Paris core (or active city's worldUnitsPerKm).
+const KM_PER_DEG_LAT = ACTIVE_PIPELINE_CITY_DATASET?.geo.kmPerDegLat ?? 111.2;
+const KM_PER_DEG_LON = ACTIVE_PIPELINE_CITY_DATASET?.geo.kmPerDegLon ?? 73.15;
+const WORLD_UNITS_PER_KM = ACTIVE_PIPELINE_CITY_DATASET?.geo.worldUnitsPerKm ?? 11.2;
+const CORE_RADIUS_KM = ACTIVE_PIPELINE_CITY_DATASET?.geo.coreRadiusKm ?? 7.0;
 
 /**
  * Projects real-world WGS84 (lat, lon) into 3D world (x, z) coordinates.
@@ -44,7 +53,7 @@ export function projectLatLon(lat: number, lon: number): { x: number; z: number 
   const rawKmZ = -(lat - CENTER_LAT) * KM_PER_DEG_LAT;
 
   const distKm = Math.hypot(rawKmX, rawKmZ);
-  const coreRadiusKm = 7.0;
+  const coreRadiusKm = CORE_RADIUS_KM;
 
   let effectiveKm = distKm;
   if (distKm > coreRadiusKm) {
@@ -65,7 +74,7 @@ export function projectLatLon(lat: number, lon: number): { x: number; z: number 
  * (Boulogne-Billancourt, Sèvres, Saint-Cloud, Suresnes, Puteaux, La Défense, Neuilly, Levallois,
  * Clichy, Asnières, Saint-Ouen, L'Île-Saint-Denis, Saint-Denis, Gennevilliers, Argenteuil, Nanterre, Rueil).
  */
-export const SEINE_CENTERLINE_LATLON: [number, number, number][] = [
+const DEFAULT_PARIS_SEINE_CENTERLINE_LATLON: [number, number, number][] = [
   // [lat, lon, widthWorldUnits] — True 1:1 OpenStreetMap Seine centerline & bank-to-bank water width
   // Upstream South-East (Orly / Choisy-le-Roi / Vitry / Ivry / Conflans)
   [48.7520, 2.4235, 1.85], // Choisy-le-Roi / Orly
@@ -130,11 +139,14 @@ export const SEINE_CENTERLINE_LATLON: [number, number, number][] = [
   [48.8845, 2.1685, 1.95]  // Rueil-Malmaison / Chatou
 ];
 
+export const SEINE_CENTERLINE_LATLON: [number, number, number][] =
+  ACTIVE_PIPELINE_WATER_CENTERLINES ?? DEFAULT_PARIS_SEINE_CENTERLINE_LATLON;
+
 /**
  * South Arm of the Seine (Bras de la Tournelle & Petit Bras / Bras de la Monnaie)
  * curving around the south shores of Île Saint-Louis and Île de la Cité from Pont de Sully to Square du Vert-Galant.
  */
-export const SEINE_SOUTH_ARM_LATLON: [number, number, number][] = [
+const DEFAULT_SEINE_SOUTH_ARM_LATLON: [number, number, number][] = [
   [48.8485, 2.3614, 1.40], // Sully Confluence East
   [48.8498, 2.3580, 1.50], // Pont de Sully Sud (Bras de la Tournelle)
   [48.8506, 2.3555, 1.30], // Pont de la Tournelle
@@ -148,10 +160,13 @@ export const SEINE_SOUTH_ARM_LATLON: [number, number, number][] = [
   [48.8582, 2.3385, 1.50]  // Square du Vert-Galant West Confluence
 ];
 
+export const SEINE_SOUTH_ARM_LATLON: [number, number, number][] =
+  ACTIVE_PIPELINE_CITY_DATASET ? [] : DEFAULT_SEINE_SOUTH_ARM_LATLON;
+
 /**
  * Marne River Centerline (Joining the Seine at Charenton-le-Pont / Alfortville from Joinville & Créteil)
  */
-export const MARNE_CENTERLINE_LATLON: [number, number, number][] = [
+const DEFAULT_MARNE_CENTERLINE_LATLON: [number, number, number][] = [
   [48.8185, 2.4120, 2.2], // Confluence with the Seine at Charenton / Alfortville
   [48.8165, 2.4265, 2.1], // Charenton-le-Pont / Maisons-Alfort
   [48.8162, 2.4465, 2.1], // Saint-Maurice / Gravelle
@@ -161,10 +176,13 @@ export const MARNE_CENTERLINE_LATLON: [number, number, number][] = [
   [48.7825, 2.4965, 2.2]  // Bonneuil-sur-Marne / Saint-Maur loop
 ];
 
+export const MARNE_CENTERLINE_LATLON: [number, number, number][] =
+  ACTIVE_PIPELINE_CITY_DATASET ? [] : DEFAULT_MARNE_CENTERLINE_LATLON;
+
 /**
  * Canal Saint-Martin, Bassin de la Villette & Canal de l'Ourcq (Bastille -> Villette -> Pantin -> Bobigny)
  */
-export const CANAL_SAINT_MARTIN_LATLON: [number, number][] = [
+const DEFAULT_CANAL_SAINT_MARTIN_LATLON: [number, number][] = [
   [48.8462, 2.3658], // Port de l'Arsenal (Seine junction)
   [48.8532, 2.3692], // Bastille (vaulted portion)
   [48.8678, 2.3662], // Faubourg du Temple / République
@@ -178,10 +196,13 @@ export const CANAL_SAINT_MARTIN_LATLON: [number, number][] = [
   [48.9085, 2.4785]  // Bondy / Pavillons-sous-Bois
 ];
 
+export const CANAL_SAINT_MARTIN_LATLON: [number, number][] =
+  ACTIVE_PIPELINE_CITY_DATASET ? [] : DEFAULT_CANAL_SAINT_MARTIN_LATLON;
+
 /**
  * Canal Saint-Denis (Parc de la Villette -> Aubervilliers -> Stade de France -> Seine at Saint-Denis)
  */
-export const CANAL_SAINT_DENIS_LATLON: [number, number][] = [
+const DEFAULT_CANAL_SAINT_DENIS_LATLON: [number, number][] = [
   [48.8942, 2.3895], // Parc de la Villette junction
   [48.9065, 2.3825], // Aubervilliers
   [48.9215, 2.3685], // Porte de Paris / Stade de France
@@ -189,11 +210,14 @@ export const CANAL_SAINT_DENIS_LATLON: [number, number][] = [
   [48.9345, 2.3365]  // Seine junction opposite L'Île-Saint-Denis
 ];
 
+export const CANAL_SAINT_DENIS_LATLON: [number, number][] =
+  ACTIVE_PIPELINE_CITY_DATASET ? [] : DEFAULT_CANAL_SAINT_DENIS_LATLON;
+
 /**
  * Islands in the Seine — High-resolution, boat-shaped (nef) WGS84 polygon outlines
  * strictly centered between the Grand Bras (North Arm) and Petit Bras (South Arm) of the Seine.
  */
-export const SEINE_ISLANDS_LATLON: { name: string; points: [number, number][] }[] = [
+const DEFAULT_SEINE_ISLANDS_LATLON: { name: string; points: [number, number][] }[] = [
   {
     name: 'Île de la Cité',
     points: [
@@ -241,6 +265,9 @@ export const SEINE_ISLANDS_LATLON: { name: string; points: [number, number][] }[
   }
 ];
 
+export const SEINE_ISLANDS_LATLON: { name: string; points: [number, number][] }[] =
+  ACTIVE_PIPELINE_CITY_DATASET ? [] : DEFAULT_SEINE_ISLANDS_LATLON;
+
 export interface ParisBridgeDef {
   name: string;
   p1: [number, number];
@@ -251,7 +278,7 @@ export interface ParisBridgeDef {
   openedYear: number;
 }
 
-export const PARIS_BRIDGES: ParisBridgeDef[] = [
+const DEFAULT_PARIS_BRIDGES: ParisBridgeDef[] = [
   {
     name: 'Pont de Saint-Ouen',
     p1: [48.9192, 2.3217],
@@ -579,6 +606,24 @@ export const PARIS_BRIDGES: ParisBridgeDef[] = [
   }
 ];
 
+export const PARIS_BRIDGES: ParisBridgeDef[] = ACTIVE_PIPELINE_BRIDGES
+  ? ACTIVE_PIPELINE_BRIDGES.filter(
+      (b) => b.id !== 'bridge-sydney-harbour' && b.id !== 'bridge-brooklyn'
+    ).map((b) => {
+      const halfKm = (b.lengthWorld * 0.5) / WORLD_UNITS_PER_KM;
+      const dLon = (Math.sin(b.rotationY) * halfKm) / KM_PER_DEG_LON;
+      const dLat = -(Math.cos(b.rotationY) * halfKm) / KM_PER_DEG_LAT;
+      return {
+        name: b.name,
+        p1: [b.lat - dLat, b.lon - dLon],
+        p2: [b.lat + dLat, b.lon + dLon],
+        width: b.widthWorld * 1.6,
+        ornate: b.style === 'suspension' || b.style === 'iron-arch',
+        openedYear: b.builtYear
+      };
+    })
+  : DEFAULT_PARIS_BRIDGES;
+
 export interface ParisPlaceDef {
   name: string;
   lat: number;
@@ -587,7 +632,7 @@ export interface ParisPlaceDef {
   hasObeliskOrColumn?: boolean;
 }
 
-export const PARIS_PLACES: ParisPlaceDef[] = [
+const DEFAULT_PARIS_PLACES: ParisPlaceDef[] = [
   { name: "Place Charles de Gaulle (L'Étoile)", lat: 48.8738, lon: 2.2950, radius: 3.6 },
   { name: 'Place de la Concorde', lat: 48.8656, lon: 2.3212, radius: 3.1, hasObeliskOrColumn: true },
   { name: 'Place de la République', lat: 48.8674, lon: 2.3636, radius: 2.6, hasObeliskOrColumn: true },
@@ -602,6 +647,16 @@ export const PARIS_PLACES: ParisPlaceDef[] = [
   { name: 'Place du Panthéon', lat: 48.8462, lon: 2.3450, radius: 1.7 },
   { name: 'Place des Vosges', lat: 48.8556, lon: 2.3655, radius: 1.8 }
 ];
+
+export const PARIS_PLACES: ParisPlaceDef[] = ACTIVE_PIPELINE_PLACES
+  ? ACTIVE_PIPELINE_PLACES.map((pl) => ({
+      name: pl.name,
+      lat: pl.lat,
+      lon: pl.lon,
+      radius: pl.radius,
+      hasObeliskOrColumn: pl.hasColumnOrObelisk
+    }))
+  : DEFAULT_PARIS_PLACES;
 
 export interface ParisRoadDef {
   name: string;
@@ -1033,7 +1088,7 @@ export interface ParisParkDef {
   rotationRad: number;
 }
 
-export const PARIS_PARKS: ParisParkDef[] = [
+const DEFAULT_PARIS_PARKS: ParisParkDef[] = [
   // Major Historic Parks & Gardens
   { name: 'Jardin des Tuileries', center: [48.8635, 2.3275], sizeKm: [0.82, 0.28], rotationRad: -0.44 },
   { name: 'Champ de Mars', center: [48.8558, 2.2985], sizeKm: [0.78, 0.28], rotationRad: -0.78 },
@@ -1075,3 +1130,13 @@ export const PARIS_PARKS: ParisParkDef[] = [
   { name: 'Parc Martin-Luther-King (Batignolles)', center: [48.8905, 2.3135], sizeKm: [0.32, 0.18], rotationRad: -0.55 },
   { name: 'Parc de Belleville', center: [48.8712, 2.3845], sizeKm: [0.26, 0.18], rotationRad: -0.35 }
 ];
+
+export const PARIS_PARKS: ParisParkDef[] = ACTIVE_PIPELINE_PARKS
+  ? ACTIVE_PIPELINE_PARKS.map((pk) => ({
+      name: pk.name,
+      center: [pk.lat, pk.lon],
+      sizeKm: [pk.rx / 5.6, pk.rz / 5.6],
+      rotationRad: pk.rotation
+    }))
+  : DEFAULT_PARIS_PARKS;
+

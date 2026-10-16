@@ -13,8 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { validateCityId, writeSafeFile } from './security_utils.mjs';
-import { CITY_PRESETS, getCityPreset } from './city_presets.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { validateCityId, writeSafeFile, WORKSPACE_ROOT } from './security_utils.mjs';
+import { CITY_PRESETS, TODO_CITY_BACKLOG, getCityPreset } from './city_presets.mjs';
 import { runStep1OsmGeoJson } from './step1_download_osm_geojson.mjs';
 import { runStep2MonumentsAndBlender } from './step2_monuments_and_blender.mjs';
 import { runStep3MetroTransit } from './step3_download_metro_transit.mjs';
@@ -63,14 +65,29 @@ function parseArgs(argv) {
 
 function printCityCatalog() {
   console.log('\n====================================================================');
-  console.log('  MULTI-CITY INGESTION & 3D GENERATION PIPELINE — AVAILABLE CITIES');
+  console.log('  MULTI-CITY INGESTION & 3D GENERATION PIPELINE — CONFIGURED PRESETS');
   console.log('====================================================================\n');
 
   for (const preset of Object.values(CITY_PRESETS)) {
-    console.log(`• ${preset.id.padEnd(8)} | ${preset.name} (${preset.country})`);
+    const manifestPath = path.join(WORKSPACE_ROOT, 'src', 'cities', preset.id, 'manifest.json');
+    const isBuilt = fs.existsSync(manifestPath);
+    const statusBadge = isBuilt ? '[BUILT ✓]' : '[READY TO KICK OFF]';
+    console.log(`• ${preset.id.padEnd(8)} | ${preset.name} (${preset.country}) ${statusBadge}`);
     console.log(`           | Metro System : ${preset.metroSystemName} (${preset.metroLines.length} lines, ${preset.railTermini.length} rail termini)`);
     console.log(`           | 3D Monuments : ${preset.monuments.length} Blender archetypes (${preset.monuments.map((m) => m.name).slice(0, 4).join(', ')}...)`);
     console.log(`           | Cultural UI  : ${preset.uiTheme.themeName} [${preset.uiTheme.culturalVibe}]`);
+    console.log('');
+  }
+
+  console.log('====================================================================');
+  console.log('  TODO CITY BACKLOG (QUEUED FOR PRESET & PIPELINE INGESTION)');
+  console.log('====================================================================\n');
+
+  for (const todo of TODO_CITY_BACKLOG) {
+    console.log(`• ${todo.id.padEnd(14)} | ${todo.name} (${todo.country}) [TODO]`);
+    console.log(`                 | Transit      : ${todo.plannedTransit}`);
+    console.log(`                 | Monuments    : ${todo.plannedMonuments}`);
+    console.log(`                 | Cultural UI  : ${todo.plannedCulturalVibe}`);
     console.log('');
   }
 
@@ -103,13 +120,23 @@ async function main() {
   console.log(`  Steps: [${Array.from(args.steps).join(', ')}] | Offline: ${args.offline} | Skip Blender: ${args.skipBlender}`);
   console.log('====================================================================');
 
+  const existingManifestFile = path.join(WORKSPACE_ROOT, 'src', 'cities', safeCityId, 'manifest.json');
+  let prevManifest = {};
+  if (fs.existsSync(existingManifestFile)) {
+    try {
+      prevManifest = JSON.parse(fs.readFileSync(existingManifestFile, 'utf8'));
+    } catch {
+      prevManifest = {};
+    }
+  }
+
   const summary = {
     cityId: safeCityId,
     cityName: preset.name,
     country: preset.country,
-    startedAt,
-    completedSteps: [],
-    outputs: {},
+    startedAt: prevManifest.startedAt || startedAt,
+    completedSteps: Array.from(new Set([...(prevManifest.completedSteps || []), ...args.steps])).sort(),
+    outputs: { ...(prevManifest.outputs || {}) },
   };
 
   if (args.steps.has(1)) {
@@ -117,26 +144,22 @@ async function main() {
       offline: args.offline,
       tileGrid: args.tileGrid,
     });
-    summary.completedSteps.push(1);
   }
 
   if (args.steps.has(2)) {
     summary.outputs.step2 = await runStep2MonumentsAndBlender(safeCityId, {
       skipBlender: args.skipBlender,
     });
-    summary.completedSteps.push(2);
   }
 
   if (args.steps.has(3)) {
     summary.outputs.step3 = await runStep3MetroTransit(safeCityId, {
       offline: args.offline,
     });
-    summary.completedSteps.push(3);
   }
 
   if (args.steps.has(4)) {
     summary.outputs.step4 = await runStep4CulturalUiTheme(safeCityId);
-    summary.completedSteps.push(4);
   }
 
   summary.completedAt = new Date().toISOString();

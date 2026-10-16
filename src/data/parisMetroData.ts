@@ -15,6 +15,10 @@
  */
 
 import { projectLatLon } from './parisGeoData';
+import {
+  ACTIVE_PIPELINE_CITY_DATASET,
+  slugifyCityStationId
+} from '../cities/activeCityRuntime';
 
 export interface MetroLineConfig {
   id: string;
@@ -2002,7 +2006,7 @@ export const RAW_STATIONS: Omit<MetroStationData, 'x' | 'z' | 'lines'>[] = [
   }
 ];
 
-export const METRO_LINES: MetroLineConfig[] = [
+const DEFAULT_PARIS_METRO_LINES: MetroLineConfig[] = [
   {
     id: '1',
     name: 'Line 1',
@@ -2793,17 +2797,76 @@ export const SPECIAL_STATION_INTERIORS: Record<string, SpecialStationInteriorInf
   }
 };
 
+export const METRO_LINES: MetroLineConfig[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.metroLines.map((l, idx) => ({
+      id: l.line,
+      name: l.name,
+      shortLabel: l.line,
+      color: l.color,
+      textColor: l.textColor ?? '#ffffff',
+      openedYear: l.openedYear,
+      depthOffset: -2.0 - idx * 0.35,
+      historicCompany: 'RATP',
+      summary: `${l.name} (${l.rollingStockStyle ?? 'Transit'} • Opened ${l.openedYear})`,
+      segments: [
+        {
+          openedYear: l.openedYear,
+          elevated: l.line.startsWith('L'),
+          stations: l.stations.map((s) => slugifyCityStationId(s.name))
+        }
+      ]
+    }))
+  : DEFAULT_PARIS_METRO_LINES;
+
 export const STATIONS_MAP: Map<string, MetroStationData> = new Map();
 
-for (const raw of RAW_STATIONS) {
-  const { x, z } = projectLatLon(raw.lat, raw.lon);
-  STATIONS_MAP.set(raw.id, {
-    ...raw,
-    x,
-    z,
-    lines: [],
-    specialInterior: SPECIAL_STATION_INTERIORS[raw.id]
-  });
+if (ACTIVE_PIPELINE_CITY_DATASET) {
+  for (const line of ACTIVE_PIPELINE_CITY_DATASET.metroLines) {
+    for (const raw of line.stations) {
+      const stId = slugifyCityStationId(raw.name);
+      const existing = STATIONS_MAP.get(stId);
+      if (!existing) {
+        STATIONS_MAP.set(stId, {
+          id: stId,
+          name: raw.name.split('(')[0].trim(),
+          lat: raw.lat,
+          lon: raw.lon,
+          x: raw.x,
+          z: raw.z,
+          openedYear: Math.max(1900, raw.year),
+          closedYear: raw.isGhost ? 1945 : undefined,
+          isGhostStation: Boolean(raw.isGhost),
+          elevated:
+            raw.name.toLowerCase().includes('viaduct') ||
+            raw.name.toLowerCase().includes('bridge') ||
+            line.line.startsWith('L'),
+          arrondissement: ACTIVE_PIPELINE_CITY_DATASET.name,
+          architecture: `${line.rollingStockStyle} • ${line.name.split('—')[0].trim()}`,
+          description:
+            raw.fact && raw.fact.trim().length > 0
+              ? raw.fact
+              : `Station on ${line.name} in ${ACTIVE_PIPELINE_CITY_DATASET.name}, opened in ${raw.year}.`,
+          lines: []
+        });
+      } else {
+        existing.openedYear = Math.min(existing.openedYear, Math.max(1900, raw.year));
+        if (raw.fact && raw.fact.length > existing.description.length) {
+          existing.description = raw.fact;
+        }
+      }
+    }
+  }
+} else {
+  for (const raw of RAW_STATIONS) {
+    const { x, z } = projectLatLon(raw.lat, raw.lon);
+    STATIONS_MAP.set(raw.id, {
+      ...raw,
+      x,
+      z,
+      lines: [],
+      specialInterior: SPECIAL_STATION_INTERIORS[raw.id]
+    });
+  }
 }
 
 for (const line of METRO_LINES) {
@@ -2818,3 +2881,4 @@ for (const line of METRO_LINES) {
 }
 
 export const ALL_STATIONS: MetroStationData[] = Array.from(STATIONS_MAP.values());
+

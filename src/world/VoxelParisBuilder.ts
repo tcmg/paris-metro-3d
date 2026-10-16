@@ -39,6 +39,7 @@ import {
   ParisMonumentsBuilder
 } from './ParisMonumentsBuilder';
 import { GrandesLignesBuilder } from './GrandesLignesBuilder';
+import { ACTIVE_CITY_ID } from '../cities/activeCityRuntime';
 
 export { MONUMENT_OUTLINE_LAYER };
 export type { MonumentHitTarget, ParisMonumentData };
@@ -150,7 +151,9 @@ export class VoxelParisBuilder {
     this.buildBridges();
     this.buildMonumentalPlaces();
     this.buildRoyalGardenBasins();
-    this.buildThiersFortifications();
+    if (ACTIVE_CITY_ID === 'paris') {
+      this.buildThiersFortifications();
+    }
 
     // Load Custom Blender-Crafted 3D Monuments (/models/paris_monuments.glb)
     this.monumentsBuilder = new ParisMonumentsBuilder();
@@ -723,55 +726,58 @@ export class VoxelParisBuilder {
     this.overgroundGroup.add(seineWaterMesh);
 
     // South Arm of the Seine around Île Saint-Louis and Île de la Cité (Bras de la Tournelle & Petit Bras)
-    const southArmPoints: THREE.Vector3[] = [];
-    const southArmWaterWidths: number[] = [];
-    const southArmQuaiWidths: number[] = [];
-    for (const [lat, lon, w] of SEINE_SOUTH_ARM_LATLON) {
-      const { x, z } = projectLatLon(lat, lon);
-      southArmPoints.push(new THREE.Vector3(x, 0.01, z));
-      southArmWaterWidths.push(w);
-      southArmQuaiWidths.push(w + 0.30);
-    }
-    const southArmCurve = new THREE.CatmullRomCurve3(southArmPoints, false, 'catmullrom', 0.35);
-    const southSampleCount = 120;
-    const southMaxIdx = southArmWaterWidths.length - 1;
-    for (let i = 0; i <= southSampleCount; i++) {
-      const u = i / southSampleCount;
-      const pt = southArmCurve.getPoint(u);
-      const fIdx = u * southMaxIdx;
-      const i0 = Math.min(southMaxIdx, Math.floor(fIdx));
-      const i1 = Math.min(southMaxIdx, i0 + 1);
-      const w =
-        southArmWaterWidths[i0] * (1 - (fIdx - i0)) + southArmWaterWidths[i1] * (fIdx - i0);
-      this.seineSamplePoints.push({ pt, halfWidth: w * 0.5 });
-    }
+    if (SEINE_SOUTH_ARM_LATLON.length >= 2) {
+      const southArmPoints: THREE.Vector3[] = [];
+      const southArmWaterWidths: number[] = [];
+      const southArmQuaiWidths: number[] = [];
+      for (const [lat, lon, w] of SEINE_SOUTH_ARM_LATLON) {
+        const { x, z } = projectLatLon(lat, lon);
+        southArmPoints.push(new THREE.Vector3(x, 0.01, z));
+        southArmWaterWidths.push(w);
+        southArmQuaiWidths.push(w + 0.30);
+      }
+      const southArmCurve = new THREE.CatmullRomCurve3(southArmPoints, false, 'catmullrom', 0.35);
+      const southSampleCount = 120;
+      const southMaxIdx = southArmWaterWidths.length - 1;
+      for (let i = 0; i <= southSampleCount; i++) {
+        const u = i / southSampleCount;
+        const pt = southArmCurve.getPoint(u);
+        const fIdx = u * southMaxIdx;
+        const i0 = Math.min(southMaxIdx, Math.floor(fIdx));
+        const i1 = Math.min(southMaxIdx, i0 + 1);
+        const w =
+          southArmWaterWidths[i0] * (1 - (fIdx - i0)) + southArmWaterWidths[i1] * (fIdx - i0);
+        this.seineSamplePoints.push({ pt, halfWidth: w * 0.5 });
+      }
 
-    const southQuaiGeo = this.createVariableWidthRibbonGeometry(
-      southArmCurve,
-      southArmQuaiWidths,
-      0.06,
-      southSampleCount
-    );
-    const southQuaiMesh = new THREE.Mesh(southQuaiGeo, quaiStoneMat);
-    southQuaiMesh.position.y = -0.023;
-    southQuaiMesh.receiveShadow = true;
-    this.overgroundGroup.add(southQuaiMesh);
+      const southQuaiGeo = this.createVariableWidthRibbonGeometry(
+        southArmCurve,
+        southArmQuaiWidths,
+        0.06,
+        southSampleCount
+      );
+      const southQuaiMesh = new THREE.Mesh(southQuaiGeo, quaiStoneMat);
+      southQuaiMesh.position.y = -0.023;
+      southQuaiMesh.receiveShadow = true;
+      this.overgroundGroup.add(southQuaiMesh);
 
-    const southWaterGeo = this.createVariableWidthRibbonGeometry(
-      southArmCurve,
-      southArmWaterWidths,
-      0.06,
-      southSampleCount
-    );
-    const southWaterMesh = new THREE.Mesh(southWaterGeo, this.waterMaterial);
-    southWaterMesh.position.y = -0.002;
-    southWaterMesh.receiveShadow = true;
-    this.overgroundGroup.add(southWaterMesh);
+      const southWaterGeo = this.createVariableWidthRibbonGeometry(
+        southArmCurve,
+        southArmWaterWidths,
+        0.06,
+        southSampleCount
+      );
+      const southWaterMesh = new THREE.Mesh(southWaterGeo, this.waterMaterial);
+      southWaterMesh.position.y = -0.002;
+      southWaterMesh.receiveShadow = true;
+      this.overgroundGroup.add(southWaterMesh);
+    }
 
     // Plant Riverbank Trees (Les Arbres des Berges de Seine) strictly along the outer Quai promenades
     for (let i = 8; i < sampleCount - 8; i += 4) {
       const u = i / sampleCount;
       const sp = this.seineSamplePoints[i];
+      if (!sp) continue;
       // Skip the island split zone where island perimeter trees are planted separately
       if (sp.pt.x > -3.8 && sp.pt.x < 14.5 && sp.pt.z > -0.5 && sp.pt.z < 13.0) continue;
 
@@ -796,58 +802,84 @@ export class VoxelParisBuilder {
     }
 
     // Marne River (Confluence at Charenton-le-Pont -> Maisons-Alfort -> Joinville-le-Pont -> Créteil)
-    const marnePoints: THREE.Vector3[] = [];
-    const marneWaterWidths: number[] = [];
-    const marneQuaiWidths: number[] = [];
-    for (const [lat, lon, w] of MARNE_CENTERLINE_LATLON) {
-      const { x, z } = projectLatLon(lat, lon);
-      marnePoints.push(new THREE.Vector3(x, 0.01, z));
-      marneWaterWidths.push(w * 0.72);
-      marneQuaiWidths.push(w * 0.72 + 0.36);
-    }
-    const marneCurve = new THREE.CatmullRomCurve3(marnePoints, false, 'catmullrom', 0.35);
-    const marneQuaiGeo = this.createVariableWidthRibbonGeometry(marneCurve, marneQuaiWidths, 0.06, 120);
-    const marneQuaiMesh = new THREE.Mesh(marneQuaiGeo, quaiStoneMat);
-    marneQuaiMesh.position.y = -0.023;
-    this.overgroundGroup.add(marneQuaiMesh);
+    if (MARNE_CENTERLINE_LATLON.length >= 2) {
+      const marnePoints: THREE.Vector3[] = [];
+      const marneWaterWidths: number[] = [];
+      const marneQuaiWidths: number[] = [];
+      for (const [lat, lon, w] of MARNE_CENTERLINE_LATLON) {
+        const { x, z } = projectLatLon(lat, lon);
+        marnePoints.push(new THREE.Vector3(x, 0.01, z));
+        marneWaterWidths.push(w * 0.72);
+        marneQuaiWidths.push(w * 0.72 + 0.36);
+      }
+      const marneCurve = new THREE.CatmullRomCurve3(marnePoints, false, 'catmullrom', 0.35);
+      const marneQuaiGeo = this.createVariableWidthRibbonGeometry(
+        marneCurve,
+        marneQuaiWidths,
+        0.06,
+        120
+      );
+      const marneQuaiMesh = new THREE.Mesh(marneQuaiGeo, quaiStoneMat);
+      marneQuaiMesh.position.y = -0.023;
+      this.overgroundGroup.add(marneQuaiMesh);
 
-    const marneWaterGeo = this.createVariableWidthRibbonGeometry(marneCurve, marneWaterWidths, 0.06, 120);
-    const marneWaterMesh = new THREE.Mesh(marneWaterGeo, this.waterMaterial);
-    marneWaterMesh.position.y = -0.003;
-    this.overgroundGroup.add(marneWaterMesh);
+      const marneWaterGeo = this.createVariableWidthRibbonGeometry(
+        marneCurve,
+        marneWaterWidths,
+        0.06,
+        120
+      );
+      const marneWaterMesh = new THREE.Mesh(marneWaterGeo, this.waterMaterial);
+      marneWaterMesh.position.y = -0.003;
+      this.overgroundGroup.add(marneWaterMesh);
+    }
 
     // Canal Saint-Martin, Bassin de la Villette & Canal de l'Ourcq (to Pantin & Bobigny)
-    const canalPoints = CANAL_SAINT_MARTIN_LATLON.map(([lat, lon]) => {
-      const { x, z } = projectLatLon(lat, lon);
-      return new THREE.Vector3(x, 0.01, z);
-    });
-    const canalCurve = new THREE.CatmullRomCurve3(canalPoints, false, 'catmullrom', 0.25);
+    if (CANAL_SAINT_MARTIN_LATLON.length >= 2) {
+      const canalPoints = CANAL_SAINT_MARTIN_LATLON.map(([lat, lon]) => {
+        const { x, z } = projectLatLon(lat, lon);
+        return new THREE.Vector3(x, 0.01, z);
+      });
+      const canalCurve = new THREE.CatmullRomCurve3(canalPoints, false, 'catmullrom', 0.25);
 
-    const canalQuaiGeo = this.createVariableWidthRibbonGeometry(canalCurve, [1.05, 1.05], 0.06, 110);
-    const canalQuaiMesh = new THREE.Mesh(canalQuaiGeo, quaiStoneMat);
-    canalQuaiMesh.position.y = -0.023;
-    this.overgroundGroup.add(canalQuaiMesh);
+      const canalQuaiGeo = this.createVariableWidthRibbonGeometry(
+        canalCurve,
+        [1.05, 1.05],
+        0.06,
+        110
+      );
+      const canalQuaiMesh = new THREE.Mesh(canalQuaiGeo, quaiStoneMat);
+      canalQuaiMesh.position.y = -0.023;
+      this.overgroundGroup.add(canalQuaiMesh);
 
-    const canalWaterGeo = this.createVariableWidthRibbonGeometry(canalCurve, [0.72, 0.72], 0.06, 110);
-    const canalWaterMesh = new THREE.Mesh(canalWaterGeo, this.waterMaterial);
-    canalWaterMesh.position.y = -0.003;
-    this.overgroundGroup.add(canalWaterMesh);
+      const canalWaterGeo = this.createVariableWidthRibbonGeometry(
+        canalCurve,
+        [0.72, 0.72],
+        0.06,
+        110
+      );
+      const canalWaterMesh = new THREE.Mesh(canalWaterGeo, this.waterMaterial);
+      canalWaterMesh.position.y = -0.003;
+      this.overgroundGroup.add(canalWaterMesh);
+    }
 
     // Canal Saint-Denis (Parc de la Villette -> Aubervilliers -> Stade de France -> Seine at Saint-Denis)
-    const csdPoints = CANAL_SAINT_DENIS_LATLON.map(([lat, lon]) => {
-      const { x, z } = projectLatLon(lat, lon);
-      return new THREE.Vector3(x, 0.01, z);
-    });
-    const csdCurve = new THREE.CatmullRomCurve3(csdPoints, false, 'catmullrom', 0.25);
-    const csdQuaiGeo = this.createVariableWidthRibbonGeometry(csdCurve, [1.0, 1.0], 0.06, 70);
-    const csdQuaiMesh = new THREE.Mesh(csdQuaiGeo, quaiStoneMat);
-    csdQuaiMesh.position.y = -0.023;
-    this.overgroundGroup.add(csdQuaiMesh);
+    if (CANAL_SAINT_DENIS_LATLON.length >= 2) {
+      const csdPoints = CANAL_SAINT_DENIS_LATLON.map(([lat, lon]) => {
+        const { x, z } = projectLatLon(lat, lon);
+        return new THREE.Vector3(x, 0.01, z);
+      });
+      const csdCurve = new THREE.CatmullRomCurve3(csdPoints, false, 'catmullrom', 0.25);
+      const csdQuaiGeo = this.createVariableWidthRibbonGeometry(csdCurve, [1.0, 1.0], 0.06, 70);
+      const csdQuaiMesh = new THREE.Mesh(csdQuaiGeo, quaiStoneMat);
+      csdQuaiMesh.position.y = -0.023;
+      this.overgroundGroup.add(csdQuaiMesh);
 
-    const csdWaterGeo = this.createVariableWidthRibbonGeometry(csdCurve, [0.68, 0.68], 0.06, 70);
-    const csdWaterMesh = new THREE.Mesh(csdWaterGeo, this.waterMaterial);
-    csdWaterMesh.position.y = -0.003;
-    this.overgroundGroup.add(csdWaterMesh);
+      const csdWaterGeo = this.createVariableWidthRibbonGeometry(csdCurve, [0.68, 0.68], 0.06, 70);
+      const csdWaterMesh = new THREE.Mesh(csdWaterGeo, this.waterMaterial);
+      csdWaterMesh.position.y = -0.003;
+      this.overgroundGroup.add(csdWaterMesh);
+    }
   }
 
   /**
@@ -1173,10 +1205,11 @@ export class VoxelParisBuilder {
    * 76,157 exact building footprints (with courtyard holes!), and trees.
    */
   private async loadAndBuildOsmParis(): Promise<void> {
+    const osmUrl = `./data/${ACTIVE_CITY_ID}_osm.json?v=20261016a`;
     try {
-      const resp = await fetch('./data/paris_osm.json?v=20261014d');
+      const resp = await fetch(osmUrl);
       if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status} loading /data/paris_osm.json`);
+        throw new Error(`HTTP ${resp.status} loading ${osmUrl}`);
       }
       const data = (await resp.json()) as ParisOsmDataset;
 
@@ -1191,7 +1224,7 @@ export class VoxelParisBuilder {
       this.setSurfaceOpacity(this.currentOpacity);
       this.onShadowCastersChanged?.();
     } catch (err) {
-      console.error('[VoxelParisBuilder] Error loading /data/paris_osm.json:', err);
+      console.error(`[VoxelParisBuilder] Error loading ${osmUrl}:`, err);
     }
   }
 
@@ -2167,7 +2200,7 @@ export class VoxelParisBuilder {
       const wx = wp.outer[0];
       const wz = wp.outer[1];
       // Skip water polygons inside the main Seine/Petit Bras channel to prevent duplicate coplanar water surfaces
-      if (this.isPointInSeineChannel(wx, wz)) continue;
+      if (ACTIVE_CITY_ID === 'paris' && this.isPointInSeineChannel(wx, wz)) continue;
 
       this.appendHorizontalPolygonToBuffers(
         wp.outer,
@@ -2923,7 +2956,9 @@ export class VoxelParisBuilder {
       // Authentic 1:1 Parisian vertical scale (1.0 world unit = 89.3 meters):
       // A 6-storey Haussmannian facade is 17m–20m to the cornice (0.19–0.22 world units) + 7.5m Mansard roof (0.085 units)
       let effectiveH = h;
-      if (style === 2) {
+      if (ACTIVE_CITY_ID !== 'paris') {
+        effectiveH = Math.min(2.8, Math.max(0.14, h));
+      } else if (style === 2) {
         effectiveH = Math.min(1.45, Math.max(0.30, h * 0.52));
       } else {
         if (radial < 0.92) {

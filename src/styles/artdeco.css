@@ -185,7 +185,7 @@ body,
   flex-direction: column;
   gap: 0;
   min-width: 245px;
-  max-width: 560px;
+  max-width: 760px;
   transition:
     padding 0.15s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.15s ease,
@@ -2128,6 +2128,48 @@ body,
   color: #fff9db;
 }
 
+/* Live Weather & Live Metro Telemetry Toggles & Banners */
+.live-toggle-btn {
+  border-color: rgba(45, 185, 135, 0.45);
+}
+
+.live-toggle-btn.live-sync-active {
+  background: linear-gradient(135deg, rgba(45, 138, 107, 0.48), rgba(212, 175, 55, 0.22));
+  color: #79f2c0;
+  border-color: #46e0a3;
+  box-shadow: 0 0 12px rgba(70, 224, 163, 0.35);
+}
+
+.line-badge-btn.live-metro-active {
+  box-shadow: 0 0 0 1.5px rgba(70, 224, 163, 0.85), 0 0 8px rgba(70, 224, 163, 0.32);
+}
+
+.spot-live-telemetry-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0 6px;
+  padding: 6px 8px;
+  background: rgba(22, 58, 48, 0.46);
+  border: 1px solid rgba(70, 224, 163, 0.45);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.35;
+}
+
+.spot-live-status-row {
+  color: #79f2c0;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.spot-live-sensor-row {
+  color: var(--ivory);
+  font-size: 9px;
+  opacity: 0.92;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .era-chronicle-card {
@@ -2137,3 +2179,172 @@ body,
     display: none;
   }
 }
+
+/* ==========================================================================
+   CITY SELECTOR BAR & CULTURAL HERITAGE BANNER
+   ========================================================================== */
+
+.city-selector-bar {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 11px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--gold-border);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.58),
+    inset 0 0 0 1px rgba(212, 175, 55, 0.1);
+}
+
+.city-selector-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  padding-right: 4px;
+  border-right: 1px solid var(--gold-border);
+}
+
+.city-selector-pills {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.city-selector-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--gold-border);
+  border-radius: 2px;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s ease;
+}
+
+.city-selector-btn:hover {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: var(--gold-border-strong);
+  color: var(--ivory);
+  transform: translateY(-1px);
+}
+
+.city-selector-btn.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.12));
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.city-selector-code {
+  font-size: 8.5px;
+  opacity: 0.72;
+}
+
+.city-selector-vibe-badge {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--gold-bright);
+  padding-left: 7px;
+  border-left: 1px solid var(--gold-border);
+  white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+  .city-selector-vibe-badge {
+    display: none;
+  }
+}
+
+.city-cultural-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 9px;
+  border: 1px solid var(--gold-border);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.paris-explorer-card.collapsed .city-cultural-banner {
+  display: none;
+}
+
+.city-cultural-emblem-svg {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.city-cultural-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.city-cultural-banner-title {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--gold-bright);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.city-cultural-banner-sub {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--ivory-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nyc-vignelli-bullets {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.nyc-vignelli-bullet {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+

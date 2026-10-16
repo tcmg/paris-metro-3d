@@ -25,8 +25,14 @@ import {
   PARIS_MONUMENTS
 } from './data/parisHistoricalData';
 import { ARRONDISSEMENTS_MAP } from './data/parisArrondissementsData';
+import {
+  fetchParisMetroOnly,
+  fetchParisWeatherOnly
+} from './data/parisLiveClient';
+import { initActiveCityEnvironment } from './cities/activeCityRuntime';
 
 function bootstrapApp(): void {
+  initActiveCityEnvironment();
   const appContainer = document.getElementById('app');
   if (!appContainer) return;
 
@@ -36,6 +42,8 @@ function bootstrapApp(): void {
   let currentYear = 2026;
   let selectedLineId: string | null = null;
   let showGhostStations = true;
+  let liveWeatherIntervalId: number | null = null;
+  let liveMetroIntervalId: number | null = null;
 
   let hud: ArtDecoHUD;
 
@@ -149,6 +157,62 @@ function bootstrapApp(): void {
     onWeatherChange: (weather) => {
       sceneManager.setWeatherMode(weather);
       voxelParis.setWeatherSurfaceSheen(weather === 'rain');
+    },
+    onToggleLiveWeather: (enabled: boolean) => {
+      if (liveWeatherIntervalId !== null) {
+        window.clearInterval(liveWeatherIntervalId);
+        liveWeatherIntervalId = null;
+      }
+      if (!enabled) {
+        hud.setLiveWeatherState(false, null);
+        return;
+      }
+      const syncLiveWeather = async () => {
+        try {
+          const weather = await fetchParisWeatherOnly();
+          sceneManager.setWeatherMode(weather.clientSceneState.weatherMode);
+          sceneManager.setTimeOfDay(weather.clientSceneState.timeOfDay);
+          voxelParis.setWeatherSurfaceSheen(weather.clientSceneState.surfaceWetSheen);
+          hud.syncTimeOfDayReadout(weather.clientSceneState.timeOfDay);
+          hud.setLiveWeatherState(true, weather);
+        } catch (err) {
+          console.warn('Live Paris Weather sync failed:', err);
+          hud.setLiveWeatherState(false, null);
+        }
+      };
+      void syncLiveWeather();
+      liveWeatherIntervalId = window.setInterval(() => {
+        void syncLiveWeather();
+      }, 300_000);
+    },
+    onToggleLiveMetro: (enabled: boolean) => {
+      if (liveMetroIntervalId !== null) {
+        window.clearInterval(liveMetroIntervalId);
+        liveMetroIntervalId = null;
+      }
+      if (!enabled) {
+        metroNetwork.setLiveMetroData(null);
+        hud.setLiveMetroState(false, null);
+        return;
+      }
+      if (currentYear < 2026) {
+        hud.triggerYear(2026);
+      }
+      const syncLiveMetro = async () => {
+        try {
+          const metro = await fetchParisMetroOnly();
+          metroNetwork.setLiveMetroData(metro.linesById);
+          hud.setLiveMetroState(true, metro);
+        } catch (err) {
+          console.warn('Live Paris Metro sync failed:', err);
+          metroNetwork.setLiveMetroData(null);
+          hud.setLiveMetroState(false, null);
+        }
+      };
+      void syncLiveMetro();
+      liveMetroIntervalId = window.setInterval(() => {
+        void syncLiveMetro();
+      }, 120_000);
     },
     onToggleGhostStations: (show: boolean) => {
       showGhostStations = show;

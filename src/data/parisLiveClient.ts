@@ -16,8 +16,11 @@
 
 import type { AtmosphereModeId, WeatherModeId } from '../scene/SceneManager';
 
-export const PARIS_LIVE_API_URL =
-  'https://paris-metro-apphost--paris-metro-511808.europe-west4.hosted.app/api/paris-live';
+export const PARIS_LIVE_BASE_URL =
+  'https://paris-metro-apphost--paris-metro-511808.europe-west4.hosted.app';
+export const PARIS_LIVE_API_URL = `${PARIS_LIVE_BASE_URL}/api/paris-live`;
+export const PARIS_WEATHER_API_URL = `${PARIS_LIVE_BASE_URL}/api/weather`;
+export const PARIS_METRO_API_URL = `${PARIS_LIVE_BASE_URL}/api/metro`;
 
 export interface ClientMetroLineLiveState {
   /** Matches `MetroLineConfig.id` in `src/data/parisMetroData.ts` ('1'..'14', '3bis', '7bis') */
@@ -130,3 +133,36 @@ export async function fetchParisLiveState(
   }
   return (await response.json()) as ParisLiveApiResponse;
 }
+
+/**
+ * Fetches only the cached live Paris weather payload from `/api/weather`.
+ */
+export async function fetchParisWeatherOnly(
+  endpoint = PARIS_WEATHER_API_URL,
+): Promise<ParisLiveApiResponse['weather']> {
+  const response = await fetch(endpoint, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Paris weather: HTTP ${response.status}`);
+  }
+  const data = (await response.json()) as { weather: ParisLiveApiResponse['weather'] };
+  return data.weather;
+}
+
+/**
+ * Fetches only the cached live Paris Métro & RATP telemetry payload from `/api/metro`.
+ */
+export async function fetchParisMetroOnly(
+  endpoint = PARIS_METRO_API_URL,
+): Promise<ParisLiveApiResponse['metro']> {
+  const response = await fetch(endpoint, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Paris metro telemetry: HTTP ${response.status}`);
+  }
+  const data = (await response.json()) as { metro: ParisLiveApiResponse['metro'] };
+  return data.metro;
+}
+

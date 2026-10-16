@@ -12,99 +12,209 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   validateCityId,
   createProjector,
   queryOverpassWithRetry,
-  simplifyRing,
-  simplifyLine,
+  polygonSignedArea,
   stitchWaysIntoRings,
   writeSafeFile,
+  WORKSPACE_ROOT,
 } from './security_utils.mjs';
 import { getCityPreset } from './city_presets.mjs';
 
-function buildPresetWaterFeatures(preset, project) {
-  const waterPolygons = [];
-  const waterWays = [];
-
-  for (const wb of preset.waterBodies || []) {
-    if (wb.type === 'polygon' && Array.isArray(wb.outerRingLatLon)) {
-      const outer = simplifyRing(
-        wb.outerRingLatLon.map(([lat, lon]) => project(lat, lon)),
-        2
-      );
-      if (outer.length >= 3) {
-        waterPolygons.push({
-          id: wb.id,
-          name: wb.name,
-          kind: wb.kind,
-          color: wb.color || '#1a4b6e',
-          outer,
-          holes: [],
-        });
-      }
-    } else if (wb.type === 'polyline' && Array.isArray(wb.pathLatLon)) {
-      const pts = simplifyLine(
-        wb.pathLatLon.map(([lat, lon]) => project(lat, lon)),
-        2
-      );
-      if (pts.length >= 2) {
-        waterWays.push({
-          id: wb.id,
-          name: wb.name,
-          kind: wb.kind,
-          w: wb.widthMeters || 140,
-          pts,
-        });
-      }
+function projectFlatRingFromLatLon(geom, project, minStep = 0.025) {
+  if (!Array.isArray(geom) || geom.length < 3) return [];
+  const flat = [];
+  let prevX = Infinity;
+  let prevZ = Infinity;
+  for (const pt of geom) {
+    const lat = Array.isArray(pt) ? pt[0] : pt.lat;
+    const lon = Array.isArray(pt) ? pt[1] : pt.lon;
+    const [x, z] = project(lat, lon);
+    if (Math.hypot(x - prevX, z - prevZ) >= minStep) {
+      flat.push(x, z);
+      prevX = x;
+      prevZ = z;
     }
   }
-
-  return { waterPolygons, waterWays };
+  if (
+    flat.length >= 6 &&
+    Math.hypot(flat[0] - flat[flat.length - 2], flat[1] - flat[flat.length - 1]) < minStep
+  ) {
+    flat.pop();
+    flat.pop();
+  }
+  return flat;
 }
 
-function buildPresetBeaches(preset, project) {
-  const beaches = [];
-  for (const b of preset.beaches || []) {
-    const pts = simplifyLine(
-      (b.pointsLatLon || []).map(([lat, lon]) => project(lat, lon)),
-      2
-    );
-    if (pts.length >= 2) {
-      beaches.push({
-        id: b.id,
-        name: b.name,
-        w: b.widthMeters || 65,
-        pts,
-      });
+function projectFlatLineFromLatLon(geom, project, minStep = 0.04) {
+  if (!Array.isArray(geom) || geom.length < 2) return [];
+  const flat = [];
+  let prevX = Infinity;
+  let prevZ = Infinity;
+  for (let i = 0; i < geom.length; i++) {
+    const pt = geom[i];
+    const lat = Array.isArray(pt) ? pt[0] : pt.lat;
+    const lon = Array.isArray(pt) ? pt[1] : pt.lon;
+    const [x, z] = project(lat, lon);
+    if (i === 0 || i === geom.length - 1 || Math.hypot(x - prevX, z - prevZ) >= minStep) {
+      flat.push(x, z);
+      prevX = x;
+      prevZ = z;
     }
   }
-  return beaches;
+  return flat;
+}
+
+/**
+ * Converts a metric [x_m, z_m] coordinate pair (from earlier step1 runs) into
+ * diorama world units using the city's coreRadiusKm and worldUnitsPerKm.
+ */
+function metricPointToWorld(xm, zm, geo) {
+  const rawKmX = xm / 1000;
+  const rawKmZ = zm / 1000;
+  const distKm = Math.hypot(rawKmX, rawKmZ);
+  const coreRadiusKm = geo.coreRadiusKm || 7.5;
+  const worldUnitsPerKm = geo.worldUnitsPerKm || 10.8;
+  let effectiveKm = distKm;
+  if (distKm > coreRadiusKm) {
+    const excess = distKm - coreRadiusKm;
+    effectiveKm = coreRadiusKm + Math.log1p(excess * 0.30) * 5.6;
+  }
+  const scale = distKm > 0.0001 ? (effectiveKm / distKm) * worldUnitsPerKm : worldUnitsPerKm;
+  return [
+    Math.round(rawKmX * scale * 100) / 100,
+    Math.round(rawKmZ * scale * 100) / 100,
+  ];
+}
+
+function convertMetricPairListToFlatWorld(pairs, geo, minStep = 0.022) {
+  if (!Array.isArray(pairs) || pairs.length === 0) return [];
+  // Already flat array of numbers?
+  if (typeof pairs[0] === 'number') {
+    return pairs;
+  }
+  const flat = [];
+  let prevX = Infinity;
+  let prevZ = Infinity;
+  for (let i = 0; i < pairs.length; i++) {
+    const pt = pairs[i];
+    if (!Array.isArray(pt) || pt.length < 2) continue;
+    const [x, z] = metricPointToWorld(pt[0], pt[1], geo);
+    if (i === 0 || i === pairs.length - 1 || Math.hypot(x - prevX, z - prevZ) >= minStep) {
+      flat.push(x, z);
+      prevX = x;
+      prevZ = z;
+    }
+  }
+  return flat;
+}
+
+/**
+ * Upgrading converter if an existing <city>_osm.json on disk was saved with metric [[x,z],...] arrays.
+ */
+function upgradeExistingOsmDatasetIfNeeded(existingJson, preset) {
+  const geo = preset.geo;
+  const islands = existingJson.islands || [];
+
+  const waterPolygons = (existingJson.waterPolygons || [])
+    .map((wp) => {
+      const outer = convertMetricPairListToFlatWorld(wp.outer, geo, 0.04);
+      const holes = (wp.holes || [])
+        .map((h) => convertMetricPairListToFlatWorld(h, geo, 0.03))
+        .filter((h) => h.length >= 6);
+      return { outer, holes };
+    })
+    .filter((wp) => wp.outer.length >= 6);
+
+  const rawLines = existingJson.waterLines || existingJson.waterWays || [];
+  const waterLines = rawLines
+    .map((wl) => ({
+      type: wl.type || wl.kind || 'river',
+      name: wl.name || '',
+      pts: convertMetricPairListToFlatWorld(wl.pts, geo, 0.05),
+    }))
+    .filter((wl) => wl.pts.length >= 4);
+
+  const parks = (existingJson.parks || [])
+    .map((pk) => {
+      if (Array.isArray(pk.outer) && typeof pk.outer[0] === 'number') {
+        return pk;
+      }
+      const outer = convertMetricPairListToFlatWorld(pk.pts || pk.outer, geo, 0.03);
+      return {
+        name: pk.name || '',
+        kind: pk.kind || (pk.k === 'g' ? 'garden' : 'park'),
+        outer,
+      };
+    })
+    .filter((pk) => pk.outer.length >= 6);
+
+  const trees = (existingJson.trees || []).map((t) => {
+    if (Array.isArray(t) && t.length === 2 && Math.abs(t[0]) > 250) {
+      return metricPointToWorld(t[0], t[1], geo);
+    }
+    return t;
+  });
+
+  const roads = (existingJson.roads || [])
+    .map((rd) => {
+      if (Array.isArray(rd) && Array.isArray(rd[0]) && typeof rd[0][0] === 'number') {
+        return rd;
+      }
+      const pts = convertMetricPairListToFlatWorld(rd.pts, geo, 0.035);
+      const tier = rd.t === 1 ? 3 : rd.t === 2 ? 2 : 1;
+      const isBridge = rd.b ? 1 : 0;
+      return [pts, tier, isBridge];
+    })
+    .filter((rd) => rd[0].length >= 4);
+
+  const buildings = (existingJson.buildings || [])
+    .map((b) => {
+      if (Array.isArray(b) && Array.isArray(b[0]) && typeof b[0][0] === 'number') {
+        return b;
+      }
+      const outer = convertMetricPairListToFlatWorld(b.pts, geo, 0.02);
+      const hMeters = Number(b.h) || 18;
+      const hWorld = Number(Math.min(2.65, Math.max(0.14, hMeters * 0.0112 * 1.35)).toFixed(3));
+      const style = hMeters >= 42 ? 2 : hMeters >= 26 ? 3 : 0;
+      return [outer, [], hWorld, style];
+    })
+    .filter((b) => b[0].length >= 6 && Math.abs(polygonSignedArea(b[0])) >= 0.005);
+
+  return {
+    islands,
+    waterPolygons,
+    waterLines,
+    parks,
+    trees,
+    roads,
+    buildings,
+  };
 }
 
 function parseOsmWaterway(data, project) {
   const waterPolygons = [];
-  const waterWays = [];
+  const waterLines = [];
 
   for (const el of data.elements || []) {
     if (el.type === 'way' && el.geometry) {
       const tags = el.tags || {};
-      const pts = el.geometry.map((g) => project(g.lat, g.lon));
       if (tags.waterway === 'river' || tags.waterway === 'canal') {
-        const simplified = simplifyLine(pts, 4);
-        if (simplified.length >= 2) {
-          waterWays.push({
-            w: tags.waterway === 'river' ? 120 : 28,
-            pts: simplified,
+        const pts = projectFlatLineFromLatLon(el.geometry, project, 0.04);
+        if (pts.length >= 4) {
+          waterLines.push({
+            type: tags.waterway,
+            name: tags.name || '',
+            pts,
           });
         }
-      } else if (
-        pts.length >= 4 &&
-        pts[0][0] === pts[pts.length - 1][0] &&
-        pts[0][1] === pts[pts.length - 1][1]
-      ) {
-        const outer = simplifyRing(pts, 4);
-        if (outer.length >= 3) {
+      } else {
+        const outer = projectFlatRingFromLatLon(el.geometry, project, 0.035);
+        if (outer.length >= 6) {
           waterPolygons.push({ outer, holes: [] });
         }
       }
@@ -113,24 +223,23 @@ function parseOsmWaterway(data, project) {
       const innerWays = [];
       for (const m of el.members) {
         if (m.type === 'way' && m.geometry && m.geometry.length >= 2) {
-          const pts = m.geometry.map((g) => project(g.lat, g.lon));
-          if (m.role === 'inner') innerWays.push(pts);
-          else outerWays.push(pts);
+          if (m.role === 'inner') innerWays.push(m.geometry);
+          else outerWays.push(m.geometry);
         }
       }
       const outers = stitchWaysIntoRings(outerWays)
-        .map((r) => simplifyRing(r, 4))
-        .filter((r) => r.length >= 3);
+        .map((r) => projectFlatRingFromLatLon(r, project, 0.04))
+        .filter((r) => r.length >= 6);
       const inners = stitchWaysIntoRings(innerWays)
-        .map((r) => simplifyRing(r, 3))
-        .filter((r) => r.length >= 3);
+        .map((r) => projectFlatRingFromLatLon(r, project, 0.03))
+        .filter((r) => r.length >= 6);
       for (const outer of outers) {
         waterPolygons.push({ outer, holes: inners });
       }
     }
   }
 
-  return { waterPolygons, waterWays };
+  return { waterPolygons, waterLines };
 }
 
 function parseOsmParksAndTrees(data, project) {
@@ -142,20 +251,18 @@ function parseOsmParksAndTrees(data, project) {
       const [x, z] = project(el.lat, el.lon);
       trees.push([x, z]);
     } else if (el.type === 'way' && el.geometry && el.geometry.length >= 4) {
-      const pts = simplifyRing(
-        el.geometry.map((g) => project(g.lat, g.lon)),
-        3
-      );
-      if (pts.length >= 3) {
+      const outer = projectFlatRingFromLatLon(el.geometry, project, 0.03);
+      if (outer.length >= 6) {
         parks.push({
-          k: el.tags?.leisure === 'garden' ? 'g' : 'p',
-          pts,
+          name: el.tags?.name || '',
+          kind: el.tags?.leisure === 'garden' ? 'garden' : 'park',
+          outer,
         });
       }
     }
   }
 
-  return { parks, trees: trees.slice(0, 6000) };
+  return { parks, trees: trees.slice(0, 8000) };
 }
 
 function parseOsmRoads(data, project) {
@@ -164,21 +271,16 @@ function parseOsmRoads(data, project) {
     if (el.type === 'way' && el.geometry && el.geometry.length >= 2) {
       const hw = el.tags?.highway || '';
       const tier =
-        hw === 'motorway' || hw === 'trunk' || hw === 'primary'
-          ? 1
-          : hw === 'secondary'
-            ? 2
-            : 3;
-      const pts = simplifyLine(
-        el.geometry.map((g) => project(g.lat, g.lon)),
-        tier === 1 ? 3 : 4
-      );
-      if (pts.length >= 2) {
-        roads.push({
-          t: tier,
-          b: el.tags?.bridge === 'yes' ? 1 : 0,
-          pts,
-        });
+        hw === 'motorway'
+          ? 4
+          : hw === 'trunk' || hw === 'primary'
+            ? 3
+            : hw === 'secondary'
+              ? 2
+              : 1;
+      const pts = projectFlatLineFromLatLon(el.geometry, project, tier >= 3 ? 0.03 : 0.04);
+      if (pts.length >= 4) {
+        roads.push([pts, tier, el.tags?.bridge === 'yes' ? 1 : 0]);
       }
     }
   }
@@ -192,95 +294,26 @@ function parseOsmBuildings(data, project, seenIds) {
       if (seenIds.has(el.id)) continue;
       seenIds.add(el.id);
 
-      const pts = simplifyRing(
-        el.geometry.map((g) => project(g.lat, g.lon)),
-        1.2
-      );
-      if (pts.length < 3) continue;
-
-      let area = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const [x1, z1] = pts[i];
-        const [x2, z2] = pts[(i + 1) % pts.length];
-        area += x1 * z2 - x2 * z1;
-      }
-      if (Math.abs(area) * 0.5 < 22) continue;
+      const outer = projectFlatRingFromLatLon(el.geometry, project, 0.02);
+      if (outer.length < 6) continue;
+      if (Math.abs(polygonSignedArea(outer)) < 0.0055) continue;
 
       const tags = el.tags || {};
-      let h = 18;
+      let hMeters = 18;
       if (tags.height) {
         const parsedH = parseFloat(String(tags.height).replace(/[^0-9.]/g, ''));
-        if (!Number.isNaN(parsedH) && parsedH > 3) h = Math.min(350, Math.round(parsedH));
+        if (!Number.isNaN(parsedH) && parsedH > 3) hMeters = Math.min(350, parsedH);
       } else if (tags['building:levels']) {
         const lv = parseFloat(tags['building:levels']);
-        if (!Number.isNaN(lv) && lv > 0) h = Math.min(350, Math.round(lv * 3.4 + 2));
+        if (!Number.isNaN(lv) && lv > 0) hMeters = Math.min(350, lv * 3.4 + 2);
       }
 
-      buildings.push({ h, pts });
+      const hWorld = Number(Math.min(2.65, Math.max(0.14, hMeters * 0.0112 * 1.35)).toFixed(3));
+      const style = hMeters >= 42 ? 2 : hMeters >= 26 ? 3 : 0;
+      buildings.push([outer, [], hWorld, style]);
     }
   }
   return buildings;
-}
-
-function generateProceduralFallbackCityGeometry(preset, project) {
-  const parks = [];
-  const roads = [];
-  const buildings = [];
-
-  for (const d of preset.districts || []) {
-    const [cx, cz] = project(d.lat, d.lon);
-    // Create a neighborhood park and radial/grid avenues around each district center
-    parks.push({
-      k: 'p',
-      pts: [
-        [cx - 120, cz - 90],
-        [cx + 120, cz - 90],
-        [cx + 120, cz + 90],
-        [cx - 120, cz + 90],
-      ],
-    });
-
-    for (let gx = -3; gx <= 3; gx++) {
-      roads.push({
-        t: gx === 0 ? 1 : 2,
-        b: 0,
-        pts: [
-          [cx + gx * 160, cz - 520],
-          [cx + gx * 160, cz + 520],
-        ],
-      });
-      roads.push({
-        t: gx === 0 ? 1 : 2,
-        b: 0,
-        pts: [
-          [cx - 520, cz + gx * 160],
-          [cx + 520, cz + gx * 160],
-        ],
-      });
-    }
-
-    for (let bx = -3; bx <= 2; bx++) {
-      for (let bz = -3; bz <= 2; bz++) {
-        if (bx === 0 && bz === 0) continue;
-        const x0 = cx + bx * 160 + 22;
-        const z0 = cz + bz * 160 + 22;
-        const w = 96;
-        const depth = 88;
-        const h = preset.id === 'nyc' ? 54 + ((Math.abs(bx + bz) % 4) * 28) : 22 + ((Math.abs(bx * bz) % 4) * 9);
-        buildings.push({
-          h,
-          pts: [
-            [x0, z0],
-            [x0 + w, z0],
-            [x0 + w, z0 + depth],
-            [x0, z0 + depth],
-          ],
-        });
-      }
-    }
-  }
-
-  return { parks, roads, buildings, trees: [] };
 }
 
 export async function runStep1OsmGeoJson(cityId, options = {}) {
@@ -292,17 +325,27 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
 
   console.log(`\n[Step 1/4] Preparing GeoJSON & 3D World Geometry for ${preset.name} (${safeCityId})...`);
 
-  const presetWater = buildPresetWaterFeatures(preset, project);
-  const beaches = buildPresetBeaches(preset, project);
-
-  let waterPolygons = [...presetWater.waterPolygons];
-  let waterWays = [...presetWater.waterWays];
+  const existingOsmFile = path.join(WORKSPACE_ROOT, 'public', 'data', `${safeCityId}_osm.json`);
+  let islands = [];
+  let waterPolygons = [];
+  let waterLines = [];
   let parks = [];
   let trees = [];
   let roads = [];
   let buildings = [];
 
-  if (!offline) {
+  if (offline && fs.existsSync(existingOsmFile)) {
+    console.log(`  -> Upgrading/preserving cached ${existingOsmFile} in diorama world units...`);
+    const cached = JSON.parse(fs.readFileSync(existingOsmFile, 'utf8'));
+    const upgraded = upgradeExistingOsmDatasetIfNeeded(cached, preset);
+    islands = upgraded.islands;
+    waterPolygons = upgraded.waterPolygons;
+    waterLines = upgraded.waterLines;
+    parks = upgraded.parks;
+    trees = upgraded.trees;
+    roads = upgraded.roads;
+    buildings = upgraded.buildings;
+  } else if (!offline) {
     const [south, west, north, east] = preset.geo.bbox;
     const bboxStr = `${south},${west},${north},${east}`;
 
@@ -319,7 +362,7 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
       `);
       const parsedWater = parseOsmWaterway(waterData, project);
       waterPolygons.push(...parsedWater.waterPolygons);
-      waterWays.push(...parsedWater.waterWays);
+      waterLines.push(...parsedWater.waterLines);
 
       console.log(`  -> Querying Overpass for ${preset.name} parks & green spaces...`);
       const parksData = await queryOverpassWithRetry(`
@@ -366,18 +409,20 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
       }
     } catch (err) {
       console.warn(
-        `  [!] Overpass live fetch encountered an error (${err.message}). Augmenting with curated procedural blocks.`
+        `  [!] Overpass live fetch encountered an error (${err.message}). Checking cached OSM file...`
       );
+      if (fs.existsSync(existingOsmFile)) {
+        const cached = JSON.parse(fs.readFileSync(existingOsmFile, 'utf8'));
+        const upgraded = upgradeExistingOsmDatasetIfNeeded(cached, preset);
+        islands = upgraded.islands;
+        waterPolygons = upgraded.waterPolygons;
+        waterLines = upgraded.waterLines;
+        parks = upgraded.parks;
+        trees = upgraded.trees;
+        roads = upgraded.roads;
+        buildings = upgraded.buildings;
+      }
     }
-  } else {
-    console.log(`  -> Running in --offline mode; synthesizing curated geometry from ${preset.name} preset.`);
-  }
-
-  if (buildings.length === 0 || roads.length === 0) {
-    const fallback = generateProceduralFallbackCityGeometry(preset, project);
-    if (parks.length === 0) parks = fallback.parks;
-    if (roads.length === 0) roads = fallback.roads;
-    if (buildings.length === 0) buildings = fallback.buildings;
   }
 
   const topography = (preset.topography || []).map((peak) => {
@@ -404,13 +449,10 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
       country: preset.country,
       centerLat: preset.geo.centerLat,
       centerLon: preset.geo.centerLon,
-      mPerDegLat: preset.geo.mPerDegLat,
-      mPerDegLon: preset.geo.mPerDegLon,
-      bbox: preset.geo.bbox,
       counts: {
+        islands: islands.length,
         waterPolygons: waterPolygons.length,
-        waterWays: waterWays.length,
-        beaches: beaches.length,
+        waterLines: waterLines.length,
         parks: parks.length,
         trees: trees.length,
         roads: roads.length,
@@ -418,14 +460,13 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
         topographyPeaks: topography.length,
       },
     },
+    islands,
     waterPolygons,
-    waterWays,
-    beaches,
+    waterLines,
     parks,
     trees,
     roads,
     buildings,
-    topography,
   };
 
   const osmJsonPath = writeSafeFile(
@@ -448,7 +489,14 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import type { CityGeoConfig, CityWaterBody, CityTopographyPeak } from '../types';
+import type {
+  CityGeoConfig,
+  CityWaterBody,
+  CityTopographyPeak,
+  CityBridgeDef,
+  CityParkDef,
+  CityPlaceDef,
+} from '../types';
 
 export const ${upperId}_GEO_CONFIG: CityGeoConfig = ${JSON.stringify(preset.geo, null, 2)};
 
@@ -456,18 +504,34 @@ export function latLonTo${preset.id.charAt(0).toUpperCase() + preset.id.slice(1)
   lat: number,
   lon: number
 ): [number, number] {
-  const x = (lon - ${upperId}_GEO_CONFIG.centerLon) * ${upperId}_GEO_CONFIG.mPerDegLon;
-  const z = -((lat - ${upperId}_GEO_CONFIG.centerLat) * ${upperId}_GEO_CONFIG.mPerDegLat);
-  return [Math.round(x * 10) / 10, Math.round(z * 10) / 10];
+  const rawKmX = (lon - ${upperId}_GEO_CONFIG.centerLon) * (${upperId}_GEO_CONFIG.kmPerDegLon ?? 90);
+  const rawKmZ = -(lat - ${upperId}_GEO_CONFIG.centerLat) * (${upperId}_GEO_CONFIG.kmPerDegLat ?? 111.1);
+  const distKm = Math.hypot(rawKmX, rawKmZ);
+  const coreRadiusKm = ${upperId}_GEO_CONFIG.coreRadiusKm ?? 7.5;
+  const worldUnitsPerKm = ${upperId}_GEO_CONFIG.worldUnitsPerKm ?? 10.8;
+  let effectiveKm = distKm;
+  if (distKm > coreRadiusKm) {
+    effectiveKm = coreRadiusKm + Math.log1p((distKm - coreRadiusKm) * 0.30) * 5.6;
+  }
+  const scale = distKm > 0.0001 ? (effectiveKm / distKm) * worldUnitsPerKm : worldUnitsPerKm;
+  return [Math.round(rawKmX * scale * 100) / 100, Math.round(rawKmZ * scale * 100) / 100];
 }
+
+export const ${upperId}_WATER_CENTERLINES: [number, number, number][] = ${JSON.stringify(preset.waterCenterlines || [], null, 2)};
+
+export const ${upperId}_BRIDGES: CityBridgeDef[] = ${JSON.stringify(preset.bridges || [], null, 2)};
+
+export const ${upperId}_PARKS: CityParkDef[] = ${JSON.stringify(preset.parks || [], null, 2)};
+
+export const ${upperId}_PLACES: CityPlaceDef[] = ${JSON.stringify(preset.places || [], null, 2)};
 
 export const ${upperId}_WATER_BODIES: CityWaterBody[] = ${JSON.stringify(preset.waterBodies || [], null, 2)};
 
-export const ${upperId}_TOPOGRAPHY: CityTopographyPeak[] = ${JSON.stringify(preset.topography || [], null, 2)};
+export const ${upperId}_TOPOGRAPHY: CityTopographyPeak[] = ${JSON.stringify(topography, null, 2)};
 `;
 
   const geoTsPath = writeSafeFile(`src/cities/${safeCityId}/geoData.ts`, geoTsSource);
-  console.log(`  [✓] Wrote ${osmJsonPath}`);
+  console.log(`  [✓] Wrote ${osmJsonPath} (${buildings.length} buildings, ${roads.length} roads, ${parks.length} parks)`);
   console.log(`  [✓] Wrote ${geoTsPath}`);
 
   return { osmJsonPath, geoTsPath, counts: payload.meta.counts };

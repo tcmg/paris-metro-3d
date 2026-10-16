@@ -344,64 +344,96 @@ def build_archetype_geometry(bm, archetype):
         add_cone_or_cyl(bm, 2, 0, 0, 18.5, 5.5, 1.5, 6.5, segs=16)
 
 
+def get_or_reset_city_scene(city_id):
+    scene_label = "NYC" if city_id == "nyc" else city_id.replace("-", "_").title().replace("_", "")
+    scene_name = f"Scene_{scene_label}"
+    if scene_name in bpy.data.scenes:
+        scene = bpy.data.scenes[scene_name]
+        for obj in list(scene.objects):
+            bpy.data.objects.remove(obj, do_unlink=True)
+    else:
+        scene = bpy.data.scenes.new(scene_name)
+
+    if getattr(bpy.context, "window", None) is not None:
+        bpy.context.window.scene = scene
+    return scene
+
+
 def build_city_monuments_from_spec(spec_path, out_glb_path):
     with open(spec_path, "r", encoding="utf-8") as f:
         spec = json.load(f)
 
-    clear_scene()
+    city_id = str(spec.get("cityId", "city")).lower()
+    scene = get_or_reset_city_scene(city_id)
     monuments = spec.get("monuments", [])
-    cols = max(1, int(math.ceil(math.sqrt(len(monuments)))))
-    spacing = 45.0
 
-    for idx, m in enumerate(monuments):
-        node_name = m["nodeName"]
-        archetype = m.get("archetype", "beaux_arts_opera")
-        primary_hex = m.get("primaryColor", "#d8d0c5")
-        secondary_hex = m.get("secondaryColor", "#8a99ad")
-        accent_hex = m.get("accentColor", "#c89d54")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
 
-        mat_primary = make_pbr_mat(f"{node_name}_Primary", primary_hex, roughness=0.55, metallic=0.08)
-        mat_secondary = make_pbr_mat(f"{node_name}_Secondary", secondary_hex, roughness=0.45, metallic=0.20)
-        mat_accent = make_pbr_mat(f"{node_name}_Accent", accent_hex, roughness=0.35, metallic=0.55)
-        mat_glass = make_pbr_mat(f"{node_name}_Glass", "#5fa8d3", roughness=0.15, metallic=0.1, alpha=0.85)
+    if city_id == "sydney":
+        from mcp_sydney_nyc_builders import build_sydney_monuments_in_scene
+        build_sydney_monuments_in_scene(scene)
+    elif city_id == "nyc":
+        from mcp_sydney_nyc_builders import build_nyc_monuments_in_scene
+        build_nyc_monuments_in_scene(scene)
+    else:
+        cols = max(1, int(math.ceil(math.sqrt(len(monuments)))))
+        spacing = 12.0
 
-        mesh = bpy.data.meshes.new(f"{node_name}_Mesh")
-        obj = bpy.data.objects.new(node_name, mesh)
-        bpy.context.collection.objects.link(obj)
+        for idx, m in enumerate(monuments):
+            node_name = m["nodeName"]
+            archetype = m.get("archetype", "beaux_arts_opera")
+            primary_hex = m.get("primaryColor", "#d8d0c5")
+            secondary_hex = m.get("secondaryColor", "#8a99ad")
+            accent_hex = m.get("accentColor", "#c89d54")
 
-        obj.data.materials.append(mat_primary)
-        obj.data.materials.append(mat_secondary)
-        obj.data.materials.append(mat_accent)
-        obj.data.materials.append(mat_glass)
+            mat_primary = make_pbr_mat(f"{node_name}_Primary", primary_hex, roughness=0.55, metallic=0.08)
+            mat_secondary = make_pbr_mat(f"{node_name}_Secondary", secondary_hex, roughness=0.45, metallic=0.20)
+            mat_accent = make_pbr_mat(f"{node_name}_Accent", accent_hex, roughness=0.35, metallic=0.55)
+            mat_glass = make_pbr_mat(f"{node_name}_Glass", "#5fa8d3", roughness=0.15, metallic=0.1, alpha=0.85)
 
-        bm = bmesh.new()
-        build_archetype_geometry(bm, archetype)
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        bm.to_mesh(mesh)
-        bm.free()
+            parent_empty = bpy.data.objects.new(node_name, None)
+            parent_empty.empty_display_type = "PLAIN_AXES"
+            row = idx // cols
+            col = idx % cols
+            parent_empty.location = ((col - (cols - 1) * 0.5) * spacing, (row - (cols - 1) * 0.5) * spacing, 0.0)
+            parent_empty["monument_id"] = m["id"]
+            parent_empty["monument_name"] = m["name"]
+            parent_empty["archetype"] = archetype
+            parent_empty["year"] = str(m.get("year", ""))
+            scene.collection.objects.link(parent_empty)
 
-        for poly in mesh.polygons:
-            poly.use_smooth = False
+            mesh = bpy.data.meshes.new(f"{node_name}_Mesh")
+            child_obj = bpy.data.objects.new(f"{node_name}_Body", mesh)
+            scene.collection.objects.link(child_obj)
+            child_obj.parent = parent_empty
 
-        row = idx // cols
-        col = idx % cols
-        obj.location = ((col - (cols - 1) * 0.5) * spacing, (row - (cols - 1) * 0.5) * spacing, 0.0)
+            child_obj.data.materials.append(mat_primary)
+            child_obj.data.materials.append(mat_secondary)
+            child_obj.data.materials.append(mat_accent)
+            child_obj.data.materials.append(mat_glass)
 
-        # Store metadata custom properties on the Blender object for inspection
-        obj["monument_id"] = m["id"]
-        obj["monument_name"] = m["name"]
-        obj["archetype"] = archetype
-        obj["year"] = str(m.get("year", ""))
+            bm = bmesh.new()
+            build_archetype_geometry(bm, archetype)
+            bmesh.ops.scale(bm, vec=(0.14, 0.14, 0.14), verts=bm.verts)
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+            bm.to_mesh(mesh)
+            bm.free()
+
+            for poly in mesh.polygons:
+                poly.use_smooth = False
 
     os.makedirs(os.path.dirname(os.path.abspath(out_glb_path)), exist_ok=True)
     bpy.ops.export_scene.gltf(
         filepath=os.path.abspath(out_glb_path),
         export_format="GLB",
+        use_active_scene=True,
         export_apply=True,
         export_yup=True,
         export_materials="EXPORT",
     )
-    print(f"[Blender Pipeline] Exported {len(monuments)} monuments to {out_glb_path}")
+    print(f"[Blender Pipeline] Exported {len(monuments)} monuments from {scene.name} to {out_glb_path}")
 
 
 def main():

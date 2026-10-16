@@ -1,0 +1,50 @@
+{
+  "cityId": "sydney",
+  "cityName": "Sydney",
+  "country": "Australia",
+  "startedAt": "2026-10-16T11:11:33.353Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/sydney_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 174,
+        "waterLines": 3,
+        "parks": 2570,
+        "trees": 6000,
+        "roads": 4434,
+        "buildings": 32618,
+        "topographyPeaks": 5
+      }
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/districtsData.ts",
+      "lineCount": 4,
+      "terminusCount": 1,
+      "districtCount": 4
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/sydney_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/historicalData.ts",
+      "glbRelPath": "public/models/sydney_monuments.glb",
+      "glbExported": true,
+      "blenderExecutionMode": "blender-headless-cli",
+      "monumentCount": 8
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/sydney.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/index.ts"
+    }
+  },
+  "completedAt": "2026-10-16T12:23:26.578Z"
+}

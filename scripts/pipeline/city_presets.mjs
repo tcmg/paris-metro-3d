@@ -64,19 +64,25 @@ function normalizeCityPreset(raw) {
     centerLon: raw.geo.centerLon,
     mPerDegLat: raw.geo.mPerDegLat || Math.round((raw.geo.kmPerDegLat || 111.132) * 1000),
     mPerDegLon: raw.geo.mPerDegLon || Math.round((raw.geo.kmPerDegLon || 102.45) * 1000),
+    kmPerDegLat: raw.geo.kmPerDegLat || (raw.geo.mPerDegLat ? raw.geo.mPerDegLat / 1000 : 111.132),
+    kmPerDegLon: raw.geo.kmPerDegLon || (raw.geo.mPerDegLon ? raw.geo.mPerDegLon / 1000 : 102.45),
+    worldUnitsPerKm: raw.geo.worldUnitsPerKm || 10.8,
+    coreRadiusKm: raw.geo.coreRadiusKm || 7.5,
+    isCoastal: Boolean(raw.geo.isCoastal),
     bbox: raw.geo.bbox,
     defaultElevationMeters: raw.geo.defaultElevationMeters ?? 4,
   };
 
+  const waterCenterlines = raw.waterCenterlines || [];
   let waterBodies = raw.waterBodies || [];
   if (waterBodies.length === 0 && Array.isArray(raw.waterCenterlines)) {
     waterBodies = [
       {
         id: `${id}_bay_shoreline`,
-        name: 'Guanabara Bay & Atlantic Coastline',
+        name: `${name} Primary Waterway`,
         kind: 'bay',
         type: 'polyline',
-        widthMeters: 420,
+        widthMeters: 320,
         pathLatLon: raw.waterCenterlines.map(([lat, lon]) => [lat, lon]),
       },
     ];
@@ -262,8 +268,12 @@ function normalizeCityPreset(raw) {
     metroSystemName: raw.metroSystemName || raw.uiTheme?.networkTitle || `${name} Metro`,
     timelineRange: raw.timelineRange || [1890, 2026],
     geo,
+    waterCenterlines,
     waterBodies,
     beaches: raw.beaches || [],
+    parks: raw.parks || [],
+    bridges: raw.bridges || [],
+    places: raw.places || [],
     topography,
     monuments,
     milestones,
@@ -273,6 +283,7 @@ function normalizeCityPreset(raw) {
     districts,
     tourStops,
     uiTheme,
+    rawPreset: raw,
   };
 }
 
@@ -282,6 +293,57 @@ export const CITY_PRESETS = {
   london: normalizeCityPreset(LONDON_PRESET),
   nyc: normalizeCityPreset(NYC_PRESET),
 };
+
+export const TODO_CITY_BACKLOG = [
+  {
+    id: 'san-francisco',
+    name: 'San Francisco',
+    country: 'United States',
+    plannedTransit: 'BART Transbay Tube, Muni Metro & Historic Cable Cars (1873–2026)',
+    plannedMonuments: 'Golden Gate Bridge, Transamerica Pyramid, Coit Tower, Ferry Building, Palace of Fine Arts, Painted Ladies, Salesforce Tower, Alcatraz',
+    plannedCulturalVibe: 'Fog City Victorian Haight-Ashbury Psychedelia & Golden Gate International Orange',
+  },
+  {
+    id: 'las-vegas',
+    name: 'Las Vegas',
+    country: 'United States',
+    plannedTransit: 'Las Vegas Monorail, Vegas Loop & Historic Union Pacific Depot (1905–2026)',
+    plannedMonuments: 'Welcome to Fabulous Las Vegas Sign, Stratosphere Tower, Bellagio Fountains & Conservatory, Luxor Pyramid & Sky Beam, Sphere at The Venetian, Hoover Dam Bypass, Fremont Street Canopy',
+    plannedCulturalVibe: 'Vintage Neon Boneyard Googie Architecture & Desert Mirage Gold',
+  },
+  {
+    id: 'kyoto',
+    name: 'Kyoto',
+    country: 'Japan',
+    plannedTransit: 'Kyoto Municipal Subway (Karasuma & Tozai Lines), Keihan, Hankyu, Randen Tram & Tokaido Shinkansen (1895–2026)',
+    plannedMonuments: 'Fushimi Inari Senbon Torii, Kinkaku-ji (Golden Pavilion), Kiyomizu-dera Wooden Stage, To-ji Five-Story Pagoda, Kyoto Station Futuristic Matrix, Yasaka Pagoda, Nijo Castle, Kyoto Tower',
+    plannedCulturalVibe: 'Heian Lacquerware Vermilion, Gold Leaf (Kinpaku), Bamboo Ink Wash & Washi Paper',
+  },
+  {
+    id: 'melbourne',
+    name: 'Melbourne',
+    country: 'Australia',
+    plannedTransit: 'Melbourne Tramway Grid (World’s Largest), City Loop Underground & 2025 Metro Tunnel (1854–2026)',
+    plannedMonuments: 'Flinders Street Station Dome & Clocks, Royal Exhibition Building, Shrine of Remembrance, Federation Square Geometric Facade, Eureka / Melbourne Skydeck, MCG Stadium Bowl, Arts Centre Spire, Bolte Bridge',
+    plannedCulturalVibe: 'Victorian Gold Rush Bluestone Laneways, Street-Art Stencil & W-Class Tram Green/Gold',
+  },
+  {
+    id: 'porto',
+    name: 'Porto',
+    country: 'Portugal',
+    plannedTransit: 'Metro do Porto (Lines A–G across Dom Luís I Upper Deck), Historic Elétrico Trams & São Bento Rail Terminus (1872–2026)',
+    plannedMonuments: 'Ponte Dom Luís I (Double-Deck Iron Arch), Torre dos Clérigos, Casa da Música (Koolhaas Polyhedron), Estação de São Bento, Sé do Porto, Palácio da Bolsa, Livraria Lello, Caves de Vinho do Porto',
+    plannedCulturalVibe: 'Cobalt-Blue & White Portuguese Azulejo Ceramic Tilework & Douro Port Wine Terracotta',
+  },
+  {
+    id: 'barcelona',
+    name: 'Barcelona',
+    country: 'Spain',
+    plannedTransit: 'Transports Metropolitans de Barcelona (TMB Lines L1–L11, 1924 Gran Metro), FGC & Estació de França / Sants (1848–2026)',
+    plannedMonuments: 'Basílica de la Sagrada Família, Casa Batlló, Casa Milà (La Pedrera), Torre Glòries (Agbar), Arc de Triomf, Palau Nacional de Montjuïc, Columbus Monument, W Barcelona (Hotel Vela)',
+    plannedCulturalVibe: 'Catalan Modernisme (Antoni Gaudí Trencadís Mosaic) & Cerdà Eixample Octagonal Chamfers',
+  },
+];
 
 export function getCityPreset(cityId) {
   const normalized = cityId.toLowerCase();

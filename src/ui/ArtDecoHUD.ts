@@ -47,6 +47,13 @@ import {
   WeatherModeId
 } from '../scene/SceneManager';
 import { SkyWeatherSystem } from '../scene/SkyWeatherSystem';
+import type { ParisLiveApiResponse } from '../data/parisLiveClient';
+import {
+  ACTIVE_CITY_ID,
+  ACTIVE_CITY_META,
+  SELECTABLE_CITIES,
+  switchActiveCity
+} from '../cities/activeCityRuntime';
 
 export interface HUDCallbacks {
   onYearChange: (year: number) => void;
@@ -60,6 +67,8 @@ export interface HUDCallbacks {
   onTimeOfDayChange: (hours: number) => void;
   onToggleAutoTimeCycle: (enabled: boolean) => void;
   onWeatherChange: (weather: WeatherModeId) => void;
+  onToggleLiveWeather: (enabled: boolean) => void;
+  onToggleLiveMetro: (enabled: boolean) => void;
   onToggleGhostStations: (show: boolean) => void;
   onTogglePaperModel: (enabled: boolean) => void;
   onToggleMonumentOrbit: (enabled: boolean) => void;
@@ -447,6 +456,136 @@ const MONUMENT_METADATA: Record<string, MonumentRichMetadata> = {
     silhouettePath:
       'M5.5 3.5 L9.5 8.5 Q16 2 22.5 8.5 L26.5 3.5 L30.5 10.5 L30.5 48 L1.5 48 L1.5 10.5 Z ' +
       'M9.5 48 L9.5 31 A6.5 7 0 0 1 22.5 31 L22.5 48 Z'
+  },
+  // Sydney Monuments
+  'monument-sydney-opera-house': {
+    heightMeters: 67,
+    era: 'modern',
+    eraLabel: 'Utzon Expressionist Sails • 1973',
+    connectedLines: ['T2', 'T3', 'T8', 'L2'],
+    svgPaths: ['M2 19 Q6 4 10 19 Q14 2 18 19 Q21 7 22 19 Z'],
+    silhouettePath: 'M2 48 Q8 6 13 48 Q19 2 24 48 Q28 14 30 48 Z'
+  },
+  'monument-harbour-bridge': {
+    heightMeters: 134,
+    era: 'empire1900',
+    eraLabel: 'Bradfield Steel Arch • 1932',
+    connectedLines: ['T1', 'T9', 'M1'],
+    svgPaths: ['M2 19 L5 7 Q12 1 19 7 L22 19 M2 13 L22 13'],
+    silhouettePath: 'M2 48 L2 12 L6 12 Q16 1 26 12 L30 12 L30 48 L26 48 L26 24 L6 24 L6 48 Z'
+  },
+  'monument-sydney-tower': {
+    heightMeters: 309,
+    era: 'modern',
+    eraLabel: 'Golden Turret Spire • 1981',
+    connectedLines: ['M1', 'T1', 'T2', 'T4'],
+    svgPaths: ['M12 2 L12 20 M9 7 L15 7 L14 11 L10 11 Z'],
+    silhouettePath: 'M15 1 L17 1 L17 9 L21 10 L19 15 L17 15 L17.5 48 L14.5 48 L15 15 L13 15 L11 10 L15 9 Z'
+  },
+  'monument-qvb': {
+    heightMeters: 61,
+    era: 'empire1900',
+    eraLabel: 'Federation Romanesque • 1898',
+    connectedLines: ['T1', 'T2', 'T4', 'L2'],
+    svgPaths: ['M3 19 L3 11 L8 11 Q12 3 16 11 L21 11 L21 19 Z'],
+    silhouettePath: 'M3 48 L3 20 L10 20 Q16 3 22 20 L29 20 L29 48 Z'
+  },
+  'monument-central-station-sydney': {
+    heightMeters: 85,
+    era: 'gares',
+    eraLabel: 'Grand Sandstone Clocktower • 1906',
+    connectedLines: ['M1', 'T1', 'T2', 'T3', 'T4', 'T8', 'T9', 'L1', 'L2'],
+    svgPaths: ['M3 19 L3 12 L15 12 L15 4 L19 4 L19 19 Z'],
+    silhouettePath: 'M2 48 L2 24 L18 24 L18 4 L22 1 L26 4 L26 48 Z'
+  },
+  'monument-st-marys-cathedral': {
+    heightMeters: 75,
+    era: 'medieval',
+    eraLabel: 'Gothic Revival Sandstone • 1882',
+    connectedLines: ['T2', 'T3', 'T8', 'T4'],
+    svgPaths: ['M5 19 L5 9 L7 3 L9 9 L15 9 L17 3 L19 9 L19 19 Z'],
+    silhouettePath: 'M5 48 L5 18 L8 2 L11 18 L21 18 L24 2 L27 18 L27 48 Z'
+  },
+  'monument-luna-park': {
+    heightMeters: 30,
+    era: 'empire1900',
+    eraLabel: 'Art Deco Moon Face & Towers • 1935',
+    connectedLines: ['T1', 'T9'],
+    svgPaths: ['M4 19 L4 6 L6 3 L8 6 L8 19 M16 19 L16 6 L18 3 L20 6 L20 19 M8 14 A4 4 0 0 1 16 14'],
+    silhouettePath: 'M4 48 L4 12 L6 3 L8 12 L8 28 A8 8 0 0 1 24 28 L24 12 L26 3 L28 12 L28 48 Z'
+  },
+  'monument-barangaroo-crown': {
+    heightMeters: 271,
+    era: 'modern',
+    eraLabel: 'Sculpted Helical Glass • 2020',
+    connectedLines: ['M1'],
+    svgPaths: ['M9 19 C9 12 11 6 14 2 C15 8 15 14 14 19 Z'],
+    silhouettePath: 'M10 48 C10 26 13 10 18 2 C21 14 20 32 19 48 Z'
+  },
+  // NYC Monuments
+  'monument-empire-state': {
+    heightMeters: 443,
+    era: 'empire1900',
+    eraLabel: 'Art Deco Limestone Spire • 1931',
+    connectedLines: ['B', 'D', 'F', 'M', 'N', 'Q', 'R', 'W', '1', '2', '3'],
+    svgPaths: ['M7 20 L7 12 L10 12 L10 6 L12 2 L14 6 L14 12 L17 12 L17 20 Z'],
+    silhouettePath: 'M6 48 L6 24 L9 24 L9 12 L14 10 L16 1 L18 10 L23 12 L23 24 L26 24 L26 48 Z'
+  },
+  'monument-chrysler-building': {
+    heightMeters: 319,
+    era: 'empire1900',
+    eraLabel: 'Stainless Sunburst Crown • 1930',
+    connectedLines: ['4', '5', '6', '7', 'S'],
+    svgPaths: ['M8 20 L8 11 Q12 3 16 11 L16 20 M12 2 L12 6'],
+    silhouettePath: 'M8 48 L8 20 L11 16 Q16 3 21 16 L24 20 L24 48 M15.5 1 L16.5 1 L16.5 8 L15.5 8 Z'
+  },
+  'monument-statue-of-liberty': {
+    heightMeters: 93,
+    era: 'empire1900',
+    eraLabel: 'Bartholdi & Eiffel Copper • 1886',
+    connectedLines: ['1', '4', '5', 'R', 'W'],
+    svgPaths: ['M8 20 L9 12 L12 6 L15 12 L16 20 M14 6 L16 2'],
+    silhouettePath: 'M6 48 L8 28 L11 28 L12 10 L16 8 L19 1 L20 9 L18 28 L22 28 L24 48 Z'
+  },
+  'monument-brooklyn-bridge': {
+    heightMeters: 84,
+    era: 'medieval',
+    eraLabel: 'Roebling Gothic Towers • 1883',
+    connectedLines: ['4', '5', '6', 'A', 'C', '2', '3'],
+    svgPaths: ['M4 19 L4 6 L8 6 L8 19 M16 19 L16 6 L20 6 L20 19 M2 14 Q12 8 22 14'],
+    silhouettePath: 'M4 48 L4 8 L10 8 L10 48 M22 48 L22 8 L28 8 L28 48 M2 26 Q16 14 30 26'
+  },
+  'monument-one-world-trade': {
+    heightMeters: 541,
+    era: 'modern',
+    eraLabel: '1,776-Foot Freedom Tower • 2014',
+    connectedLines: ['1', '2', '3', 'A', 'C', 'E', 'R', 'W', '4', '5'],
+    svgPaths: ['M8 20 L10 5 L12 2 L14 5 L16 20 Z'],
+    silhouettePath: 'M8 48 L11 8 L15.5 8 L16 1 L16.5 8 L21 8 L24 48 Z'
+  },
+  'monument-flatiron': {
+    heightMeters: 87,
+    era: 'empire1900',
+    eraLabel: 'Burnham Beaux-Arts Wedge • 1902',
+    connectedLines: ['R', 'W', '6', 'F', 'M'],
+    svgPaths: ['M6 20 L12 4 L18 20 Z'],
+    silhouettePath: 'M5 48 L13 4 L19 4 L27 48 Z'
+  },
+  'monument-grand-central': {
+    heightMeters: 48,
+    era: 'gares',
+    eraLabel: 'Beaux-Arts Celestial Hall • 1913',
+    connectedLines: ['4', '5', '6', '7', 'S'],
+    svgPaths: ['M3 19 L3 9 L21 9 L21 19 Z M7 19 L7 12 A5 5 0 0 1 17 12 L17 19'],
+    silhouettePath: 'M2 48 L2 14 L10 10 L16 6 L22 10 L30 14 L30 48 Z'
+  },
+  'monument-rockefeller-center': {
+    heightMeters: 259,
+    era: 'empire1900',
+    eraLabel: '30 Rock Limestone Slab • 1933',
+    connectedLines: ['B', 'D', 'F', 'M', 'E'],
+    svgPaths: ['M7 20 L7 9 L9 9 L9 4 L15 4 L15 9 L17 9 L17 20 Z'],
+    silhouettePath: 'M6 48 L6 22 L10 22 L10 10 L13 3 L19 3 L22 10 L22 22 L26 22 L26 48 Z'
   }
 };
 
@@ -601,12 +740,15 @@ export class ArtDecoHUD {
   private stationFilterBtns: Map<StationFilterId, HTMLButtonElement> = new Map();
   private stationLineBannerEl!: HTMLElement;
   private stationListContainerEl!: HTMLElement;
-  private activeStationId = 'chatelet';
+  private activeStationId = STATIONS_MAP.has('chatelet')
+    ? 'chatelet'
+    : (ALL_STATIONS[0]?.id ?? 'chatelet');
   private currentDisplayedStations: MetroStationData[] = [];
   private stationSpotCategoryEl!: HTMLElement;
   private stationSpotYearEl!: HTMLElement;
   private stationSpotTitleEl!: HTMLElement;
   private stationSpotMetaEl!: HTMLElement;
+  private stationSpotLiveTelemetryEl!: HTMLElement;
   private stationSpotLinesRowEl!: HTMLElement;
   private stationSpotDescEl!: HTMLElement;
   private stationCountBadgeEl!: HTMLElement;
@@ -616,7 +758,7 @@ export class ArtDecoHUD {
   private monumentEraBtns: Map<MonumentEraFilterId, HTMLButtonElement> = new Map();
   private skylineBarsMap: Map<string, HTMLButtonElement> = new Map();
   private monumentCardsGridEl!: HTMLElement;
-  private activeMonumentId = 'monument-eiffel';
+  private activeMonumentId = PARIS_MONUMENTS[0]?.id ?? 'monument-eiffel';
   private currentDisplayedMonuments: ParisMonumentData[] = [];
   private monSpotEmblemWrapEl!: HTMLElement;
   private monSpotEraEl!: HTMLElement;
@@ -631,7 +773,7 @@ export class ArtDecoHUD {
   private arrondissementFilterBtns: Map<ArrondissementFilterId, HTMLButtonElement> = new Map();
   private escargotNodesMap: Map<string, SVGGElement> = new Map();
   private arrondissementListEl!: HTMLElement;
-  private activeArrondissementId = 'arr-1';
+  private activeArrondissementId = PARIS_ARRONDISSEMENTS[0]?.id ?? 'arr-1';
   private currentDisplayedArrondissements: ParisArrondissementData[] = [];
   private arrSpotEraEl!: HTMLElement;
   private arrSpotFoundedEl!: HTMLElement;
@@ -651,7 +793,7 @@ export class ArtDecoHUD {
   private tourAutoBtnEl!: HTMLButtonElement;
   private tourClearBtnEl!: HTMLButtonElement;
   private tourStopRowBtns: Map<string, HTMLButtonElement> = new Map();
-  private activeTourStopIdx = 4; // Default to Stop 5: La Prise de la Bastille (July 14, 1789)
+  private activeTourStopIdx = ACTIVE_CITY_ID === 'paris' ? 4 : 0;
   private isTourPinned = false;
   private isAutoTourPlaying = false;
   private autoTourTimer = 0.0;
@@ -688,6 +830,13 @@ export class ArtDecoHUD {
   private cityOrbitEnabled = false;
   private manualEiffelSparkle = false;
   private eiffelSparkleBtns: HTMLButtonElement[] = [];
+  private liveWeatherEnabled = false;
+  private liveMetroEnabled = false;
+  private liveWeatherBtns: HTMLButtonElement[] = [];
+  private liveMetroBtns: HTMLButtonElement[] = [];
+  private weatherModeBtns: Map<WeatherModeId, HTMLButtonElement> = new Map();
+  private liveWeatherData: ParisLiveApiResponse['weather'] | null = null;
+  private liveMetroData: ParisLiveApiResponse['metro'] | null = null;
   private bokehModeIdx = 0; // 0 = f/2.8 (0.55), 1 = f/1.4 (0.95), 2 = Off (0.0)
   private currentLift = 0.0;
   private targetLift: number | null = null;
@@ -729,11 +878,43 @@ export class ArtDecoHUD {
       xray: 'X-Ray',
       underground: 'Underground'
     };
-    this.settingsSummaryPillEl.textContent = `${this.lastFormattedClock} • ${camLabels[this.activeCameraPreset]}`;
+    const weatherBadge =
+      this.liveWeatherEnabled && this.liveWeatherData?.current.temperatureC !== null && this.liveWeatherData
+        ? ` • ${this.liveWeatherData.current.temperatureC.toFixed(1)}°C ${this.liveWeatherData.current.conditionEn}`
+        : '';
+    this.settingsSummaryPillEl.textContent = `${this.lastFormattedClock}${weatherBadge} • ${camLabels[this.activeCameraPreset]}`;
   }
 
   private buildTopBar(): HTMLElement {
     const topBar = createEl('header', 'hud-top-bar');
+
+    // Top-Right City Selector Bar (#paris, #sydney, #nyc)
+    const cityBar = createEl('nav', 'deco-panel city-selector-bar hud-interactive');
+    cityBar.setAttribute('aria-label', 'Select Active City');
+    attachDecoCorners(cityBar);
+    cityBar.appendChild(createEl('span', 'city-selector-label', 'CITY'));
+
+    const cityPills = createEl('div', 'city-selector-pills');
+    for (const city of SELECTABLE_CITIES) {
+      const btn = createEl(
+        'button',
+        `city-selector-btn${city.id === ACTIVE_CITY_ID ? ' active' : ''}`
+      );
+      btn.type = 'button';
+      btn.title = `Switch to ${city.label} (${city.country}) — #${city.id} • ${city.vibeBadge}`;
+      btn.setAttribute('aria-pressed', city.id === ACTIVE_CITY_ID ? 'true' : 'false');
+      btn.appendChild(createEl('span', 'city-selector-name', city.label));
+      btn.appendChild(createEl('span', 'city-selector-code', `#${city.id}`));
+      btn.addEventListener('click', () => {
+        switchActiveCity(city.id);
+      });
+      cityPills.appendChild(btn);
+    }
+    cityBar.appendChild(cityPills);
+    cityBar.appendChild(
+      createEl('span', 'city-selector-vibe-badge', ACTIVE_CITY_META.vibeBadge)
+    );
+    topBar.appendChild(cityBar);
 
     // Top-Center Collapsible Configuration & Atmosphere Panel (shrinks until hovered over)
     const viewPanel = createEl(
@@ -753,13 +934,40 @@ export class ArtDecoHUD {
       'settings-summary-meta',
       '☀ 14:12 • Overground'
     );
+
+    const quickLiveWeatherBtn = createEl(
+      'button',
+      'deco-btn settings-quick-orbit-btn live-toggle-btn',
+      '🌡 Live Weather'
+    );
+    quickLiveWeatherBtn.title =
+      'Sync 3D sky, time of day, and wet cobblestone sheen with live Paris weather (Open-Meteo via Firebase App Hosting)';
+    quickLiveWeatherBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleLiveWeather();
+    });
+    this.liveWeatherBtns.push(quickLiveWeatherBtn);
+
+    const quickLiveMetroBtn = createEl(
+      'button',
+      'deco-btn settings-quick-orbit-btn live-toggle-btn',
+      '🚇 Live Metro'
+    );
+    quickLiveMetroBtn.title =
+      'Sync 3D Metro train speeds, RATP/IDFM line QoS, and underground station air sensors (Firebase App Hosting)';
+    quickLiveMetroBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleLiveMetro();
+    });
+    this.liveMetroBtns.push(quickLiveMetroBtn);
+
     this.quickCityOrbitBtn = createEl(
       'button',
       'deco-btn settings-quick-orbit-btn',
       '⟳ Orbit City'
     );
     this.quickCityOrbitBtn.title =
-      'Continuously orbit the camera 360° around the entire city of Paris (Key R)';
+      `Continuously orbit the camera 360° around ${ACTIVE_CITY_META.label} (Key R)`;
     this.quickCityOrbitBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.toggleCityOrbit();
@@ -768,10 +976,10 @@ export class ArtDecoHUD {
     const quickSparkleBtn = createEl(
       'button',
       'deco-btn settings-quick-orbit-btn',
-      '✨ Sparkle Eiffel'
+      ACTIVE_CITY_META.sparkleButtonLabel
     );
     quickSparkleBtn.title =
-      'Trigger the Eiffel Tower flashing diamond lights (Scintillement de la Tour Eiffel) on demand';
+      'Trigger the tower flashing diamond lights on demand';
     quickSparkleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.toggleEiffelSparkle();
@@ -779,6 +987,10 @@ export class ArtDecoHUD {
     this.eiffelSparkleBtns.push(quickSparkleBtn);
 
     summaryRight.appendChild(this.settingsSummaryPillEl);
+    if (ACTIVE_CITY_META.supportsLiveParisApi) {
+      summaryRight.appendChild(quickLiveWeatherBtn);
+      summaryRight.appendChild(quickLiveMetroBtn);
+    }
     summaryRight.appendChild(this.quickCityOrbitBtn);
     summaryRight.appendChild(quickSparkleBtn);
 
@@ -972,28 +1184,43 @@ export class ArtDecoHUD {
     timeRow.appendChild(timeBtnGroup);
     drawerBody.appendChild(timeRow);
 
-    // Row 4: Weather Selector (Clear Blue Sky, Partly Cloudy, Parisian Rain, Seine Fog)
+    // Row 4: Weather Selector (Clear Blue Sky, Partly Cloudy, Parisian Rain, Seine Fog + Live Weather Toggle)
     const weatherRow = createEl('div', 'control-row');
     weatherRow.appendChild(createEl('span', 'control-label', 'WEATHER & SKY'));
 
     const weatherBtnGroup = createEl('div', 'deco-btn-group');
+    const drawerLiveWeatherBtn = createEl(
+      'button',
+      'deco-btn live-toggle-btn',
+      '🌡 Live Weather'
+    );
+    drawerLiveWeatherBtn.title =
+      'Sync 3D sky, time of day, and wet cobblestone sheen with live Paris weather (Open-Meteo via Firebase App Hosting)';
+    drawerLiveWeatherBtn.addEventListener('click', () => {
+      this.toggleLiveWeather();
+    });
+    this.liveWeatherBtns.push(drawerLiveWeatherBtn);
+    weatherBtnGroup.appendChild(drawerLiveWeatherBtn);
+
     const weatherModes: { id: WeatherModeId; label: string; title: string }[] = [
       { id: 'clear', label: '☀ Clear Sky', title: 'Bright Parisian azure sky & sunshine' },
       { id: 'cloudy', label: '⛅ Cloudy', title: 'Paris sky scattered with drifting cumulus clouds' },
       { id: 'rain', label: '🌧 Rain', title: 'Parisian rain shower & storm clouds' },
       { id: 'fog', label: '🌫 Mist', title: 'Romantic morning mist over the Seine valley' }
     ];
-    const weatherBtns: HTMLButtonElement[] = [];
     for (const wm of weatherModes) {
       const btn = createEl('button', 'deco-btn', wm.label);
       btn.title = wm.title;
       if (wm.id === 'clear') btn.classList.add('active');
       btn.addEventListener('click', () => {
-        weatherBtns.forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
+        if (this.liveWeatherEnabled) {
+          this.setLiveWeatherState(false, null);
+          this.callbacks.onToggleLiveWeather(false);
+        }
+        this.setActiveWeatherModeUI(wm.id);
         this.callbacks.onWeatherChange(wm.id);
       });
-      weatherBtns.push(btn);
+      this.weatherModeBtns.set(wm.id, btn);
       weatherBtnGroup.appendChild(btn);
     }
     weatherRow.appendChild(weatherBtnGroup);
@@ -1057,6 +1284,113 @@ export class ArtDecoHUD {
     this.lightColumnsBtn.classList.toggle('active', show);
   }
 
+  private buildCityCulturalBanner(): HTMLElement {
+    const banner = createEl('div', `city-cultural-banner city-banner-${ACTIVE_CITY_ID}`);
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 36 36');
+    svg.setAttribute('class', 'city-cultural-emblem-svg');
+    svg.setAttribute('aria-hidden', 'true');
+
+    if (ACTIVE_CITY_ID === 'sydney') {
+      // Aboriginal Concentric Ngura (Camp/Waterhole) Dot-Art Rings & Songlines
+      const rings: { r: string; stroke: string; dash: string; width: string }[] = [
+        { r: '15', stroke: '#00a896', dash: '0.6 4.2', width: '2.2' },
+        { r: '11', stroke: '#fbf3e4', dash: '0.6 3.8', width: '2.2' },
+        { r: '7', stroke: '#f6b93b', dash: '0.6 3.2', width: '2.4' },
+        { r: '3.5', stroke: '#e06d3b', dash: '0.5 2.4', width: '2.2' }
+      ];
+      for (const ring of rings) {
+        const c = document.createElementNS(ns, 'circle');
+        c.setAttribute('cx', '18');
+        c.setAttribute('cy', '18');
+        c.setAttribute('r', ring.r);
+        c.setAttribute('fill', 'none');
+        c.setAttribute('stroke', ring.stroke);
+        c.setAttribute('stroke-width', ring.width);
+        c.setAttribute('stroke-linecap', 'round');
+        c.setAttribute('stroke-dasharray', ring.dash);
+        svg.appendChild(c);
+      }
+      const centerDot = document.createElementNS(ns, 'circle');
+      centerDot.setAttribute('cx', '18');
+      centerDot.setAttribute('cy', '18');
+      centerDot.setAttribute('r', '1.8');
+      centerDot.setAttribute('fill', '#f6b93b');
+      svg.appendChild(centerDot);
+    } else if (ACTIVE_CITY_ID === 'nyc') {
+      // Chrysler Building Art Deco Sunburst Arches & Spire
+      const rays = document.createElementNS(ns, 'path');
+      rays.setAttribute(
+        'd',
+        'M18 33 L18 2 M18 33 L6 9 M18 33 L30 9 M18 33 L2 20 M18 33 L34 20'
+      );
+      rays.setAttribute('stroke', '#ffd147');
+      rays.setAttribute('stroke-width', '1.5');
+      rays.setAttribute('fill', 'none');
+      svg.appendChild(rays);
+
+      const archOuter = document.createElementNS(ns, 'path');
+      archOuter.setAttribute('d', 'M5 33 A13 13 0 0 1 31 33');
+      archOuter.setAttribute('stroke', '#48b89f');
+      archOuter.setAttribute('stroke-width', '2');
+      archOuter.setAttribute('fill', 'none');
+      svg.appendChild(archOuter);
+
+      const archInner = document.createElementNS(ns, 'path');
+      archInner.setAttribute('d', 'M10 33 A8 8 0 0 1 26 33');
+      archInner.setAttribute('stroke', '#ffd147');
+      archInner.setAttribute('stroke-width', '1.8');
+      archInner.setAttribute('fill', 'none');
+      svg.appendChild(archInner);
+    } else {
+      // Paris Belle Époque Hector Guimard & Eiffel Arch Filigree
+      const arch = document.createElementNS(ns, 'path');
+      arch.setAttribute('d', 'M6 32 Q18 4 30 32 M10 24 L26 24 M18 4 L18 32');
+      arch.setAttribute('stroke', '#e5c158');
+      arch.setAttribute('stroke-width', '1.8');
+      arch.setAttribute('fill', 'none');
+      svg.appendChild(arch);
+    }
+
+    banner.appendChild(svg);
+
+    const textCol = createEl('div', 'city-cultural-banner-text');
+    const titleStr =
+      ACTIVE_CITY_ID === 'sydney'
+        ? 'GADIGAL COUNTRY • SYDNEY HARBOUR'
+        : ACTIVE_CITY_ID === 'nyc'
+          ? 'GOTHAM SKYSCRAPER ART DECO'
+          : 'PARIS MÉTROPOLITAIN • LUMIÈRE';
+    const subStr =
+      ACTIVE_CITY_ID === 'sydney'
+        ? 'Aboriginal Dot-Art, Red Ochre & Sandstone'
+        : ACTIVE_CITY_ID === 'nyc'
+          ? 'Chrysler Sunburst • Vignelli Subway Modernism'
+          : 'Belle Époque Guimard & Haussmann Limestone';
+
+    textCol.appendChild(createEl('span', 'city-cultural-banner-title', titleStr));
+    textCol.appendChild(createEl('span', 'city-cultural-banner-sub', subStr));
+    banner.appendChild(textCol);
+
+    if (ACTIVE_CITY_ID === 'nyc') {
+      const bullets = createEl('div', 'nyc-vignelli-bullets');
+      const mtaDots: { label: string; bg: string }[] = [
+        { label: '1', bg: '#ee352e' },
+        { label: '4', bg: '#00933c' },
+        { label: 'A', bg: '#0039a6' }
+      ];
+      for (const d of mtaDots) {
+        const b = createEl('span', 'nyc-vignelli-bullet', d.label);
+        b.style.backgroundColor = d.bg;
+        bullets.appendChild(b);
+      }
+      banner.appendChild(bullets);
+    }
+
+    return banner;
+  }
+
   private buildMiddleArea(): HTMLElement {
     const middle = createEl('div', 'hud-middle-area');
 
@@ -1087,15 +1421,33 @@ export class ArtDecoHUD {
     this.allLinesBtn.addEventListener('click', () => this.selectLine(null));
     lineDock.appendChild(this.allLinesBtn);
 
+    const dockLiveMetroBtn = createEl(
+      'button',
+      'deco-btn line-all-btn live-toggle-btn',
+      '🚇 Live'
+    );
+    dockLiveMetroBtn.title =
+      'Toggle Live RATP / IDFM Métro telemetry & underground station air sensors';
+    dockLiveMetroBtn.addEventListener('click', () => {
+      this.toggleLiveMetro();
+    });
+    this.liveMetroBtns.push(dockLiveMetroBtn);
+    if (ACTIVE_CITY_META.supportsLiveParisApi) {
+      lineDock.appendChild(dockLiveMetroBtn);
+    }
+
     // 2. Right Dock: Reimagined Paris Explorer (Stations Route Diagram / Skyline Monuments / History Tour)
     this.explorerCardEl = createEl('aside', 'deco-panel paris-explorer-card hud-interactive');
     attachDecoCorners(this.explorerCardEl);
+
+    // Cultural Motif Header Banner (Aboriginal Dot-Art for Sydney, Gotham Art Deco + Vignelli for NYC, Belle Époque for Paris)
+    this.explorerCardEl.appendChild(this.buildCityCulturalBanner());
 
     // Top Unified Search Bar (appears above the Stations / Monuments / Arrondissements / Tour tab selector)
     const searchRow = createEl('div', 'station-search-row explorer-top-search-row');
     this.stationSearchInputEl = createEl('input', 'station-search-input');
     this.stationSearchInputEl.type = 'text';
-    this.stationSearchInputEl.placeholder = 'Search stations, landmarks, arrondissements...';
+    this.stationSearchInputEl.placeholder = ACTIVE_CITY_META.searchPlaceholder;
     this.stationSearchInputEl.addEventListener('input', () => {
       if (this.isExplorerCollapsed) {
         this.toggleExplorerCollapsed(false);
@@ -1129,25 +1481,25 @@ export class ArtDecoHUD {
         id: 'stations',
         icon: '🚇',
         label: 'Stations',
-        title: 'Stations — Interactive Metro Line Route Diagram (Thermomètre de Ligne) & Station Discovery'
+        title: 'Stations — Interactive Metro Line Route Diagram & Station Discovery'
       },
       {
         id: 'monuments',
         icon: '🏛',
         label: 'Monuments',
-        title: 'Monuments — Interactive Paris Skyline Silhouette & 3D Architectural Landmarks'
+        title: `Monuments — Interactive ${ACTIVE_CITY_META.label} Skyline Silhouette & 3D Architectural Landmarks`
       },
       {
         id: 'arrondissements',
         icon: '🧭',
-        label: 'Arrond.',
-        title: 'Arrondissements — Interactive 1er–20e Escargot de Paris Spiral, District History & Orbital Camera Pan'
+        label: ACTIVE_CITY_META.districtsTabLabel,
+        title: `${ACTIVE_CITY_META.districtsTabLabel} — Interactive District History & Orbital Camera Pan`
       },
       {
         id: 'tour',
         icon: '📜',
         label: 'Tour',
-        title: 'History Tour — 15-Stop Paris Historical Walking Tour (French Naturalisation Edition)'
+        title: `History Tour — ${ACTIVE_CITY_META.tourHeaderTitle}`
       }
     ];
 
@@ -1173,7 +1525,7 @@ export class ArtDecoHUD {
     }
 
     this.explorerCollapseBtnEl = createEl('button', 'explorer-collapse-btn', '—');
-    this.explorerCollapseBtnEl.title = 'Minimise or expand the Paris Explorer panel';
+    this.explorerCollapseBtnEl.title = 'Minimise or expand the Explorer panel';
     this.explorerCollapseBtnEl.addEventListener('click', () => {
       this.toggleExplorerCollapsed(!this.isExplorerCollapsed);
     });
@@ -1240,11 +1592,15 @@ export class ArtDecoHUD {
     spotTopRow.appendChild(this.stationSpotYearEl);
     spotlight.appendChild(spotTopRow);
 
-    this.stationSpotTitleEl = createEl('h2', 'chronicle-title spot-title', 'Châtelet');
+    this.stationSpotTitleEl = createEl('h2', 'chronicle-title spot-title', '');
     spotlight.appendChild(this.stationSpotTitleEl);
 
-    this.stationSpotMetaEl = createEl('div', 'spot-subtitle-meta', '1st / 4th Arr. • Central Hub');
+    this.stationSpotMetaEl = createEl('div', 'spot-subtitle-meta', '');
     spotlight.appendChild(this.stationSpotMetaEl);
+
+    this.stationSpotLiveTelemetryEl = createEl('div', 'spot-live-telemetry-banner');
+    this.stationSpotLiveTelemetryEl.style.display = 'none';
+    spotlight.appendChild(this.stationSpotLiveTelemetryEl);
 
     // Interactive Transfer Line Badges (Clicking a line badge switches to that Line's Route Diagram!)
     const transferRowWrap = createEl('div', 'spot-transfer-wrap');
@@ -1290,14 +1646,14 @@ export class ArtDecoHUD {
         id: 'specialInteriors',
         label: '✨ Special Designs',
         title:
-          'Unique Cultural & Architectural Station Interiors (Concorde, Arts et Métiers, La Monnaie, Bastille...)'
+          'Unique Cultural & Architectural Station Interiors'
       },
-      { id: 'hubs', label: '★ Grand Hubs', title: 'Major multi-line subterranean interchanges (3+ lines)' },
-      { id: 'grandesLignes', label: '🚂 Grandes Lignes', title: 'Historic Mainline Railway Termini & Grandes Lignes Corridors (9 Gares)' },
-      { id: 'ghosts', label: '👻 Phantom Stations', title: 'Abandoned or wartime-closed Phantom Stations (1939 / 1969)' },
+      { id: 'hubs', label: '★ Grand Hubs', title: 'Major multi-line subterranean interchanges' },
+      { id: 'grandesLignes', label: '🚂 Rail Termini', title: 'Historic Mainline Railway Termini & Corridors' },
+      { id: 'ghosts', label: '👻 Phantom Stations', title: 'Abandoned or closed Phantom Stations' },
       { id: 'viaducts', label: '🌉 Sky Viaducts', title: 'Elevated iron viaduct and bridge stations' },
-      { id: 'originals1900', label: '🏛 1900 Originals', title: 'Inaugural Belle Époque stations opened in 1900' },
-      { id: 'all', label: 'All (110)', title: 'Browse all 110 stations alphabetically' }
+      { id: 'originals1900', label: '🏛 Early Originals', title: 'Inaugural early transit stations' },
+      { id: 'all', label: `All (${ALL_STATIONS.length})`, title: `Browse all ${ALL_STATIONS.length} stations alphabetically` }
     ];
     for (const f of filters) {
       const chip = createEl('button', 'filter-chip-btn', f.label);
@@ -1313,12 +1669,13 @@ export class ArtDecoHUD {
         } else {
           this.renderStationExplorerList();
         }
-        if (f.id === 'specialInteriors') {
+        if (f.id === 'specialInteriors' && ACTIVE_CITY_ID === 'paris') {
           const curSt = STATIONS_MAP.get(this.activeStationId);
           const targetId = curSt?.specialInterior ? curSt.id : 'concorde';
           this.selectStationInExplorer(targetId, true);
         } else if (f.id === 'grandesLignes' && !STATION_GRANDE_LIGNE_MAP.has(this.activeStationId)) {
-          this.selectStationInExplorer('gare-du-nord', false);
+          const firstTerminusSt = PARIS_GRANDES_LIGNES[0]?.metroStationId ?? this.activeStationId;
+          this.selectStationInExplorer(firstTerminusSt, false);
         }
       });
       this.stationFilterBtns.set(f.id, chip);
@@ -1337,7 +1694,7 @@ export class ArtDecoHUD {
     this.stationListContainerEl = createEl('div', 'station-explorer-list');
     pane.appendChild(this.stationListContainerEl);
 
-    this.selectStationInExplorer('chatelet', false);
+    this.selectStationInExplorer(this.activeStationId, false);
     this.renderStationExplorerList();
     return pane;
   }
@@ -1372,13 +1729,13 @@ export class ArtDecoHUD {
 
       const textCol = createEl('div', 'route-banner-text');
       textCol.appendChild(createEl('span', 'route-banner-title', activeLine.name));
-      textCol.appendChild(
-        createEl(
-          'span',
-          'route-banner-sub',
-          `${activeLine.historicCompany} • Opened ${activeLine.openedYear}`
-        )
-      );
+      const liveLineState = this.liveMetroEnabled
+        ? this.liveMetroData?.linesById[activeLine.id]
+        : undefined;
+      const bannerSubText = liveLineState
+        ? `🟢 ${liveLineState.trafficLabelEn} • ${liveLineState.serviceQualityPercent.toFixed(1)}% QoS • Opened ${activeLine.openedYear}`
+        : `${activeLine.historicCompany} • Opened ${activeLine.openedYear}`;
+      textCol.appendChild(createEl('span', 'route-banner-sub', bannerSubText));
 
       const exitLineBtn = createEl('button', 'deco-btn route-banner-close', 'All Lines');
       exitLineBtn.title = 'Return to all Metro lines';
@@ -1652,6 +2009,48 @@ export class ArtDecoHUD {
           : gare
             ? `${st.arrondissement} • 🚂 ${gare.destinationLabel}`
             : `${st.arrondissement} • ${st.architecture}`;
+
+    if (this.stationSpotLiveTelemetryEl) {
+      this.stationSpotLiveTelemetryEl.replaceChildren();
+      if (this.liveMetroEnabled && this.liveMetroData && !st.isGhostStation) {
+        const liveLines = st.lines
+          .map((lId) => this.liveMetroData?.linesById[lId])
+          .filter((item): item is NonNullable<typeof item> => Boolean(item));
+        const avgQos =
+          liveLines.length > 0
+            ? liveLines.reduce((acc, l) => acc + l.serviceQualityPercent, 0) / liveLines.length
+            : 100;
+        const primaryStatus = liveLines[0]?.trafficLabelEn ?? 'Normal service';
+
+        const statusRow = createEl(
+          'div',
+          'spot-live-status-row',
+          `🟢 LIVE RATP: ${primaryStatus} • ${avgQos.toFixed(1)}% Punctuality QoS`
+        );
+        this.stationSpotLiveTelemetryEl.appendChild(statusRow);
+
+        const sensor = this.liveMetroData.stationsById[st.id];
+        if (sensor) {
+          const parts: string[] = [];
+          if (sensor.temperatureC !== null) parts.push(`🌡 ${sensor.temperatureC.toFixed(1)}°C platform`);
+          if (sensor.humidityPercent !== null) parts.push(`💧 ${Math.round(sensor.humidityPercent)}% RH`);
+          if (sensor.co2Ppm !== null) parts.push(`CO₂ ${Math.round(sensor.co2Ppm)} ppm`);
+          if (sensor.pm10UgM3 !== null) parts.push(`PM₁₀ ${Math.round(sensor.pm10UgM3)} µg/m³`);
+          if (parts.length > 0) {
+            const sensorRow = createEl(
+              'div',
+              'spot-live-sensor-row',
+              `SQUALES Sensor (${sensor.sensorLine}): ${parts.join(' • ')}`
+            );
+            this.stationSpotLiveTelemetryEl.appendChild(sensorRow);
+          }
+        }
+        this.stationSpotLiveTelemetryEl.style.display = 'flex';
+      } else {
+        this.stationSpotLiveTelemetryEl.style.display = 'none';
+      }
+    }
+
     this.stationSpotDescEl.textContent =
       isGrandesLignesMode && gare
         ? gare.description
@@ -1740,12 +2139,12 @@ export class ArtDecoHUD {
   private buildMonumentsExplorerPane(): HTMLElement {
     const pane = createEl('div', 'explorer-pane monuments-explorer-pane');
 
-    // 1. Interactive West -> East Paris Skyline Elevation Silhouette
+    // 1. Interactive West -> East Skyline Elevation Silhouette
     const skylineBox = createEl('div', 'skyline-silhouette-box');
     skylineBox.appendChild(createSkylineDefsSvg());
     const skylineHeader = createEl('div', 'skyline-header-row');
     skylineHeader.appendChild(
-      createEl('span', 'skyline-title', 'WEST → EAST PARIS SKYLINE PROFILE')
+      createEl('span', 'skyline-title', ACTIVE_CITY_META.skylineHeaderTitle)
     );
     skylineHeader.appendChild(createEl('span', 'skyline-subtitle', 'Click silhouette to fly'));
     skylineBox.appendChild(skylineHeader);
@@ -1844,9 +2243,9 @@ export class ArtDecoHUD {
     const eraRow = createEl('div', 'explorer-filter-chips');
     const eras: { id: MonumentEraFilterId; label: string }[] = [
       { id: 'all', label: `All (${PARIS_MONUMENTS.length})` },
-      { id: 'medieval', label: '⚜ Medieval & Royal' },
-      { id: 'empire1900', label: '🦅 Empire & 1900' },
-      { id: 'gares', label: '🚂 Grandes Gares' },
+      { id: 'medieval', label: '⚜ Heritage & Stone' },
+      { id: 'empire1900', label: '🦅 1900 & Art Deco' },
+      { id: 'gares', label: '🚂 Rail Termini' },
       { id: 'modern', label: '🗼 Modern Icons' }
     ];
     for (const e of eras) {
@@ -1868,7 +2267,7 @@ export class ArtDecoHUD {
     this.monumentCardsGridEl = createEl('div', 'monument-cards-grid');
     pane.appendChild(this.monumentCardsGridEl);
 
-    this.selectMonumentInExplorer('monument-eiffel', false);
+    this.selectMonumentInExplorer(this.activeMonumentId, false);
     this.renderMonumentsExplorerGrid();
     return pane;
   }
@@ -1946,7 +2345,7 @@ export class ArtDecoHUD {
     this.monSpotDescEl.textContent = m.description;
 
     this.monSpotLinesRowEl.replaceChildren();
-    if (m.id === 'monument-eiffel') {
+    if (m.id === ACTIVE_CITY_META.beaconMonumentId) {
       const sparkleChip = createEl(
         'button',
         `spot-line-badge-btn${this.manualEiffelSparkle ? ' selected' : ''}`,
@@ -1958,7 +2357,7 @@ export class ArtDecoHUD {
       sparkleChip.style.padding = '0 8px';
       sparkleChip.style.borderRadius = '999px';
       sparkleChip.style.border = '1px solid rgba(255, 216, 117, 0.55)';
-      sparkleChip.title = 'Trigger the Eiffel Tower flashing diamond lights (Scintillement) on demand';
+      sparkleChip.title = 'Trigger the tower flashing diamond lights on demand';
       sparkleChip.addEventListener('click', () => {
         this.toggleEiffelSparkle();
       });
@@ -2003,18 +2402,18 @@ export class ArtDecoHUD {
   }
 
   /**
-   * TAB 3: Paris Arrondissements Explorer (1er–20e L'Escargot de Paris Spiral)
-   * Includes an interactive 2D SVG Escargot spiral map of all 20 arrondissements,
+   * TAB 3: City Districts / Arrondissements Explorer
+   * Includes an interactive 2D SVG map of all districts,
    * historical district chronicles, quartiers, Metro line medallions, and orbital camera pan.
    */
   private buildArrondissementsExplorerPane(): HTMLElement {
     const pane = createEl('div', 'explorer-pane arrondissements-explorer-pane');
 
-    // 1. Interactive 2D SVG "L'Escargot de Paris" (1er -> 20e Clockwise Spiral Map)
+    // 1. Interactive 2D SVG District Map
     const spiralBox = createEl('div', 'skyline-silhouette-box escargot-spiral-box');
     const spiralHeader = createEl('div', 'skyline-header-row');
     spiralHeader.appendChild(
-      createEl('span', 'skyline-title', 'L’ESCARGOT DE PARIS (1er → 20e SPIRAL)')
+      createEl('span', 'skyline-title', ACTIVE_CITY_META.districtsHeaderTitle)
     );
     spiralHeader.appendChild(createEl('span', 'skyline-subtitle', 'Click district to pan'));
     spiralBox.appendChild(spiralHeader);
@@ -2023,7 +2422,7 @@ export class ArtDecoHUD {
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('viewBox', '0 0 260 88');
     svg.setAttribute('class', 'escargot-spiral-svg');
-    svg.setAttribute('aria-label', 'Interactive map of the 20 Arrondissements of Paris');
+    svg.setAttribute('aria-label', `Interactive map of ${ACTIVE_CITY_META.label} districts`);
 
     // Map world (x, z) coordinates into SVG (cx, cy) inside [24..236, 12..76]
     const mapCoord = (x: number, z: number): { cx: number; cy: number } => {
@@ -2044,7 +2443,7 @@ export class ArtDecoHUD {
     seinePath.setAttribute('class', 'escargot-seine-path');
     svg.appendChild(seinePath);
 
-    // Clockwise Escargot spiral path connecting 1er -> 2e -> ... -> 20e
+    // Path connecting districts
     const pts = PARIS_ARRONDISSEMENTS.map((a) => mapCoord(a.x, a.z));
     const spiralD = pts
       .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.cx} ${p.cy}`)
@@ -2054,7 +2453,7 @@ export class ArtDecoHUD {
     spiralPath.setAttribute('class', 'escargot-spiral-line');
     svg.appendChild(spiralPath);
 
-    // 20 Interactive Arrondissement Medallion Nodes along the spiral
+    // Interactive District Medallion Nodes
     PARIS_ARRONDISSEMENTS.forEach((arr, idx) => {
       const { cx, cy } = pts[idx];
       const g = document.createElementNS(ns, 'g');
@@ -2117,17 +2516,17 @@ export class ArtDecoHUD {
 
     const navRow = createEl('div', 'tour-nav-row spot-nav-row');
     const prevArrBtn = createEl('button', 'deco-btn', '◀ Prev');
-    prevArrBtn.title = 'Previous arrondissement in the Escargot spiral';
+    prevArrBtn.title = 'Previous district';
     prevArrBtn.addEventListener('click', () => this.stepArrondissementSelection(-1));
 
-    const panArrBtn = createEl('button', 'deco-btn tour-focus-btn active', '📍 Pan Arrondissement');
-    panArrBtn.title = 'Fly and pan the 3D camera around this arrondissement';
+    const panArrBtn = createEl('button', 'deco-btn tour-focus-btn active', '📍 Pan District');
+    panArrBtn.title = 'Fly and pan the 3D camera around this district';
     panArrBtn.addEventListener('click', () => {
       this.selectArrondissementInExplorer(this.activeArrondissementId, true);
     });
 
     const nextArrBtn = createEl('button', 'deco-btn', 'Next ▶');
-    nextArrBtn.title = 'Next arrondissement in the Escargot spiral';
+    nextArrBtn.title = 'Next district';
     nextArrBtn.addEventListener('click', () => this.stepArrondissementSelection(1));
 
     navRow.appendChild(prevArrBtn);
@@ -2139,11 +2538,11 @@ export class ArtDecoHUD {
     // 3. Arrondissement Sector Filter Chips
     const filterRow = createEl('div', 'explorer-filter-chips');
     const filters: { id: ArrondissementFilterId; label: string }[] = [
-      { id: 'all', label: 'All (20)' },
-      { id: 'core', label: '⚜ Core (1–4)' },
-      { id: 'riveGauche', label: '🏛 Rive Gauche' },
-      { id: 'riveDroite', label: '🎭 Grands Blvds' },
-      { id: 'outer1860', label: '🐌 1860 Villages' }
+      { id: 'all', label: `All (${PARIS_ARRONDISSEMENTS.length})` },
+      { id: 'core', label: '⚜ Core' },
+      { id: 'riveGauche', label: '🏛 South / West' },
+      { id: 'riveDroite', label: '🎭 North / Central' },
+      { id: 'outer1860', label: '🐌 Outer Ring' }
     ];
     for (const f of filters) {
       const btn = createEl('button', 'filter-chip-btn', f.label);
@@ -2164,7 +2563,7 @@ export class ArtDecoHUD {
     this.arrondissementListEl = createEl('div', 'monument-cards-grid arrondissements-cards-grid');
     pane.appendChild(this.arrondissementListEl);
 
-    this.selectArrondissementInExplorer('arr-1', false);
+    this.selectArrondissementInExplorer(this.activeArrondissementId, false);
     this.renderArrondissementsExplorerList();
     return pane;
   }
@@ -2281,14 +2680,14 @@ export class ArtDecoHUD {
   }
 
   /**
-   * TAB 4: Paris Historical Walking Tour (French Naturalisation Interview Facts)
+   * TAB 4: Historical Walking Tour
    */
   private buildTourExplorerPane(): HTMLElement {
     const tourCard = createEl('div', 'explorer-pane tour-explorer-pane');
 
     const header = createEl('div', 'chronicle-header');
     header.appendChild(
-      createEl('span', 'chronicle-era-tag', 'FRENCH NATURALISATION WALKING TOUR')
+      createEl('span', 'chronicle-era-tag', ACTIVE_CITY_META.tourHeaderTitle)
     );
 
     const headerActions = createEl('div', 'tour-header-actions');
@@ -2890,6 +3289,87 @@ export class ArtDecoHUD {
     }
   }
 
+  public setActiveWeatherModeUI(mode: WeatherModeId): void {
+    for (const [id, btn] of this.weatherModeBtns.entries()) {
+      btn.classList.toggle('active', id === mode);
+    }
+  }
+
+  public toggleLiveWeather(): void {
+    const next = !this.liveWeatherEnabled;
+    this.liveWeatherEnabled = next;
+    for (const btn of this.liveWeatherBtns) {
+      btn.classList.toggle('active', next);
+      btn.classList.toggle('live-sync-active', next);
+      if (!next) {
+        btn.textContent = '🌡 Live Weather';
+      }
+    }
+    this.callbacks.onToggleLiveWeather(next);
+  }
+
+  public setLiveWeatherState(
+    enabled: boolean,
+    weather: ParisLiveApiResponse['weather'] | null
+  ): void {
+    this.liveWeatherEnabled = enabled;
+    this.liveWeatherData = weather;
+    const tempStr =
+      enabled && weather && weather.current.temperatureC !== null
+        ? `🌡 Live ${weather.current.temperatureC.toFixed(1)}°C`
+        : '🌡 Live Weather';
+
+    for (const btn of this.liveWeatherBtns) {
+      btn.classList.toggle('active', enabled);
+      btn.classList.toggle('live-sync-active', enabled);
+      btn.textContent = tempStr;
+      if (enabled && weather) {
+        btn.title = `Live Paris Weather (${weather.current.conditionEn} / ${weather.current.conditionFr}): ${weather.current.temperatureC ?? '--'}°C, Wind ${weather.current.windSpeedKmh ?? '--'} km/h, Humidity ${weather.current.humidityPercent ?? '--'}%`;
+      }
+    }
+    if (enabled && weather) {
+      this.setActiveWeatherModeUI(weather.clientSceneState.weatherMode);
+    }
+    this.updateSettingsSummaryText();
+  }
+
+  public toggleLiveMetro(): void {
+    const next = !this.liveMetroEnabled;
+    this.liveMetroEnabled = next;
+    for (const btn of this.liveMetroBtns) {
+      btn.classList.toggle('active', next);
+      btn.classList.toggle('live-sync-active', next);
+    }
+    this.callbacks.onToggleLiveMetro(next);
+  }
+
+  public setLiveMetroState(
+    enabled: boolean,
+    metro: ParisLiveApiResponse['metro'] | null
+  ): void {
+    this.liveMetroEnabled = enabled;
+    this.liveMetroData = metro;
+
+    for (const btn of this.liveMetroBtns) {
+      btn.classList.toggle('active', enabled);
+      btn.classList.toggle('live-sync-active', enabled);
+    }
+
+    for (const line of METRO_LINES) {
+      const badge = this.lineBadgeBtns.get(line.id);
+      if (!badge) continue;
+      const liveLine = enabled && metro ? metro.linesById[line.id] : undefined;
+      badge.classList.toggle('live-metro-active', Boolean(liveLine));
+      if (liveLine) {
+        badge.title = `${line.name} • 🟢 ${liveLine.trafficLabelEn} (${liveLine.serviceQualityPercent.toFixed(1)}% QoS)${liveLine.automated ? ' • Automated' : ''} — Click to inspect route`;
+      } else {
+        badge.title = `${line.name} (Opened in ${line.openedYear}) — Click to inspect line route`;
+      }
+    }
+
+    this.selectStationInExplorer(this.activeStationId, false);
+  }
+
   public cycleBokehMode(): void {
     const bokehPresets = [
       { label: '◉ Bokeh: f/2.8', aperture: 0.55 },
@@ -3038,6 +3518,30 @@ export class ArtDecoHUD {
       addMeta('ARCHITECTURE', st.architecture);
       if (st.landmark) {
         addMeta('NEARBY LANDMARK', st.landmark);
+      }
+
+      if (this.liveMetroEnabled && this.liveMetroData && !isClosedNow) {
+        const liveLines = st.lines
+          .map((lId) => this.liveMetroData?.linesById[lId])
+          .filter((item): item is NonNullable<typeof item> => Boolean(item));
+        if (liveLines.length > 0) {
+          const avgQos =
+            liveLines.reduce((acc, l) => acc + l.serviceQualityPercent, 0) / liveLines.length;
+          addMeta(
+            'LIVE RATP STATUS',
+            `🟢 ${liveLines[0].trafficLabelEn} (${avgQos.toFixed(1)}% QoS)`
+          );
+        }
+        const sensor = this.liveMetroData.stationsById[st.id];
+        if (sensor) {
+          const sParts: string[] = [];
+          if (sensor.temperatureC !== null) sParts.push(`${sensor.temperatureC.toFixed(1)}°C`);
+          if (sensor.humidityPercent !== null) sParts.push(`${Math.round(sensor.humidityPercent)}% RH`);
+          if (sensor.co2Ppm !== null) sParts.push(`CO₂ ${Math.round(sensor.co2Ppm)} ppm`);
+          if (sParts.length > 0) {
+            addMeta('PLATFORM SENSORS', sParts.join(' • '));
+          }
+        }
       }
 
       this.dossierDescEl.textContent = st.description;

@@ -16,7 +16,7 @@ import {
   validateCityId,
   createProjector,
   writeSafeFile,
-  runBlenderScriptHeadless,
+  runBlenderMonumentBuild,
 } from './security_utils.mjs';
 import { getCityPreset, getArchetypeSvgPath } from './city_presets.mjs';
 
@@ -125,17 +125,21 @@ export const ${upperId}_TOUR_STOPS: CityTourStop[] = ${JSON.stringify(tourStops,
   console.log(`  [✓] Wrote historical lore & monument dataset: ${historicalTsPath}`);
 
   let glbExported = false;
+  let blenderExecutionMode = 'skipped';
   if (!skipBlender) {
-    console.log(`  -> Invoking headless Blender to build ${monuments.length} 3D monuments into ${glbRelPath}...`);
-    runBlenderScriptHeadless(
+    console.log(
+      `  -> Building ${monuments.length} 3D monuments into ${glbRelPath} (preferring live Blender MCP if open)...`
+    );
+    const buildResult = await runBlenderMonumentBuild(
       'scripts/pipeline/blender/build_city_monuments.py',
       specRelPath,
       glbRelPath
     );
     glbExported = true;
-    console.log(`  [✓] Exported 3D GLB bundle: ${glbRelPath}`);
+    blenderExecutionMode = buildResult.mode;
+    console.log(`  [✓] Exported 3D GLB bundle (${blenderExecutionMode}): ${glbRelPath}`);
   } else {
-    console.log(`  -> Skipping headless Blender execution (--skip-blender flag set).`);
+    console.log(`  -> Skipping Blender execution (--skip-blender flag set).`);
   }
 
   return {
@@ -143,6 +147,7 @@ export const ${upperId}_TOUR_STOPS: CityTourStop[] = ${JSON.stringify(tourStops,
     historicalTsPath,
     glbRelPath,
     glbExported,
+    blenderExecutionMode,
     monumentCount: monuments.length,
   };
 }

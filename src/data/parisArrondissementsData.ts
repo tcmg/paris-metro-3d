@@ -15,6 +15,7 @@
  */
 
 import { projectLatLon } from './parisGeoData';
+import { ACTIVE_PIPELINE_CITY_DATASET } from '../cities/activeCityRuntime';
 
 export type ArrondissementFilterId =
   | 'all'
@@ -469,7 +470,7 @@ const RAW_ARRONDISSEMENTS: Omit<ParisArrondissementData, 'x' | 'z'>[] = [
   }
 ];
 
-export const PARIS_ARRONDISSEMENTS: ParisArrondissementData[] = RAW_ARRONDISSEMENTS.map((arr) => {
+const PARIS_DEFAULT_ARRONDISSEMENTS: ParisArrondissementData[] = RAW_ARRONDISSEMENTS.map((arr) => {
   const { x, z } = projectLatLon(arr.lat, arr.lon);
   return {
     ...arr,
@@ -478,6 +479,48 @@ export const PARIS_ARRONDISSEMENTS: ParisArrondissementData[] = RAW_ARRONDISSEME
   };
 });
 
+const FILTER_GROUPS_CYCLE: Exclude<ArrondissementFilterId, 'all'>[] = [
+  'core',
+  'riveDroite',
+  'riveGauche',
+  'outer1860'
+];
+
+export const PARIS_ARRONDISSEMENTS: ParisArrondissementData[] = ACTIVE_PIPELINE_CITY_DATASET
+  ? ACTIVE_PIPELINE_CITY_DATASET.districts.map((dist, idx) => {
+      const dataset = ACTIVE_PIPELINE_CITY_DATASET!;
+      const { x, z } = projectLatLon(dist.lat, dist.lon);
+      const connectedLines = dataset.metroLines
+        .slice(0, 5)
+        .map((l) => l.line);
+      return {
+        id: dist.id,
+        number: dist.number,
+        shortLabel: dist.localLabel,
+        name: `${dist.localLabel} — ${dist.name}`,
+        officialName: dist.subtitle,
+        quartiers: dist.landmarks.join(' • '),
+        bank: idx % 2 === 0 ? 'Rive Droite' : 'Rive Gauche',
+        filterGroup: FILTER_GROUPS_CYCLE[idx % FILTER_GROUPS_CYCLE.length],
+        eraBadge: `${dataset.name.toUpperCase()} HISTORIC PRECINCT`,
+        foundedLabel: dist.yearEstablished
+          ? `ESTABLISHED ${dist.yearEstablished}${dist.population ? ` • POP. ${dist.population}` : ''}`
+          : dist.subtitle.toUpperCase(),
+        lat: dist.lat,
+        lon: dist.lon,
+        x,
+        z,
+        standOffRadius: 28.0,
+        cameraHeightOffset: 17.5,
+        haloRadiusScale: 2.0,
+        metroLines: connectedLines,
+        history: dist.fact,
+        notableLandmarks: dist.landmarks.join(', ')
+      };
+    })
+  : PARIS_DEFAULT_ARRONDISSEMENTS;
+
 export const ARRONDISSEMENTS_MAP = new Map<string, ParisArrondissementData>(
   PARIS_ARRONDISSEMENTS.map((a) => [a.id, a])
 );
+
