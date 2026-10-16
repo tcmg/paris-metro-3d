@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { projectLatLon } from './parisGeoData';
 
 export interface MetroLineConfig {
@@ -20,6 +36,13 @@ export interface MetroSegmentDef {
   stations: string[]; // Ordered list of station IDs
 }
 
+export interface SpecialStationInteriorInfo {
+  photoUrl: string;
+  designTitle: string;
+  artistOrYear: string;
+  interiorCaption: string;
+}
+
 export interface MetroStationData {
   id: string;
   name: string;
@@ -36,6 +59,7 @@ export interface MetroStationData {
   landmark?: string;
   description: string;
   lines: string[];
+  specialInterior?: SpecialStationInteriorInfo;
 }
 
 export const RAW_STATIONS: Omit<MetroStationData, 'x' | 'z' | 'lines'>[] = [
@@ -2667,6 +2691,108 @@ export const METRO_LINES: MetroLineConfig[] = [
   }
 ];
 
+export const SPECIAL_STATION_ORDER: string[] = [
+  'concorde',
+  'arts-et-metiers',
+  'pont-neuf',
+  'bastille',
+  'louvre-rivoli',
+  'cite',
+  'cluny-la-sorbonne',
+  'varenne',
+  'abbesses',
+  'solferino',
+  'palais-royal',
+  'tuileries'
+];
+
+export const SPECIAL_STATION_INTERIORS: Record<string, SpecialStationInteriorInfo> = {
+  concorde: {
+    photoUrl: 'stations/concorde.jpg',
+    designTitle: '1789 Declaration Typographic Ceramic Vault',
+    artistOrYear: 'Françoise Schein • 1991 (Line 12)',
+    interiorCaption:
+      'Every inch of the Line 12 vault is clad in white ceramic tiles bearing blue capital letters that spell out the entire 1789 Declaration of the Rights of Man and of the Citizen letter by letter.'
+  },
+  'arts-et-metiers': {
+    photoUrl: 'stations/arts-et-metiers.jpg',
+    designTitle: 'Riveted Copper Nautilus Submarine Interior',
+    artistOrYear: 'François Schuiten & Benoît Peeters • 1994 (Line 11)',
+    interiorCaption:
+      'Clad in 800 riveted copper plates with giant overhead brass gears and Jules Verne submarine portholes displaying scientific treasures from the Conservatoire National des Arts et Métiers.'
+  },
+  'pont-neuf': {
+    photoUrl: 'stations/pont-neuf.jpg',
+    designTitle: 'Station de la Monnaie — Giant Coin Vault & Mint Press',
+    artistOrYear: 'Monnaie de Paris Cultural Decor • 1991 (Line 7)',
+    interiorCaption:
+      'Nicknamed "La Monnaie", its vault features oversized bas-relief replicas of historic French coins curving overhead alongside an authentic 19th-century coin-minting balance press on the platform.'
+  },
+  bastille: {
+    photoUrl: 'stations/bastille.jpg',
+    designTitle: '1789 Storming of the Bastille Ceramic Fresco',
+    artistOrYear: 'Liliane Bélembert & Odile Jacquot • 1989 (Lines 1 & 5)',
+    interiorCaption:
+      'Features a 120-meter hand-painted ceramic mural of the French Revolution on Line 1, while Line 5 exposes the actual medieval yellow stone counterscarp foundation wall of the 1370 Bastille fortress.'
+  },
+  'louvre-rivoli': {
+    photoUrl: 'stations/louvre-rivoli.jpg',
+    designTitle: 'Subterranean Louvre Sculpture Gallery',
+    artistOrYear: 'André Malraux Cultural Initiative • 1968 (Line 1)',
+    interiorCaption:
+      'The very first cultural station in the Paris Metro: dressed in warm Burgundian stone with dramatic museum-lit alcoves displaying replicas of ancient Egyptian, Mesopotamian, and Renaissance masterpieces.'
+  },
+  cite: {
+    photoUrl: 'stations/cite.jpg',
+    designTitle: 'Sub-Fluvial Caisson & Belle Époque Globe Streetlamps',
+    artistOrYear: 'Léon Chagnaud Caisson • 1910 (Line 4)',
+    interiorCaption:
+      'Sunk 20 meters below the Seine inside a vertical steel caisson beneath Île de la Cité, its high cathedral-like vault is illuminated by pairs of tall wrought-iron Belle Époque opal globe streetlamps.'
+  },
+  'cluny-la-sorbonne': {
+    photoUrl: 'stations/cluny-la-sorbonne.jpg',
+    designTitle: 'Les Ailes et les Flammes Mosaic & Literary Signatures',
+    artistOrYear: 'Jean Bazaine • 1988 (Line 10)',
+    interiorCaption:
+      'Across its vaulted ceiling, 70,000 glass and ceramic tesserae form Jean Bazaine’s sweeping mosaic surrounded by the signatures of eight centuries of Latin Quarter writers, poets, and philosophers.'
+  },
+  varenne: {
+    photoUrl: 'stations/varenne.jpg',
+    designTitle: 'Auguste Rodin Bronze Sculpture Platform',
+    artistOrYear: 'Musée Rodin Cultural Platform • 1988 (Line 13)',
+    interiorCaption:
+      'Steps from the Hôtel Biron (Musée Rodin), commuters wait alongside monumental bronze casts of Auguste Rodin’s The Thinker (Le Penseur) and Monument to Balzac mounted directly on the platforms.'
+  },
+  abbesses: {
+    photoUrl: 'stations/abbesses.jpg',
+    designTitle: 'Nord-Sud Ceramic Vault & Montmartre Spiral Frescoes',
+    artistOrYear: 'Compagnie du Nord-Sud • 1912 (Line 12)',
+    interiorCaption:
+      'Buried 36 meters beneath Montmartre Hill, Abbesses preserves its ornate Nord-Sud honey-and-cobalt ceramic friezes and giant faience station nameplates at the base of its painted spiral staircases.'
+  },
+  solferino: {
+    photoUrl: 'stations/solferino.jpg',
+    designTitle: 'Listed 1910 Compagnie Nord-Sud Ceramic Heritage',
+    artistOrYear: 'Adolphe Dervaux • 1910 (Line 12)',
+    interiorCaption:
+      'Protected as a Historic Monument, Solférino is preserved intact in its 1910 Nord-Sud splendor with relief ochre ceramic borders, interlaced "N.S." medallions, and monumental earthenware signage.'
+  },
+  'palais-royal': {
+    photoUrl: 'stations/palais-royal.jpg',
+    designTitle: 'Huichol Bead Mosaic & Kiosque des Noctambules',
+    artistOrYear: 'Santos Motoapohua de la Torre & J.-M. Othoniel • 1997–2000',
+    interiorCaption:
+      'Combines Jean-Michel Othoniel’s Murano glass crown entrance above ground with a two-million-bead Mexican Huichol mosaic (La Pensée et l’Âme huicholes) inside the station.'
+  },
+  tuileries: {
+    photoUrl: 'stations/tuileries.jpg',
+    designTitle: '1900 Riveted Metal Deck & Botanical Garden Frescoes',
+    artistOrYear: 'Inaugural 1900 Metal Hall & Cultural Murals (Line 1)',
+    interiorCaption:
+      'Beneath its original 1900 riveted steel beams and brick jack-arches, the platform walls of Tuileries showcase vibrant artistic frescoes inspired by the neighboring Tuileries Garden.'
+  }
+};
+
 export const STATIONS_MAP: Map<string, MetroStationData> = new Map();
 
 for (const raw of RAW_STATIONS) {
@@ -2675,7 +2801,8 @@ for (const raw of RAW_STATIONS) {
     ...raw,
     x,
     z,
-    lines: []
+    lines: [],
+    specialInterior: SPECIAL_STATION_INTERIORS[raw.id]
   });
 }
 

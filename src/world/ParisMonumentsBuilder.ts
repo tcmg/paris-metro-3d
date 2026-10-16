@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { projectLatLon } from '../data/parisGeoData';
@@ -198,6 +214,7 @@ const BLENDER_MONUMENT_PLACEMENTS: BlenderMonumentPlacement[] = [
 ];
 
 export const PAPER_MODEL_UNIFORM = { value: 0.0 };
+const DEFAULT_NO_COLOR_REVEAL_UNIFORM = { value: 0.0 };
 
 interface EiffelNightUniforms {
   uPaperGreyscale: { value: number };
@@ -210,39 +227,46 @@ interface EiffelNightUniforms {
  * Injects a zero-overhead GPU shader hook into any above-ground Three.js material
  * so toggling Grey Paper Architecture Model mode ("Maquette Grise") converts all
  * above-ground albedo and lighting into tactile monochrome architectural cardstock
- * while keeping the Metro lines and light columns in full vivid color.
+ * while allowing a focused/highlighted monument (`colorRevealUniform.value = 1.0`)
+ * to return to full vivid colour.
  */
-export function applyPaperModelShaderHook<T extends THREE.Material>(mat: T): T {
-  if (mat.userData?.hasPaperModelHook) return mat;
-  mat.userData = { ...mat.userData, hasPaperModelHook: true };
+export function applyPaperModelShaderHook<T extends THREE.Material>(
+  mat: T,
+  colorRevealUniform: { value: number } = DEFAULT_NO_COLOR_REVEAL_UNIFORM
+): T {
+  mat.userData = { ...mat.userData, hasPaperModelHook: true, colorRevealUniform };
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPaperGreyscale = PAPER_MODEL_UNIFORM;
+    shader.uniforms.uColorReveal = colorRevealUniform;
     shader.fragmentShader =
-      `uniform float uPaperGreyscale;\n` +
+      `uniform float uPaperGreyscale;\nuniform float uColorReveal;\n` +
       shader.fragmentShader
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-          if (uPaperGreyscale > 0.001) {
+          float effectivePaperAlbedo = uPaperGreyscale * (1.0 - uColorReveal);
+          if (effectivePaperAlbedo > 0.001) {
             float baseLuma = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
             float paperTone = mix(0.42, 0.88, clamp(pow(baseLuma, 0.82), 0.0, 1.0));
             vec3 paperAlbedo = vec3(paperTone * 0.985, paperTone * 0.992, paperTone * 1.01);
-            diffuseColor.rgb = mix(diffuseColor.rgb, paperAlbedo, uPaperGreyscale);
+            diffuseColor.rgb = mix(diffuseColor.rgb, paperAlbedo, effectivePaperAlbedo);
           }`
         )
         .replace(
           '#include <emissivemap_fragment>',
           `#include <emissivemap_fragment>
-          if (uPaperGreyscale > 0.001) {
-            totalEmissiveRadiance *= (1.0 - uPaperGreyscale * 0.88);
+          float effectivePaperEmissive = uPaperGreyscale * (1.0 - uColorReveal);
+          if (effectivePaperEmissive > 0.001) {
+            totalEmissiveRadiance *= (1.0 - effectivePaperEmissive * 0.88);
           }`
         )
         .replace(
           '#include <tonemapping_fragment>',
-          `if (uPaperGreyscale > 0.001) {
+          `float effectivePaperLit = uPaperGreyscale * (1.0 - uColorReveal);
+          if (effectivePaperLit > 0.001) {
             float litLuma = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
             vec3 litPaper = vec3(litLuma * 0.975, litLuma * 0.988, litLuma * 1.015);
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, litPaper, uPaperGreyscale * 0.94);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, litPaper, effectivePaperLit * 0.94);
           }
           #include <tonemapping_fragment>`
         );
@@ -252,19 +276,25 @@ export function applyPaperModelShaderHook<T extends THREE.Material>(mat: T): T {
 
 /**
  * Specialized GPU shader hook for the Eiffel Tower ironwork:
- * Combines Paper Model greyscale support with a 3D nighttime sodium/amber floodlight
- * gradient so the outer lattice silhouette stays dark charcoal-black while the inner
- * legs, platform undersides/tops, and central column glow with dark-orange to warm
- * golden-amber gradients.
+ * Combines Paper Model greyscale support (and focused colour reveal) with a 3D nighttime
+ * sodium/amber floodlight gradient so the outer lattice silhouette stays dark charcoal-black
+ * while the inner legs, platform undersides/tops, and central column glow with dark-orange
+ * to warm golden-amber gradients.
  */
 function applyEiffelMaterialShaderHook<T extends THREE.Material>(
   mat: T,
-  eiffelUniforms: EiffelNightUniforms
+  eiffelUniforms: EiffelNightUniforms,
+  colorRevealUniform: { value: number } = DEFAULT_NO_COLOR_REVEAL_UNIFORM
 ): T {
-  if (mat.userData?.hasEiffelShaderHook) return mat;
-  mat.userData = { ...mat.userData, hasEiffelShaderHook: true, hasPaperModelHook: true };
+  mat.userData = {
+    ...mat.userData,
+    hasEiffelShaderHook: true,
+    hasPaperModelHook: true,
+    colorRevealUniform
+  };
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPaperGreyscale = eiffelUniforms.uPaperGreyscale;
+    shader.uniforms.uColorReveal = colorRevealUniform;
     shader.uniforms.uEiffelNight = eiffelUniforms.uEiffelNight;
     shader.uniforms.uEiffelCenter = eiffelUniforms.uEiffelCenter;
     shader.uniforms.uEiffelTotalHeight = eiffelUniforms.uEiffelTotalHeight;
@@ -281,6 +311,7 @@ function applyEiffelMaterialShaderHook<T extends THREE.Material>(
 
     shader.fragmentShader =
       `uniform float uPaperGreyscale;
+      uniform float uColorReveal;
       uniform float uEiffelNight;
       uniform vec3 uEiffelCenter;
       uniform float uEiffelTotalHeight;
@@ -337,11 +368,12 @@ function applyEiffelMaterialShaderHook<T extends THREE.Material>(
 
             diffuseColor.rgb = mix(diffuseColor.rgb, eiffelNightPalette * 0.42, uEiffelNight * 0.95);
           }
-          if (uPaperGreyscale > 0.001) {
+          float effectivePaperAlbedo = uPaperGreyscale * (1.0 - uColorReveal);
+          if (effectivePaperAlbedo > 0.001) {
             float baseLuma = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
             float paperTone = mix(0.42, 0.88, clamp(pow(baseLuma, 0.82), 0.0, 1.0));
             vec3 paperAlbedo = vec3(paperTone * 0.985, paperTone * 0.992, paperTone * 1.01);
-            diffuseColor.rgb = mix(diffuseColor.rgb, paperAlbedo, uPaperGreyscale);
+            diffuseColor.rgb = mix(diffuseColor.rgb, paperAlbedo, effectivePaperAlbedo);
           }`
         )
         .replace(
@@ -352,16 +384,18 @@ function applyEiffelMaterialShaderHook<T extends THREE.Material>(
             vec3 nightRadiance = eiffelNightPalette * (0.28 + 1.55 * glowMask * glowMask);
             totalEmissiveRadiance += nightRadiance * uEiffelNight;
           }
-          if (uPaperGreyscale > 0.001) {
-            totalEmissiveRadiance *= (1.0 - uPaperGreyscale * 0.88);
+          float effectivePaperEmissive = uPaperGreyscale * (1.0 - uColorReveal);
+          if (effectivePaperEmissive > 0.001) {
+            totalEmissiveRadiance *= (1.0 - effectivePaperEmissive * 0.88);
           }`
         )
         .replace(
           '#include <tonemapping_fragment>',
-          `if (uPaperGreyscale > 0.001) {
+          `float effectivePaperLit = uPaperGreyscale * (1.0 - uColorReveal);
+          if (effectivePaperLit > 0.001) {
             float litLuma = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
             vec3 litPaper = vec3(litLuma * 0.975, litLuma * 0.988, litLuma * 1.015);
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, litPaper, uPaperGreyscale * 0.94);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, litPaper, effectivePaperLit * 0.94);
           }
           #include <tonemapping_fragment>`
         );
@@ -395,14 +429,27 @@ export class ParisMonumentsBuilder {
   private currentYear = 2026;
   private currentOpacity = 1.0;
   private outlinedMonumentId: string | null = null;
+  private selectedMonumentId: string | null = null;
   private glbLoaded = false;
   private readonly hitProxyMat = new THREE.MeshBasicMaterial({ visible: false });
+  private readonly monumentColorRevealUniforms = new Map<string, { value: number }>();
 
   constructor() {
     this.rootGroup.name = 'ParisBlenderMonuments3D';
     this.buildEiffelSearchlightBeacon();
     this.buildHitTargets();
     this.loadBlenderMonumentsGLB();
+  }
+
+  private getMonumentColorRevealUniform(monumentId: string): { value: number } {
+    let u = this.monumentColorRevealUniforms.get(monumentId);
+    if (!u) {
+      const isRevealed =
+        this.outlinedMonumentId === monumentId || this.selectedMonumentId === monumentId;
+      u = { value: isRevealed ? 1.0 : 0.0 };
+      this.monumentColorRevealUniforms.set(monumentId, u);
+    }
+    return u;
   }
 
   public setManualEiffelSparkle(enabled: boolean): void {
@@ -968,12 +1015,15 @@ export class ParisMonumentsBuilder {
               if (mesh.material) {
                 const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
                 const clonedMats: THREE.Material[] = [];
+                const revealUniform = placement.monumentId
+                  ? this.getMonumentColorRevealUniform(placement.monumentId)
+                  : undefined;
                 for (const origMat of mats) {
-                  const m = isEiffel ? origMat.clone() : origMat;
+                  const m = origMat.clone();
                   if (isEiffel) {
-                    applyEiffelMaterialShaderHook(m, this.eiffelNightUniforms);
+                    applyEiffelMaterialShaderHook(m, this.eiffelNightUniforms, revealUniform);
                   } else {
-                    applyPaperModelShaderHook(m);
+                    applyPaperModelShaderHook(m, revealUniform);
                   }
                   const mName = m.name.toLowerCase();
                   const isGlass = mName.includes('glass');
@@ -988,9 +1038,7 @@ export class ParisMonumentsBuilder {
                   }
                   clonedMats.push(m);
                 }
-                if (isEiffel) {
-                  mesh.material = Array.isArray(mesh.material) ? clonedMats : clonedMats[0];
-                }
+                mesh.material = Array.isArray(mesh.material) ? clonedMats : clonedMats[0];
               }
             }
           });
@@ -1136,11 +1184,28 @@ export class ParisMonumentsBuilder {
     this.syncOutlineLayer();
   }
 
+  public setSelectedMonument(monumentId: string | null): void {
+    if (this.selectedMonumentId === monumentId) return;
+    this.selectedMonumentId = monumentId;
+    this.syncColorRevealUniforms();
+  }
+
   public hasOutlinedMonument(): boolean {
     return this.outlinedMonumentId !== null;
   }
 
+  private syncColorRevealUniforms(): void {
+    for (const [monId, uniform] of this.monumentColorRevealUniforms.entries()) {
+      const isRevealed =
+        (this.outlinedMonumentId !== null && monId === this.outlinedMonumentId) ||
+        (this.selectedMonumentId !== null && monId === this.selectedMonumentId);
+      uniform.value = isRevealed ? 1.0 : 0.0;
+    }
+  }
+
   private syncOutlineLayer(): void {
+    this.syncColorRevealUniforms();
+
     for (const item of this.yearObjects) {
       if (!item.monumentId) continue;
       const shouldOutline =
@@ -1227,7 +1292,10 @@ export class ParisMonumentsBuilder {
     this.eiffelBeaconGroup.visible = activeNight > 0.005;
 
     // 2. Dark iron silhouette framing glowing dark-orange to golden-amber floodlight gradients + soft bloom halo at night
-    const paperDim = 1.0 - PAPER_MODEL_UNIFORM.value * 0.75;
+    const isEiffelFocused =
+      this.outlinedMonumentId === 'monument-eiffel' ||
+      this.selectedMonumentId === 'monument-eiffel';
+    const paperDim = isEiffelFocused ? 1.0 : 1.0 - PAPER_MODEL_UNIFORM.value * 0.75;
     const effectiveNight = Math.max(activeNight, this.manualEiffelSparkle ? eiffelBuilt * 0.72 : 0.0);
     this.eiffelNightUniforms.uEiffelNight.value = effectiveNight;
     for (const entry of this.eiffelMaterials) {

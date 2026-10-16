@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as THREE from 'three';
 import {
   GrandeGareCorridorData,
@@ -30,7 +46,7 @@ interface CorridorRuntime {
   data: GrandeGareCorridorData;
   buildingGroup: THREE.Group;
   corridorGroup: THREE.Group;
-  beaconSprite: THREE.Sprite;
+  colorRevealUniform: { value: number };
   monumentData?: ParisMonumentData;
 }
 
@@ -53,6 +69,7 @@ export class GrandesLignesBuilder {
 
   private currentYear = 2026;
   private outlinedMonumentId: string | null = null;
+  private selectedMonumentId: string | null = null;
   private visibleEnabled = true;
 
   // Precomputed track corridor segments for fast OSM building/tree exclusion
@@ -163,13 +180,12 @@ export class GrandesLignesBuilder {
 
     for (const gare of PARIS_GRANDES_LIGNES) {
       const monumentData = gare.monumentId ? monumentMap.get(gare.monumentId) : undefined;
-      const buildingGroup = this.buildGareArchitecture(gare, monumentData);
+      const colorRevealUniform = { value: 0.0 };
+      const buildingGroup = this.buildGareArchitecture(gare, monumentData, colorRevealUniform);
       const corridorGroup = new THREE.Group();
       corridorGroup.name = `Corridor_${gare.id}`;
 
       this.buildMultiTrackFanAndCorridor(gare, corridorGroup);
-      const beaconSprite = this.buildDestinationBeacon(gare);
-      corridorGroup.add(beaconSprite);
 
       this.rootGroup.add(buildingGroup);
       this.rootGroup.add(corridorGroup);
@@ -178,7 +194,7 @@ export class GrandesLignesBuilder {
         data: gare,
         buildingGroup,
         corridorGroup,
-        beaconSprite,
+        colorRevealUniform,
         monumentData
       });
     }
@@ -191,7 +207,8 @@ export class GrandesLignesBuilder {
    */
   private buildGareArchitecture(
     gare: GrandeGareCorridorData,
-    monumentData?: ParisMonumentData
+    monumentData: ParisMonumentData | undefined,
+    colorRevealUniform: { value: number }
   ): THREE.Group {
     const group = new THREE.Group();
     group.name = `GareBuilding_${gare.id}`;
@@ -371,16 +388,26 @@ export class GrandesLignesBuilder {
       group.add(portalMesh);
     }
 
-    // 4. Tag meshes and add a tight OBB hit proxy if this Gare is a selectable Monument
+    // 4. Tag meshes, bind per-Gare colorRevealUniform, and add a tight OBB hit proxy if this Gare is a selectable Monument
     if (monumentData) {
+      const matCache = new Map<THREE.Material, THREE.Material>();
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh && !child.userData?.isHitProxy) {
-          child.userData = {
-            ...child.userData,
+          const mesh = child as THREE.Mesh;
+          mesh.userData = {
+            ...mesh.userData,
             type: 'monument',
             monument: monumentData,
             isDirectMonumentMesh: true
           };
+          if (mesh.material && !Array.isArray(mesh.material)) {
+            let cloned = matCache.get(mesh.material);
+            if (!cloned) {
+              cloned = applyPaperModelShaderHook(mesh.material.clone(), colorRevealUniform);
+              matCache.set(mesh.material, cloned);
+            }
+            mesh.material = cloned;
+          }
         }
       });
 
@@ -675,47 +702,6 @@ export class GrandesLignesBuilder {
   }
 
   /**
-   * Builds a crisp Art Deco floating destination beacon at the outer horizon of each rail corridor.
-   */
-  private buildDestinationBeacon(gare: GrandeGareCorridorData): THREE.Sprite {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 96;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = 'rgba(8, 12, 22, 0.88)';
-      ctx.fillRect(6, 10, 500, 76);
-
-      ctx.strokeStyle = gare.colorHex;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(6, 10, 500, 76);
-
-      ctx.fillStyle = gare.colorHex;
-      ctx.font = 'bold 20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`🚂 GRANDES LIGNES • ${gare.shortName}`, 256, 40);
-
-      ctx.fillStyle = '#f5efe2';
-      ctx.font = '600 17px monospace';
-      ctx.fillText(gare.destinationLabel, 256, 68);
-    }
-
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const mat = new THREE.SpriteMaterial({
-      map: tex,
-      transparent: true,
-      depthWrite: false
-    });
-    const sprite = new THREE.Sprite(mat);
-    const lastPt = gare.corridorPoints[gare.corridorPoints.length - 1];
-    const ty = getParisTerrainElevation(lastPt.x, lastPt.z);
-    sprite.position.set(lastPt.x, ty + 2.4, lastPt.z);
-    sprite.scale.set(6.8, 1.28, 1);
-    return sprite;
-  }
-
-  /**
    * Returns true if world coordinate (x, z) overlaps a 3D Grande Gare train shed or its immediate track throat fan
    * so OSM building/tree placement keeps the terminal sheds and rail throats clear.
    */
@@ -758,6 +744,16 @@ export class GrandesLignesBuilder {
     this.syncOutlineLayer();
   }
 
+  public setSelectedMonument(monumentId: string | null): void {
+    if (this.selectedMonumentId === monumentId) return;
+    this.selectedMonumentId = monumentId;
+    this.syncOutlineLayer();
+  }
+
+  public hasOutlinedMonument(): boolean {
+    return this.outlinedMonumentId !== null;
+  }
+
   private syncOutlineLayer(): void {
     for (const c of this.corridors) {
       if (!c.monumentData) continue;
@@ -765,6 +761,11 @@ export class GrandesLignesBuilder {
         this.outlinedMonumentId !== null &&
         c.monumentData.id === this.outlinedMonumentId &&
         c.buildingGroup.visible;
+      const shouldRevealColor =
+        ((this.outlinedMonumentId !== null && c.monumentData.id === this.outlinedMonumentId) ||
+          (this.selectedMonumentId !== null && c.monumentData.id === this.selectedMonumentId)) &&
+        c.buildingGroup.visible;
+      c.colorRevealUniform.value = shouldRevealColor ? 1.0 : 0.0;
       c.buildingGroup.traverse((child) => {
         if ((child as THREE.Mesh).isMesh && !child.userData?.isHitProxy) {
           if (shouldOutline) {

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 :root {
   --bg-obsidian: #060911;
   --bg-panel: rgba(9, 13, 24, 0.84);
@@ -498,22 +514,22 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 3.5px;
   background: rgba(212, 175, 55, 0.05);
   border: 1px solid rgba(212, 175, 55, 0.26);
   color: var(--ivory-dim);
   font-family: var(--font-sans);
-  font-size: 10.5px;
+  font-size: 9.8px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 5px 6px;
+  letter-spacing: 0.02em;
+  padding: 5px 4px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.16s ease;
 }
 
 .explorer-tab-icon {
-  font-size: 12.5px;
+  font-size: 11.5px;
   line-height: 1;
 }
 
@@ -1823,6 +1839,293 @@ body,
   font-size: 11.5px;
   line-height: 1.48;
   color: var(--ivory-dim);
+}
+
+/* ==========================================
+   Arrondissements Tab ("L'Escargot de Paris")
+   ========================================== */
+.escargot-spiral-box {
+  padding: 5px 8px 6px;
+}
+
+.escargot-spiral-svg {
+  width: 100%;
+  height: 92px;
+  display: block;
+  background: radial-gradient(circle at 50% 52%, rgba(212, 175, 55, 0.08) 0%, rgba(4, 7, 14, 0.5) 85%);
+  border: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.escargot-seine-path {
+  fill: none;
+  stroke: rgba(58, 128, 178, 0.42);
+  stroke-width: 3.4px;
+  stroke-linecap: round;
+}
+
+.escargot-spiral-line {
+  fill: none;
+  stroke: rgba(212, 175, 55, 0.35);
+  stroke-width: 1.15px;
+  stroke-dasharray: 2.5 2;
+}
+
+.escargot-node {
+  cursor: pointer;
+}
+
+.escargot-node-circle {
+  fill: rgba(9, 13, 24, 0.92);
+  stroke: rgba(212, 175, 55, 0.55);
+  stroke-width: 0.9px;
+  transition: fill 0.15s ease, stroke 0.15s ease, filter 0.15s ease;
+}
+
+.escargot-node-text {
+  font-family: var(--font-mono);
+  font-size: 5.2px;
+  font-weight: 700;
+  fill: var(--ivory-dim);
+  pointer-events: none;
+  user-select: none;
+  transition: fill 0.15s ease;
+}
+
+.escargot-node:hover .escargot-node-circle {
+  fill: rgba(212, 175, 55, 0.28);
+  stroke: var(--gold-bright);
+  filter: drop-shadow(0 0 3px rgba(229, 193, 88, 0.6));
+}
+
+.escargot-node:hover .escargot-node-text {
+  fill: var(--ivory);
+}
+
+.escargot-node.active .escargot-node-circle {
+  fill: var(--gold-bright);
+  stroke: #fff9db;
+  stroke-width: 1.15px;
+  filter: drop-shadow(0 0 5px rgba(255, 224, 130, 0.88));
+}
+
+.escargot-node.active .escargot-node-text {
+  fill: #090d16;
+  font-weight: 800;
+}
+
+.arr-spot-desc {
+  -webkit-line-clamp: 4;
+  max-height: 76px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.38) transparent;
+}
+
+.arr-landmarks-line {
+  font-family: var(--font-mono);
+  font-size: 8.8px;
+  line-height: 1.35;
+  color: var(--gold-bright);
+  padding-top: 2px;
+  border-top: 1px dashed rgba(212, 175, 55, 0.22);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.arr-card-num-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================================
+   Special Metro Station 3D-Anchored Floating Interior Photo Card
+   ============================================================================ */
+
+.special-station-anchor-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 332px;
+  padding: 10px 12px 11px;
+  z-index: 45;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -95%) scale(0.95);
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.86),
+    0 0 24px rgba(212, 175, 55, 0.28),
+    inset 0 0 0 1px rgba(212, 175, 55, 0.42);
+}
+
+.special-station-anchor-card.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -100%) scale(1);
+}
+
+.special-station-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.special-station-tag {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-bright);
+  text-transform: uppercase;
+}
+
+.special-station-top-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.special-station-lines {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.special-station-close-btn {
+  width: 19px;
+  height: 19px;
+  border-radius: 3px;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  background: rgba(10, 14, 24, 0.85);
+  color: var(--ivory-dim);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.special-station-close-btn:hover {
+  color: var(--ivory);
+  border-color: var(--gold-bright);
+  background: rgba(212, 175, 55, 0.22);
+}
+
+.special-station-photo-wrap {
+  position: relative;
+  width: 100%;
+  height: 176px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  background: #070a12;
+  margin-bottom: 8px;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.65);
+}
+
+.special-station-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.04) saturate(1.06);
+}
+
+.special-station-artist-pill {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--gold-bright);
+  background: rgba(6, 9, 17, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 2px;
+  backdrop-filter: blur(4px);
+}
+
+.special-station-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.special-station-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ivory);
+  line-height: 1.15;
+}
+
+.special-station-design-sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.special-station-caption {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  line-height: 1.42;
+  color: var(--ivory-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.special-station-pointer-stem {
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  width: 14px;
+  height: 14px;
+  background: rgba(8, 12, 22, 0.96);
+  border-right: 1px solid var(--gold-bright);
+  border-bottom: 1px solid var(--gold-bright);
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+.special-interior-dot {
+  border-color: var(--gold-bright) !important;
+  box-shadow: 0 0 6px rgba(229, 193, 88, 0.55);
+}
+
+.special-interior-pill-btn {
+  padding: 1px 6px;
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  border: 1px solid rgba(229, 193, 88, 0.55);
+  background: rgba(212, 175, 55, 0.16);
+  color: var(--gold-bright);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.special-interior-pill-btn:hover {
+  background: rgba(212, 175, 55, 0.32);
+  color: #fff9db;
 }
 
 /* Responsive adjustments */

@@ -1,8 +1,25 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import {
   ALL_STATIONS,
   METRO_LINES,
   MetroLineConfig,
   MetroStationData,
+  SPECIAL_STATION_ORDER,
   STATIONS_MAP
 } from '../data/parisMetroData';
 import {
@@ -17,6 +34,12 @@ import {
   ParisNaturalisationTourStop,
   TIMELINE_MILESTONES
 } from '../data/parisHistoricalData';
+import {
+  ARRONDISSEMENTS_MAP,
+  ArrondissementFilterId,
+  PARIS_ARRONDISSEMENTS,
+  ParisArrondissementData
+} from '../data/parisArrondissementsData';
 import {
   AtmosphereModeId,
   CameraPresetId,
@@ -44,12 +67,19 @@ export interface HUDCallbacks {
   onToggleEiffelSparkle: (enabled: boolean) => void;
   onStepCityOrbit: (deltaRadians: number) => void;
   onZoomCamera: (factor: number) => void;
-  onFocusTarget: (kind: 'station' | 'monument', id: string) => void;
+  onFocusTarget: (kind: 'station' | 'monument' | 'arrondissement', id: string) => void;
   onSelectTourStop: (stop: ParisNaturalisationTourStop | null) => void;
 }
 
-type ExplorerTabId = 'stations' | 'monuments' | 'tour';
-type StationFilterId = 'hubs' | 'grandesLignes' | 'ghosts' | 'viaducts' | 'originals1900' | 'all';
+type ExplorerTabId = 'stations' | 'monuments' | 'arrondissements' | 'tour';
+type StationFilterId =
+  | 'specialInteriors'
+  | 'hubs'
+  | 'grandesLignes'
+  | 'ghosts'
+  | 'viaducts'
+  | 'originals1900'
+  | 'all';
 type MonumentEraFilterId = 'all' | 'medieval' | 'empire1900' | 'gares' | 'modern';
 
 interface MonumentRichMetadata {
@@ -596,7 +626,22 @@ export class ArtDecoHUD {
   private monSpotDescEl!: HTMLElement;
   private monSpotLinesRowEl!: HTMLElement;
 
-  // Tab 3: Paris Historical Walking Tour (French Naturalisation Edition)
+  // Tab 3: Paris Arrondissements Explorer (1er–20e Escargot Spiral Map + District History + Orbital Pan)
+  private activeArrondissementFilter: ArrondissementFilterId = 'all';
+  private arrondissementFilterBtns: Map<ArrondissementFilterId, HTMLButtonElement> = new Map();
+  private escargotNodesMap: Map<string, SVGGElement> = new Map();
+  private arrondissementListEl!: HTMLElement;
+  private activeArrondissementId = 'arr-1';
+  private currentDisplayedArrondissements: ParisArrondissementData[] = [];
+  private arrSpotEraEl!: HTMLElement;
+  private arrSpotFoundedEl!: HTMLElement;
+  private arrSpotTitleEl!: HTMLElement;
+  private arrSpotQuartiersEl!: HTMLElement;
+  private arrSpotLandmarksEl!: HTMLElement;
+  private arrSpotDescEl!: HTMLElement;
+  private arrSpotLinesRowEl!: HTMLElement;
+
+  // Tab 4: Paris Historical Walking Tour (French Naturalisation Edition)
   private tourStepBadgeEl!: HTMLElement;
   private tourDatePillEl!: HTMLElement;
   private tourTitleEl!: HTMLElement;
@@ -619,6 +664,16 @@ export class ArtDecoHUD {
   private dossierLinesRowEl!: HTMLElement;
   private dossierMetaGridEl!: HTMLElement;
   private dossierDescEl!: HTMLElement;
+
+  // 3D-Anchored Special Station Interior Photo Card (floats above selected special station)
+  private specialStationCardEl!: HTMLElement;
+  private specialStationPhotoImgEl!: HTMLImageElement;
+  private specialStationArtistBadgeEl!: HTMLElement;
+  private specialStationLinesRowEl!: HTMLElement;
+  private specialStationTitleEl!: HTMLElement;
+  private specialStationDesignTitleEl!: HTMLElement;
+  private specialStationCaptionEl!: HTMLElement;
+  private anchoredSpecialStation: MetroStationData | null = null;
 
   private currentYear = 2026;
   private playbackYearFloat = 2026.0;
@@ -657,6 +712,10 @@ export class ArtDecoHUD {
     hudLayer.appendChild(this.buildMiddleArea());
     hudLayer.appendChild(this.buildBottomTimelineBar());
     container.appendChild(hudLayer);
+
+    // 3D-Anchored Special Station Interior Photo Card (above selected special station)
+    this.specialStationCardEl = this.buildSpecialStationInteriorCard();
+    container.appendChild(this.specialStationCardEl);
 
     // Floating Hover Dossier Card
     this.dossierCardEl = this.buildHoverDossierCard();
@@ -1032,11 +1091,11 @@ export class ArtDecoHUD {
     this.explorerCardEl = createEl('aside', 'deco-panel paris-explorer-card hud-interactive');
     attachDecoCorners(this.explorerCardEl);
 
-    // Top Unified Search Bar (appears above the Stations / Monuments / History Tour tab selector)
+    // Top Unified Search Bar (appears above the Stations / Monuments / Arrondissements / Tour tab selector)
     const searchRow = createEl('div', 'station-search-row explorer-top-search-row');
     this.stationSearchInputEl = createEl('input', 'station-search-input');
     this.stationSearchInputEl.type = 'text';
-    this.stationSearchInputEl.placeholder = 'Search stations, landmarks, districts...';
+    this.stationSearchInputEl.placeholder = 'Search stations, landmarks, arrondissements...';
     this.stationSearchInputEl.addEventListener('input', () => {
       if (this.isExplorerCollapsed) {
         this.toggleExplorerCollapsed(false);
@@ -1044,6 +1103,7 @@ export class ArtDecoHUD {
       this.stationSearchQuery = this.stationSearchInputEl.value.trim().toLowerCase();
       this.renderStationExplorerList();
       this.renderMonumentsExplorerGrid();
+      this.renderArrondissementsExplorerList();
       this.filterTourStopsList();
     });
     const clearSearchBtn = createEl('button', 'station-search-clear', '✕');
@@ -1053,13 +1113,14 @@ export class ArtDecoHUD {
       this.stationSearchQuery = '';
       this.renderStationExplorerList();
       this.renderMonumentsExplorerGrid();
+      this.renderArrondissementsExplorerList();
       this.filterTourStopsList();
     });
     searchRow.appendChild(this.stationSearchInputEl);
     searchRow.appendChild(clearSearchBtn);
     this.explorerCardEl.appendChild(searchRow);
 
-    // Explorer Mode Switcher Header (Stations / Monuments / History Tour)
+    // Explorer Mode Switcher Header (Stations / Monuments / Arrondissements / Tour)
     const topTabHeader = createEl('div', 'explorer-tabs-header');
     const tabsGroup = createEl('div', 'explorer-tabs-group');
 
@@ -1077,9 +1138,15 @@ export class ArtDecoHUD {
         title: 'Monuments — Interactive Paris Skyline Silhouette & 3D Architectural Landmarks'
       },
       {
+        id: 'arrondissements',
+        icon: '🧭',
+        label: 'Arrond.',
+        title: 'Arrondissements — Interactive 1er–20e Escargot de Paris Spiral, District History & Orbital Camera Pan'
+      },
+      {
         id: 'tour',
         icon: '📜',
-        label: 'History Tour',
+        label: 'Tour',
         title: 'History Tour — 15-Stop Paris Historical Walking Tour (French Naturalisation Edition)'
       }
     ];
@@ -1097,6 +1164,8 @@ export class ArtDecoHUD {
         this.switchExplorerTab(t.id);
         if (t.id === 'monuments') {
           this.selectMonumentInExplorer(this.activeMonumentId, true);
+        } else if (t.id === 'arrondissements') {
+          this.selectArrondissementInExplorer(this.activeArrondissementId, true);
         }
       });
       this.explorerTabBtns.set(t.id, btn);
@@ -1117,14 +1186,17 @@ export class ArtDecoHUD {
 
     const stationsPane = this.buildStationsExplorerPane();
     const monumentsPane = this.buildMonumentsExplorerPane();
+    const arrondissementsPane = this.buildArrondissementsExplorerPane();
     const tourPane = this.buildTourExplorerPane();
 
     this.explorerPaneEls.set('stations', stationsPane);
     this.explorerPaneEls.set('monuments', monumentsPane);
+    this.explorerPaneEls.set('arrondissements', arrondissementsPane);
     this.explorerPaneEls.set('tour', tourPane);
 
     this.explorerBodyWrapEl.appendChild(stationsPane);
     this.explorerBodyWrapEl.appendChild(monumentsPane);
+    this.explorerBodyWrapEl.appendChild(arrondissementsPane);
     this.explorerBodyWrapEl.appendChild(tourPane);
     this.explorerCardEl.appendChild(this.explorerBodyWrapEl);
 
@@ -1214,6 +1286,12 @@ export class ArtDecoHUD {
     const searchAndFiltersBox = createEl('div', 'station-search-filters-box');
     const filterChipsRow = createEl('div', 'explorer-filter-chips');
     const filters: { id: StationFilterId; label: string; title: string }[] = [
+      {
+        id: 'specialInteriors',
+        label: '✨ Special Designs',
+        title:
+          'Unique Cultural & Architectural Station Interiors (Concorde, Arts et Métiers, La Monnaie, Bastille...)'
+      },
       { id: 'hubs', label: '★ Grand Hubs', title: 'Major multi-line subterranean interchanges (3+ lines)' },
       { id: 'grandesLignes', label: '🚂 Grandes Lignes', title: 'Historic Mainline Railway Termini & Grandes Lignes Corridors (9 Gares)' },
       { id: 'ghosts', label: '👻 Phantom Stations', title: 'Abandoned or wartime-closed Phantom Stations (1939 / 1969)' },
@@ -1235,7 +1313,11 @@ export class ArtDecoHUD {
         } else {
           this.renderStationExplorerList();
         }
-        if (f.id === 'grandesLignes' && !STATION_GRANDE_LIGNE_MAP.has(this.activeStationId)) {
+        if (f.id === 'specialInteriors') {
+          const curSt = STATIONS_MAP.get(this.activeStationId);
+          const targetId = curSt?.specialInterior ? curSt.id : 'concorde';
+          this.selectStationInExplorer(targetId, true);
+        } else if (f.id === 'grandesLignes' && !STATION_GRANDE_LIGNE_MAP.has(this.activeStationId)) {
           this.selectStationInExplorer('gare-du-nord', false);
         }
       });
@@ -1314,6 +1396,9 @@ export class ArtDecoHUD {
             s.name.toLowerCase().includes(this.stationSearchQuery) ||
             s.arrondissement.toLowerCase().includes(this.stationSearchQuery) ||
             (s.landmark && s.landmark.toLowerCase().includes(this.stationSearchQuery)) ||
+            (s.specialInterior &&
+              (s.specialInterior.designTitle.toLowerCase().includes(this.stationSearchQuery) ||
+                s.specialInterior.interiorCaption.toLowerCase().includes(this.stationSearchQuery))) ||
             (gare &&
               (gare.name.toLowerCase().includes(this.stationSearchQuery) ||
                 gare.destinationLabel.toLowerCase().includes(this.stationSearchQuery) ||
@@ -1346,6 +1431,11 @@ export class ArtDecoHUD {
         titleLine.appendChild(createEl('span', 'thermometre-st-name', st.name));
 
         const badgesWrap = createEl('div', 'thermometre-transfer-chips');
+        if (st.specialInterior) {
+          const spMini = createEl('span', 'mini-line-dot special-interior-dot', '✨');
+          spMini.title = `Special Interior: ${st.specialInterior.designTitle}`;
+          badgesWrap.appendChild(spMini);
+        }
         const gare = STATION_GRANDE_LIGNE_MAP.get(st.id);
         if (gare) {
           const glMini = createEl('span', 'mini-line-dot', '🚂');
@@ -1370,7 +1460,7 @@ export class ArtDecoHUD {
         const subMeta = createEl(
           'span',
           'thermometre-st-meta',
-          `${st.openedYear}${st.closedYear ? `–${st.closedYear} (Phantom)` : ''}${gare ? ` • 🚂 ${gare.shortName}` : ''}${st.elevated ? ' • 🌉 Elevated Viaduct' : ''} • ${st.arrondissement}`
+          `${st.openedYear}${st.closedYear ? `–${st.closedYear} (Phantom)` : ''}${st.specialInterior ? ` • ✨ ${st.specialInterior.designTitle}` : ''}${gare ? ` • 🚂 ${gare.shortName}` : ''}${st.elevated ? ' • 🌉 Elevated Viaduct' : ''} • ${st.arrondissement}`
         );
         infoCol.appendChild(subMeta);
 
@@ -1390,7 +1480,7 @@ export class ArtDecoHUD {
 
     let filtered = [...ALL_STATIONS];
     if (this.stationSearchQuery) {
-      // When searching via the unified top search bar, search across all 110 stations + Grandes Lignes metadata
+      // When searching via the unified top search bar, search across all 110 stations + Special Interiors + Grandes Lignes metadata
       filtered = filtered
         .filter((s) => {
           const gare = STATION_GRANDE_LIGNE_MAP.get(s.id);
@@ -1399,6 +1489,11 @@ export class ArtDecoHUD {
             s.arrondissement.toLowerCase().includes(this.stationSearchQuery) ||
             s.architecture.toLowerCase().includes(this.stationSearchQuery) ||
             (s.landmark && s.landmark.toLowerCase().includes(this.stationSearchQuery)) ||
+            (s.specialInterior &&
+              (s.specialInterior.designTitle.toLowerCase().includes(this.stationSearchQuery) ||
+                s.specialInterior.artistOrYear.toLowerCase().includes(this.stationSearchQuery) ||
+                s.specialInterior.interiorCaption.toLowerCase().includes(this.stationSearchQuery) ||
+                'special interior design'.includes(this.stationSearchQuery))) ||
             (gare &&
               (gare.name.toLowerCase().includes(this.stationSearchQuery) ||
                 gare.destinationLabel.toLowerCase().includes(this.stationSearchQuery) ||
@@ -1408,6 +1503,10 @@ export class ArtDecoHUD {
           );
         })
         .sort((a, b) => a.name.localeCompare(b.name));
+    } else if (this.activeStationFilter === 'specialInteriors') {
+      filtered = SPECIAL_STATION_ORDER.map((id) => STATIONS_MAP.get(id)).filter(
+        (s): s is MetroStationData => Boolean(s)
+      );
     } else if (this.activeStationFilter === 'grandesLignes') {
       filtered = PARIS_GRANDES_LIGNES.map((g) => STATIONS_MAP.get(g.metroStationId)).filter(
         (s): s is MetroStationData => Boolean(s)
@@ -1428,6 +1527,7 @@ export class ArtDecoHUD {
 
     this.currentDisplayedStations = filtered;
     const filterTitles: Record<StationFilterId, string> = {
+      specialInteriors: '✨ SPECIAL INTERIOR DESIGN STATIONS',
       hubs: 'GRAND INTERCHANGE HUBS',
       grandesLignes: 'LES GRANDES LIGNES & GRANDES GARES',
       ghosts: 'CLOSED PHANTOM STATIONS (STATIONS FANTÔMES)',
@@ -1440,6 +1540,7 @@ export class ArtDecoHUD {
       : `${filterTitles[this.activeStationFilter]} (${filtered.length})`;
 
     const isGrandesLignesFilter = this.activeStationFilter === 'grandesLignes' && !this.stationSearchQuery;
+    const isSpecialFilter = this.activeStationFilter === 'specialInteriors' && !this.stationSearchQuery;
 
     for (const st of filtered) {
       const gare = STATION_GRANDE_LIGNE_MAP.get(st.id);
@@ -1465,6 +1566,11 @@ export class ArtDecoHUD {
 
       const bottomLine = createEl('div', 'station-card-bottom');
       const chipsRow = createEl('div', 'station-card-chips');
+      if (st.specialInterior) {
+        const spChip = createEl('span', 'mini-line-dot special-interior-dot', '✨');
+        spChip.title = `Special Interior: ${st.specialInterior.designTitle}`;
+        chipsRow.appendChild(spChip);
+      }
       if (gare) {
         const glChip = createEl('span', 'mini-line-dot', '🚂');
         glChip.style.backgroundColor = gare.colorHex;
@@ -1483,15 +1589,19 @@ export class ArtDecoHUD {
       bottomLine.appendChild(chipsRow);
 
       const badgeText =
-        isGrandesLignesFilter && gare
-          ? gare.destinationLabel
-          : st.isGhostStation
-            ? '👻 Phantom'
-            : gare
-              ? `🚂 ${gare.shortName}`
-              : st.elevated
-                ? '🌉 Viaduct'
-                : st.arrondissement;
+        isSpecialFilter && st.specialInterior
+          ? `✨ ${st.specialInterior.designTitle}`
+          : isGrandesLignesFilter && gare
+            ? gare.destinationLabel
+            : st.isGhostStation
+              ? '👻 Phantom'
+              : gare
+                ? `🚂 ${gare.shortName}`
+                : st.specialInterior
+                  ? '✨ Special Interior'
+                  : st.elevated
+                    ? '🌉 Viaduct'
+                    : st.arrondissement;
       bottomLine.appendChild(createEl('span', 'station-card-district', badgeText));
       cardBtn.appendChild(bottomLine);
 
@@ -1509,15 +1619,19 @@ export class ArtDecoHUD {
     const gare = STATION_GRANDE_LIGNE_MAP.get(st.id);
     const isGrandesLignesMode = this.activeStationFilter === 'grandesLignes';
 
-    this.stationSpotCategoryEl.textContent = gare
+    this.stationSpotCategoryEl.textContent = gare && isGrandesLignesMode
       ? '🚂 GRANDES LIGNES TERMINUS & METRO HUB'
-      : st.isGhostStation
-        ? '👻 HISTORIC PHANTOM STATION'
-        : st.elevated
-          ? '🌉 ELEVATED VIADUCT STATION'
-          : st.lines.length >= 3
-            ? '★ GRAND INTERCHANGE HUB'
-            : 'METRO STATION';
+      : st.specialInterior
+        ? '✨ SPECIAL INTERIOR DESIGN STATION'
+        : gare
+          ? '🚂 GRANDES LIGNES TERMINUS & METRO HUB'
+          : st.isGhostStation
+            ? '👻 HISTORIC PHANTOM STATION'
+            : st.elevated
+              ? '🌉 ELEVATED VIADUCT STATION'
+              : st.lines.length >= 3
+                ? '★ GRAND INTERCHANGE HUB'
+                : 'METRO STATION';
 
     this.stationSpotYearEl.textContent =
       isGrandesLignesMode && gare
@@ -1533,14 +1647,28 @@ export class ArtDecoHUD {
     this.stationSpotMetaEl.textContent =
       isGrandesLignesMode && gare
         ? `${gare.arrondissement} • ${gare.historicCompany} • ${gare.modernNetwork}`
-        : gare
-          ? `${st.arrondissement} • 🚂 ${gare.destinationLabel}`
-          : `${st.arrondissement} • ${st.architecture}`;
+        : st.specialInterior
+          ? `${st.arrondissement} • ✨ ${st.specialInterior.designTitle}`
+          : gare
+            ? `${st.arrondissement} • 🚂 ${gare.destinationLabel}`
+            : `${st.arrondissement} • ${st.architecture}`;
     this.stationSpotDescEl.textContent =
-      isGrandesLignesMode && gare ? gare.description : st.description;
+      isGrandesLignesMode && gare
+        ? gare.description
+        : st.specialInterior
+          ? st.specialInterior.interiorCaption
+          : st.description;
 
     // Populate interactive transfer line medallions (click to switch to that line's route strip!)
     this.stationSpotLinesRowEl.replaceChildren();
+    if (st.specialInterior) {
+      const spBtn = createEl('button', 'spot-line-badge-btn special-interior-pill-btn', '✨ Photo');
+      spBtn.title = `${st.specialInterior.designTitle} — Click to show interior photo card above station`;
+      spBtn.addEventListener('click', () => {
+        this.selectStationInExplorer(st.id, true);
+      });
+      this.stationSpotLinesRowEl.appendChild(spBtn);
+    }
     if (gare) {
       const glBtn = createEl('button', 'spot-line-badge-btn', `🚂 ${gare.shortName}`);
       glBtn.style.backgroundColor = gare.colorHex;
@@ -1583,6 +1711,11 @@ export class ArtDecoHUD {
     this.renderStationExplorerList();
 
     if (flyToStation) {
+      if (st.specialInterior) {
+        this.showSpecialStationInteriorCard(st);
+      } else {
+        this.hideSpecialStationInteriorCard();
+      }
       const activeEl = this.stationListContainerEl.querySelector('.active');
       if (activeEl instanceof HTMLElement) {
         activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -1850,6 +1983,7 @@ export class ArtDecoHUD {
     this.renderMonumentsExplorerGrid();
 
     if (flyToMonument) {
+      this.hideSpecialStationInteriorCard();
       const activeEl = this.monumentCardsGridEl.querySelector('.active');
       if (activeEl instanceof HTMLElement) {
         activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -1868,6 +2002,267 @@ export class ArtDecoHUD {
     this.selectMonumentInExplorer(list[nextIdx].id, true);
   }
 
+  /**
+   * TAB 3: Paris Arrondissements Explorer (1er–20e L'Escargot de Paris Spiral)
+   * Includes an interactive 2D SVG Escargot spiral map of all 20 arrondissements,
+   * historical district chronicles, quartiers, Metro line medallions, and orbital camera pan.
+   */
+  private buildArrondissementsExplorerPane(): HTMLElement {
+    const pane = createEl('div', 'explorer-pane arrondissements-explorer-pane');
+
+    // 1. Interactive 2D SVG "L'Escargot de Paris" (1er -> 20e Clockwise Spiral Map)
+    const spiralBox = createEl('div', 'skyline-silhouette-box escargot-spiral-box');
+    const spiralHeader = createEl('div', 'skyline-header-row');
+    spiralHeader.appendChild(
+      createEl('span', 'skyline-title', 'L’ESCARGOT DE PARIS (1er → 20e SPIRAL)')
+    );
+    spiralHeader.appendChild(createEl('span', 'skyline-subtitle', 'Click district to pan'));
+    spiralBox.appendChild(spiralHeader);
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 260 88');
+    svg.setAttribute('class', 'escargot-spiral-svg');
+    svg.setAttribute('aria-label', 'Interactive map of the 20 Arrondissements of Paris');
+
+    // Map world (x, z) coordinates into SVG (cx, cy) inside [24..236, 12..76]
+    const mapCoord = (x: number, z: number): { cx: number; cy: number } => {
+      const cx = Math.round((130 + x * 2.25) * 10) / 10;
+      const cy = Math.round((44 + z * 1.02) * 10) / 10;
+      return {
+        cx: Math.max(16, Math.min(244, cx)),
+        cy: Math.max(11, Math.min(77, cy))
+      };
+    };
+
+    // Subtle Seine river curve across the map
+    const seinePath = document.createElementNS(ns, 'path');
+    seinePath.setAttribute(
+      'd',
+      'M 235 66 Q 175 56 142 48 T 92 42 Q 62 46 32 62'
+    );
+    seinePath.setAttribute('class', 'escargot-seine-path');
+    svg.appendChild(seinePath);
+
+    // Clockwise Escargot spiral path connecting 1er -> 2e -> ... -> 20e
+    const pts = PARIS_ARRONDISSEMENTS.map((a) => mapCoord(a.x, a.z));
+    const spiralD = pts
+      .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.cx} ${p.cy}`)
+      .join(' ');
+    const spiralPath = document.createElementNS(ns, 'path');
+    spiralPath.setAttribute('d', spiralD);
+    spiralPath.setAttribute('class', 'escargot-spiral-line');
+    svg.appendChild(spiralPath);
+
+    // 20 Interactive Arrondissement Medallion Nodes along the spiral
+    PARIS_ARRONDISSEMENTS.forEach((arr, idx) => {
+      const { cx, cy } = pts[idx];
+      const g = document.createElementNS(ns, 'g');
+      g.setAttribute('class', `escargot-node${arr.id === this.activeArrondissementId ? ' active' : ''}`);
+      g.setAttribute('transform', `translate(${cx}, ${cy})`);
+
+      const titleEl = document.createElementNS(ns, 'title');
+      titleEl.textContent = `${arr.name} (${arr.officialName}) — Click to pan camera`;
+      g.appendChild(titleEl);
+
+      const circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('r', '6.6');
+      circle.setAttribute('class', 'escargot-node-circle');
+      g.appendChild(circle);
+
+      const label = document.createElementNS(ns, 'text');
+      label.setAttribute('y', '2.4');
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('class', 'escargot-node-text');
+      label.textContent = String(arr.number);
+      g.appendChild(label);
+
+      g.addEventListener('click', () => {
+        this.selectArrondissementInExplorer(arr.id, true);
+      });
+      this.escargotNodesMap.set(arr.id, g);
+      svg.appendChild(g);
+    });
+
+    spiralBox.appendChild(svg);
+    pane.appendChild(spiralBox);
+
+    // 2. Active Arrondissement Historical Spotlight Card
+    const spotlight = createEl('div', 'explorer-spotlight-card arrondissement-spotlight');
+    const badgesRow = createEl('div', 'spot-top-row');
+    this.arrSpotEraEl = createEl('span', 'spot-category-tag', '');
+    this.arrSpotFoundedEl = createEl('span', 'spot-year-pill', '');
+    badgesRow.appendChild(this.arrSpotEraEl);
+    badgesRow.appendChild(this.arrSpotFoundedEl);
+    spotlight.appendChild(badgesRow);
+
+    this.arrSpotTitleEl = createEl('h2', 'chronicle-title spot-title', '');
+    spotlight.appendChild(this.arrSpotTitleEl);
+
+    this.arrSpotQuartiersEl = createEl('div', 'spot-subtitle-meta', '');
+    spotlight.appendChild(this.arrSpotQuartiersEl);
+
+    this.arrSpotDescEl = createEl('p', 'chronicle-body spot-desc arr-spot-desc', '');
+    spotlight.appendChild(this.arrSpotDescEl);
+
+    this.arrSpotLandmarksEl = createEl('div', 'arr-landmarks-line', '');
+    spotlight.appendChild(this.arrSpotLandmarksEl);
+
+    // Connected Metro Lines Row
+    const connWrap = createEl('div', 'spot-transfer-wrap');
+    connWrap.appendChild(createEl('span', 'spot-transfer-label', 'METRO LINES'));
+    this.arrSpotLinesRowEl = createEl('div', 'spot-lines-row');
+    connWrap.appendChild(this.arrSpotLinesRowEl);
+    spotlight.appendChild(connWrap);
+
+    const navRow = createEl('div', 'tour-nav-row spot-nav-row');
+    const prevArrBtn = createEl('button', 'deco-btn', '◀ Prev');
+    prevArrBtn.title = 'Previous arrondissement in the Escargot spiral';
+    prevArrBtn.addEventListener('click', () => this.stepArrondissementSelection(-1));
+
+    const panArrBtn = createEl('button', 'deco-btn tour-focus-btn active', '📍 Pan Arrondissement');
+    panArrBtn.title = 'Fly and pan the 3D camera around this arrondissement';
+    panArrBtn.addEventListener('click', () => {
+      this.selectArrondissementInExplorer(this.activeArrondissementId, true);
+    });
+
+    const nextArrBtn = createEl('button', 'deco-btn', 'Next ▶');
+    nextArrBtn.title = 'Next arrondissement in the Escargot spiral';
+    nextArrBtn.addEventListener('click', () => this.stepArrondissementSelection(1));
+
+    navRow.appendChild(prevArrBtn);
+    navRow.appendChild(panArrBtn);
+    navRow.appendChild(nextArrBtn);
+    spotlight.appendChild(navRow);
+    pane.appendChild(spotlight);
+
+    // 3. Arrondissement Sector Filter Chips
+    const filterRow = createEl('div', 'explorer-filter-chips');
+    const filters: { id: ArrondissementFilterId; label: string }[] = [
+      { id: 'all', label: 'All (20)' },
+      { id: 'core', label: '⚜ Core (1–4)' },
+      { id: 'riveGauche', label: '🏛 Rive Gauche' },
+      { id: 'riveDroite', label: '🎭 Grands Blvds' },
+      { id: 'outer1860', label: '🐌 1860 Villages' }
+    ];
+    for (const f of filters) {
+      const btn = createEl('button', 'filter-chip-btn', f.label);
+      if (f.id === this.activeArrondissementFilter) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        this.activeArrondissementFilter = f.id;
+        for (const [id, b] of this.arrondissementFilterBtns.entries()) {
+          b.classList.toggle('active', id === f.id);
+        }
+        this.renderArrondissementsExplorerList();
+      });
+      this.arrondissementFilterBtns.set(f.id, btn);
+      filterRow.appendChild(btn);
+    }
+    pane.appendChild(filterRow);
+
+    // 4. Scrollable Arrondissements Cards List
+    this.arrondissementListEl = createEl('div', 'monument-cards-grid arrondissements-cards-grid');
+    pane.appendChild(this.arrondissementListEl);
+
+    this.selectArrondissementInExplorer('arr-1', false);
+    this.renderArrondissementsExplorerList();
+    return pane;
+  }
+
+  private renderArrondissementsExplorerList(): void {
+    if (!this.arrondissementListEl) return;
+    this.arrondissementListEl.replaceChildren();
+
+    const filtered = PARIS_ARRONDISSEMENTS.filter((a) => {
+      if (this.stationSearchQuery) {
+        return (
+          a.name.toLowerCase().includes(this.stationSearchQuery) ||
+          a.officialName.toLowerCase().includes(this.stationSearchQuery) ||
+          a.shortLabel.toLowerCase().includes(this.stationSearchQuery) ||
+          a.quartiers.toLowerCase().includes(this.stationSearchQuery) ||
+          a.notableLandmarks.toLowerCase().includes(this.stationSearchQuery) ||
+          a.history.toLowerCase().includes(this.stationSearchQuery)
+        );
+      }
+      if (this.activeArrondissementFilter === 'all') return true;
+      return a.filterGroup === this.activeArrondissementFilter;
+    });
+    this.currentDisplayedArrondissements = filtered;
+
+    for (const arr of filtered) {
+      const card = createEl('button', 'monument-gallery-card arrondissement-gallery-card');
+      if (arr.id === this.activeArrondissementId) card.classList.add('active');
+
+      const numBadge = createEl('div', 'monument-card-icon arr-card-num-badge', arr.shortLabel);
+      card.appendChild(numBadge);
+
+      const infoCol = createEl('div', 'monument-card-info');
+      infoCol.appendChild(
+        createEl('span', 'monument-card-title', `${arr.name} (${arr.officialName})`)
+      );
+      infoCol.appendChild(
+        createEl('span', 'monument-card-meta', `${arr.bank} • ${arr.quartiers}`)
+      );
+      card.appendChild(infoCol);
+
+      card.addEventListener('click', () => {
+        this.selectArrondissementInExplorer(arr.id, true);
+      });
+      this.arrondissementListEl.appendChild(card);
+    }
+  }
+
+  public selectArrondissementInExplorer(arrId: string, panCamera: boolean): void {
+    const arr = ARRONDISSEMENTS_MAP.get(arrId);
+    if (!arr) return;
+    this.activeArrondissementId = arr.id;
+
+    this.arrSpotEraEl.textContent = arr.eraBadge;
+    this.arrSpotFoundedEl.textContent = arr.foundedLabel;
+    this.arrSpotTitleEl.textContent = arr.name;
+    this.arrSpotQuartiersEl.textContent = `${arr.officialName} • Quartiers: ${arr.quartiers}`;
+    this.arrSpotDescEl.textContent = arr.history;
+    this.arrSpotLandmarksEl.textContent = `Key Landmarks: ${arr.notableLandmarks}`;
+
+    this.arrSpotLinesRowEl.replaceChildren();
+    for (const lineId of arr.metroLines) {
+      const lineCfg = this.lineMap.get(lineId);
+      if (!lineCfg) continue;
+      const chip = createEl('button', 'spot-line-badge-btn', lineCfg.shortLabel);
+      chip.style.backgroundColor = lineCfg.color;
+      chip.style.color = lineCfg.textColor;
+      chip.title = `Highlight ${lineCfg.name} on the map`;
+      chip.addEventListener('click', () => {
+        this.selectLine(this.selectedLineId === lineId ? null : lineId);
+      });
+      this.arrSpotLinesRowEl.appendChild(chip);
+    }
+
+    for (const [id, node] of this.escargotNodesMap.entries()) {
+      node.setAttribute('class', `escargot-node${id === arr.id ? ' active' : ''}`);
+    }
+    this.renderArrondissementsExplorerList();
+
+    if (panCamera) {
+      this.hideSpecialStationInteriorCard();
+      const activeEl = this.arrondissementListEl.querySelector('.active');
+      if (activeEl instanceof HTMLElement) {
+        activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      this.callbacks.onFocusTarget('arrondissement', arr.id);
+    }
+  }
+
+  private stepArrondissementSelection(delta: number): void {
+    const list = this.currentDisplayedArrondissements.length
+      ? this.currentDisplayedArrondissements
+      : PARIS_ARRONDISSEMENTS;
+    const curIdx = list.findIndex((a) => a.id === this.activeArrondissementId);
+    const nextIdx =
+      curIdx >= 0 ? (curIdx + delta + list.length) % list.length : 0;
+    this.selectArrondissementInExplorer(list[nextIdx].id, true);
+  }
+
   public stepActiveExplorerSelection(delta: number): void {
     if (this.isExplorerCollapsed) {
       this.toggleExplorerCollapsed(false);
@@ -1876,6 +2271,8 @@ export class ArtDecoHUD {
       this.stepStationSelection(delta);
     } else if (this.activeExplorerTab === 'monuments') {
       this.stepMonumentSelection(delta);
+    } else if (this.activeExplorerTab === 'arrondissements') {
+      this.stepArrondissementSelection(delta);
     } else {
       this.isAutoTourPlaying = false;
       this.syncAutoTourBtn();
@@ -1884,7 +2281,7 @@ export class ArtDecoHUD {
   }
 
   /**
-   * TAB 3: Paris Historical Walking Tour (French Naturalisation Interview Facts)
+   * TAB 4: Paris Historical Walking Tour (French Naturalisation Interview Facts)
    */
   private buildTourExplorerPane(): HTMLElement {
     const tourCard = createEl('div', 'explorer-pane tour-explorer-pane');
@@ -2076,6 +2473,7 @@ export class ArtDecoHUD {
     }
 
     if (flyToLocation) {
+      this.hideSpecialStationInteriorCard();
       this.isTourPinned = true;
       this.tourClearBtnEl.style.display = 'inline-flex';
       this.callbacks.onSelectTourStop(stop);
@@ -2207,6 +2605,121 @@ export class ArtDecoHUD {
     consolePanel.appendChild(sliderWrapper);
     bottom.appendChild(consolePanel);
     return bottom;
+  }
+
+  private buildSpecialStationInteriorCard(): HTMLElement {
+    const card = createEl('div', 'deco-panel special-station-anchor-card hud-interactive');
+    attachDecoCorners(card);
+
+    const topRow = createEl('div', 'special-station-card-top');
+    const tagEl = createEl('span', 'special-station-tag', '✨ SPECIAL METRO INTERIOR');
+    topRow.appendChild(tagEl);
+
+    const rightControls = createEl('div', 'special-station-top-right');
+    this.specialStationLinesRowEl = createEl('div', 'special-station-lines');
+    rightControls.appendChild(this.specialStationLinesRowEl);
+
+    const closeBtn = createEl('button', 'special-station-close-btn', '✕');
+    closeBtn.title = 'Close interior photo card';
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hideSpecialStationInteriorCard();
+    });
+    rightControls.appendChild(closeBtn);
+    topRow.appendChild(rightControls);
+    card.appendChild(topRow);
+
+    const photoWrap = createEl('div', 'special-station-photo-wrap');
+    this.specialStationPhotoImgEl = createEl('img', 'special-station-photo-img');
+    this.specialStationPhotoImgEl.alt = 'Paris Metro Special Station Interior';
+    photoWrap.appendChild(this.specialStationPhotoImgEl);
+
+    this.specialStationArtistBadgeEl = createEl('span', 'special-station-artist-pill', '');
+    photoWrap.appendChild(this.specialStationArtistBadgeEl);
+    card.appendChild(photoWrap);
+
+    const body = createEl('div', 'special-station-card-body');
+    this.specialStationTitleEl = createEl('h3', 'special-station-title', '');
+    this.specialStationDesignTitleEl = createEl('div', 'special-station-design-sub', '');
+    this.specialStationCaptionEl = createEl('p', 'special-station-caption', '');
+    body.appendChild(this.specialStationTitleEl);
+    body.appendChild(this.specialStationDesignTitleEl);
+    body.appendChild(this.specialStationCaptionEl);
+    card.appendChild(body);
+
+    const pointerStem = createEl('div', 'special-station-pointer-stem');
+    card.appendChild(pointerStem);
+
+    return card;
+  }
+
+  public showSpecialStationInteriorCard(st: MetroStationData): void {
+    if (!st.specialInterior) {
+      this.hideSpecialStationInteriorCard();
+      return;
+    }
+    this.anchoredSpecialStation = st;
+    const info = st.specialInterior;
+
+    // Validate local station photo path against strict prefix before assigning src
+    if (info.photoUrl.startsWith('stations/') && !info.photoUrl.includes('..')) {
+      this.specialStationPhotoImgEl.src = info.photoUrl;
+    }
+    this.specialStationPhotoImgEl.alt = `${st.name} — ${info.designTitle}`;
+    this.specialStationArtistBadgeEl.textContent = info.artistOrYear;
+    this.specialStationTitleEl.textContent = st.name;
+    this.specialStationDesignTitleEl.textContent = info.designTitle;
+    this.specialStationCaptionEl.textContent = info.interiorCaption;
+
+    this.specialStationLinesRowEl.replaceChildren();
+    for (const lineId of st.lines) {
+      const lineCfg = this.lineMap.get(lineId);
+      if (!lineCfg) continue;
+      const chip = createEl('span', 'mini-line-dot', lineCfg.shortLabel);
+      chip.style.backgroundColor = lineCfg.color;
+      chip.style.color = lineCfg.textColor;
+      this.specialStationLinesRowEl.appendChild(chip);
+    }
+
+    this.specialStationCardEl.classList.add('visible');
+  }
+
+  public hideSpecialStationInteriorCard(): void {
+    this.anchoredSpecialStation = null;
+    if (this.specialStationCardEl) {
+      this.specialStationCardEl.classList.remove('visible');
+    }
+  }
+
+  public getAnchoredSpecialStation(): MetroStationData | null {
+    return this.anchoredSpecialStation;
+  }
+
+  public updateSpecialStationCardPosition(
+    screenX: number,
+    screenY: number,
+    visible: boolean
+  ): void {
+    if (!this.anchoredSpecialStation || !visible) {
+      this.specialStationCardEl.classList.remove('visible');
+      return;
+    }
+    this.specialStationCardEl.classList.add('visible');
+
+    const cardHalfW = 165;
+    const minX = 95 + cardHalfW;
+    const rightDockReserve = this.isExplorerCollapsed ? 80 : 405;
+    const maxX = Math.max(minX + 20, window.innerWidth - rightDockReserve - cardHalfW);
+    const clampedX = Math.max(minX, Math.min(maxX, screenX));
+
+    // Anchor above the 3D station point (leaving 24px clearance above the station beacon)
+    const targetBottomY = screenY - 22;
+    const minBottomY = 345;
+    const maxBottomY = window.innerHeight - 105;
+    const clampedBottomY = Math.max(minBottomY, Math.min(maxBottomY, targetBottomY));
+
+    this.specialStationCardEl.style.left = `${Math.round(clampedX)}px`;
+    this.specialStationCardEl.style.top = `${Math.round(clampedBottomY)}px`;
   }
 
   private buildHoverDossierCard(): HTMLElement {

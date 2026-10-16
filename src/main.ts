@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as THREE from 'three';
 import { VoxelParisBuilder } from './world/VoxelParisBuilder';
 import { MetroNetworkRenderer } from './world/MetroNetworkRenderer';
@@ -8,6 +24,7 @@ import {
   getParisTerrainElevation,
   PARIS_MONUMENTS
 } from './data/parisHistoricalData';
+import { ARRONDISSEMENTS_MAP } from './data/parisArrondissementsData';
 
 function bootstrapApp(): void {
   const appContainer = document.getElementById('app');
@@ -158,7 +175,7 @@ function bootstrapApp(): void {
     onZoomCamera: (factor: number) => {
       sceneManager.zoomCameraByFactor(factor);
     },
-    onFocusTarget: (kind: 'station' | 'monument', id: string) => {
+    onFocusTarget: (kind: 'station' | 'monument' | 'arrondissement', id: string) => {
       if (kind === 'station') {
         sceneManager.setSelectedMonument(null);
         const st = STATIONS_MAP.get(id);
@@ -176,6 +193,31 @@ function bootstrapApp(): void {
           radiusScale,
           colorHex,
           false
+        );
+      } else if (kind === 'arrondissement') {
+        sceneManager.setSelectedMonument(null);
+        const arr = ARRONDISSEMENTS_MAP.get(id);
+        if (!arr) return;
+        if (voxelParis.getSurfaceOpacity() <= 0.02) {
+          voxelParis.setUndergroundDarkMode(false);
+          sceneManager.setUndergroundDarkMode(false);
+          voxelParis.setSurfaceOpacity(1.0);
+          hud.setOpacityValue(1.0);
+          hud.setActiveCameraPresetUI('overground');
+        }
+        const terrainY = getParisTerrainElevation(arr.x, arr.z);
+        sceneManager.focusOnArrondissement(
+          arr.x,
+          terrainY + 1.8,
+          arr.z,
+          arr.standOffRadius,
+          arr.cameraHeightOffset
+        );
+        metroNetwork.setTourPinnedPosition(
+          new THREE.Vector3(arr.x, terrainY + 0.25, arr.z),
+          arr.haloRadiusScale,
+          0xffe07d,
+          true
         );
       } else {
         const m = PARIS_MONUMENTS.find((item) => item.id === id);
@@ -205,11 +247,22 @@ function bootstrapApp(): void {
       }
     },
     onSelectTourStop: (stop) => {
-      sceneManager.setSelectedMonument(null);
       if (!stop) {
+        sceneManager.setSelectedMonument(null);
         metroNetwork.setTourPinnedPosition(null);
         return;
       }
+      // If this tour stop is centered on a 3D monument, focus/highlight that monument in colour too
+      let matchedMonumentId: string | null = null;
+      let bestDist = 3.5;
+      for (const m of PARIS_MONUMENTS) {
+        const d = Math.hypot(m.x - stop.x, m.z - stop.z);
+        if (d < bestDist) {
+          bestDist = d;
+          matchedMonumentId = m.id;
+        }
+      }
+      sceneManager.setSelectedMonument(matchedMonumentId);
       if (currentYear < stop.timelineYear) {
         hud.triggerYear(stop.timelineYear);
       }
@@ -277,6 +330,12 @@ function bootstrapApp(): void {
 
     hud.tickPlayback(delta);
     sceneManager.update(elapsed, delta);
+
+    const anchoredStation = hud.getAnchoredSpecialStation();
+    if (anchoredStation) {
+      const proj = sceneManager.projectWorldToScreen(anchoredStation.x, 1.8, anchoredStation.z);
+      hud.updateSpecialStationCardPosition(proj.x, proj.y, proj.visible);
+    }
   };
 
   animate();
