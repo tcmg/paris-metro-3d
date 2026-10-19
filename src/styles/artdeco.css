@@ -2347,4 +2347,1415 @@ body,
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+/* ==========================================================================
+   PARIS MULTI-MODAL SIMULATION & 3-TIER AGENT TELEMETRY PANE
+   ========================================================================== */
+
+.sim-explorer-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.sim-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-section-subhead {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-bright);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.sim-preset-chips,
+.sim-layer-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sim-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.sim-telemetry-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 7px;
+  background: rgba(5, 9, 18, 0.72);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 3px;
+}
+
+.sim-telemetry-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ivory-dim);
+}
+
+.sim-telemetry-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ivory);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-agents-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 315px;
+  padding-right: 3px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.42) transparent;
+}
+
+.sim-probes-list,
+.sim-macro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-probe-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  background: rgba(9, 14, 24, 0.84);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-left: 3px solid var(--gold-bright);
+  border-radius: 3px;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.sim-probe-card:hover {
+  background: rgba(20, 28, 46, 0.92);
+  border-color: rgba(229, 193, 88, 0.58);
+}
+
+.sim-probe-card.active {
+  background: rgba(28, 36, 58, 0.95);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.22);
+}
+
+.sim-probe-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sim-probe-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sim-probe-name {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ivory);
+  letter-spacing: 0.03em;
+}
+
+.sim-probe-role {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--ivory-dim);
+}
+
+.sim-probe-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  border: 1px solid var(--gold-bright);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+.sim-probe-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 8.8px;
+  color: var(--gold-bright);
+}
+
+.sim-probe-loc,
+.sim-probe-metrics {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-probe-thought {
+  padding: 5px 7px;
+  background: rgba(3, 6, 12, 0.72);
+  border: 1px dashed rgba(212, 175, 55, 0.32);
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-size: 9.8px;
+  line-height: 1.36;
+  color: var(--ivory);
+}
+
+.sim-thought-prefix {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.sim-thought-text {
+  font-style: italic;
+  color: var(--ivory);
+}
+
+.sim-probe-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sim-fly-probe-btn {
+  font-size: 8.8px;
+  padding: 2px 8px;
+}
+
+.sim-macro-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 9px;
+  background: rgba(11, 16, 28, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-left: 3px solid #2ecc71;
+  border-radius: 3px;
+}
+
+.sim-macro-card.severity-advisory {
+  border-left-color: #f39c12;
+}
+
+.sim-macro-card.severity-critical {
+  border-left-color: #e74c3c;
+}
+
+.sim-macro-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sim-macro-agent {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 0.04em;
+}
+
+.sim-macro-authority {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--ivory-dim);
+}
+
+.sim-macro-headline {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.sim-macro-action {
+  font-family: var(--font-mono);
+  font-size: 8.8px;
+  color: #79f2c0;
+  line-height: 1.35;
+}
+
+.sim-macro-impact {
+  font-family: var(--font-sans);
+  font-size: 9.2px;
+  color: var(--ivory-dim);
+  line-height: 1.35;
+}
+
+/* Top Bar Inline Two-Phase Switcher */
+.sim-top-phase-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 3px;
+  background: rgba(4, 8, 16, 0.85);
+  border: 1px solid rgba(229, 193, 88, 0.48);
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+.sim-phase-pill-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sim-phase-pill-btn:hover {
+  color: var(--ivory);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sim-phase-pill-btn.active {
+  background: rgba(245, 158, 11, 0.26);
+  border-color: #fbbf24;
+  color: #fde68a;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+.sim-phase-pill-btn.live-btn.active {
+  background: rgba(239, 68, 68, 0.32);
+  border-color: #f87171;
+  color: #fecaca;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+}
+
+/* Explorer Two-Phase Segmented Control & Banner */
+.sim-phase-segmented-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.sim-phase-seg-btn {
+  appearance: none;
+  padding: 6px 8px;
+  background: rgba(8, 13, 24, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 3px;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 8.8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  text-align: center;
+}
+
+.sim-phase-seg-btn:hover {
+  border-color: var(--gold-bright);
+  color: var(--ivory);
+}
+
+.sim-phase-seg-btn.active {
+  background: rgba(245, 158, 11, 0.24);
+  border-color: #fbbf24;
+  color: #fef08a;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+.sim-phase-seg-btn.live-seg.active {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #ff5252;
+  color: #ffe4e6;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+}
+
+.sim-phase-status-banner {
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-family: var(--font-sans);
+  font-size: 9.2px;
+  line-height: 1.35;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fef3c7;
+}
+
+.sim-phase-status-banner.phase-live {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fee2e2;
+}
+
+.sim-mitigation-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 5px 8px;
+  font-size: 8.8px;
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #bae6fd;
+  background: rgba(14, 116, 144, 0.22);
+}
+
+.sim-mitigation-btn.active {
+  border-color: #34d399;
+  color: #d1fae5;
+  background: rgba(5, 150, 105, 0.32);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+/* Telemetry KPI Tones */
+.sim-telemetry-cell.tone-critical {
+  border-color: rgba(248, 113, 113, 0.65);
+  background: rgba(69, 10, 10, 0.55);
+}
+.sim-telemetry-cell.tone-critical .sim-telemetry-val {
+  color: #fca5a5;
+}
+
+.sim-telemetry-cell.tone-warning {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(69, 26, 3, 0.5);
+}
+.sim-telemetry-cell.tone-warning .sim-telemetry-val {
+  color: #fde68a;
+}
+
+.sim-telemetry-cell.tone-nominal {
+  border-color: rgba(52, 211, 153, 0.55);
+  background: rgba(6, 46, 34, 0.5);
+}
+.sim-telemetry-cell.tone-nominal .sim-telemetry-val {
+  color: #6ee7b7;
+}
+
+/* Hotspots & Chronological Event Log Lists */
+.sim-hotspots-list,
+.sim-event-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sim-hotspot-card {
+  appearance: none;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(9, 14, 26, 0.86);
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  border-left: 3px solid var(--gold-bright);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sim-hotspot-card:hover,
+.sim-hotspot-card.active {
+  background: rgba(24, 34, 56, 0.94);
+  border-color: rgba(229, 193, 88, 0.65);
+}
+
+.sim-hotspot-body {
+  font-family: var(--font-sans);
+  font-size: 9.2px;
+  line-height: 1.35;
+  color: var(--ivory-dim);
+}
+
+.sim-event-log-item {
+  appearance: none;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 8px;
+  background: rgba(7, 11, 20, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-left: 3px solid #38bdf8;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sim-event-log-item.severity-warning {
+  border-left-color: #fbbf24;
+}
+
+.sim-event-log-item.severity-critical {
+  border-left-color: #f87171;
+}
+
+.sim-event-log-item:hover {
+  background: rgba(20, 29, 48, 0.94);
+}
+
+.sim-event-log-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-event-time {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--gold-bright);
+}
+
+.sim-event-title {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.sim-event-detail {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  line-height: 1.34;
+  color: var(--ivory-dim);
+}
+
+.sim-event-loc {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: #7dd3fc;
+}
+
+/* ==========================================================================
+   TOP-LEFT COMPACT SIMULATION QUICK DOCK (NO OVERLAP WITH CENTER SETTINGS OR RIGHT CITY BAR)
+   ========================================================================== */
+
+.sim-quick-dock {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  pointer-events: auto;
+}
+
+.sim-quick-open-btn {
+  appearance: none;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(11, 18, 33, 0.85);
+  color: var(--ivory);
+  padding: 4px 9px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.sim-quick-open-btn:hover {
+  border-color: var(--gold-bright);
+  background: rgba(24, 34, 56, 0.94);
+  color: var(--gold-bright);
+}
+
+.sim-phase-pill-btn.exit-btn {
+  color: #fca5a5;
+  padding: 3px 6px;
+}
+
+.sim-phase-pill-btn.exit-btn:hover {
+  background: rgba(239, 68, 68, 0.28);
+  color: #fecaca;
+}
+
+/* ==========================================================================
+   EXPLORER 2x3 SCENARIO PICKER GRID & 3-SUB-TAB SWITCHER
+   ========================================================================== */
+
+.sim-scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.sim-scenario-card {
+  appearance: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(8, 13, 24, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 3px;
+  color: var(--ivory);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.sim-scenario-card:hover {
+  background: rgba(20, 30, 50, 0.95);
+  border-color: rgba(229, 193, 88, 0.65);
+}
+
+.sim-scenario-card.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.24), rgba(239, 68, 68, 0.2));
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.28);
+}
+
+.sim-scenario-card-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sim-scenario-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.sim-scenario-name {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.sim-scenario-card.active .sim-scenario-name {
+  color: var(--gold-bright);
+}
+
+.sim-scenario-sub {
+  font-family: var(--font-mono);
+  font-size: 7.8px;
+  color: var(--ivory-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-stop-normal-btn {
+  appearance: none;
+  width: 100%;
+  padding: 5px 8px;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sim-stop-normal-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: var(--ivory);
+  color: #ffffff;
+}
+
+.sim-subtabs-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.sim-subtab-btn {
+  appearance: none;
+  padding: 6px 6px;
+  background: rgba(8, 13, 24, 0.82);
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  border-radius: 3px;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 8.4px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sim-subtab-btn:hover {
+  color: var(--ivory);
+  border-color: rgba(229, 193, 88, 0.55);
+}
+
+.sim-subtab-btn.active {
+  background: rgba(212, 175, 55, 0.22);
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.22);
+}
+
+.sim-subtab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   3D-PROJECTED WORLD SIMULATION CALLOUT PINS (COMPACT PILLS, EXPAND ON HOVER)
+   ========================================================================== */
+
+.sim-world-callout-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  overflow: hidden;
+}
+
+.sim-world-pin {
+  --pin-accent: #ff5252;
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: auto;
+  max-width: 185px;
+  padding: 3px 7px;
+  background: rgba(6, 10, 20, 0.86);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--pin-accent);
+  border-left: 3px solid var(--pin-accent);
+  border-radius: 4px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(255, 82, 82, 0.18);
+  color: var(--ivory);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    max-width 0.15s ease;
+}
+
+.sim-world-pin:hover,
+.sim-world-pin.active {
+  max-width: 235px;
+  padding: 5px 8px;
+  background: rgba(16, 24, 42, 0.96);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.85),
+    0 0 16px var(--pin-accent);
+  z-index: 12;
+}
+
+.sim-world-pin.phase-planning {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.sim-pin-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.sim-pin-sev {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--pin-accent);
+}
+
+.sim-pin-metric {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ivory);
+  white-space: nowrap;
+}
+
+.sim-pin-title {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ivory);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-pin-desc {
+  display: none;
+  font-family: var(--font-sans);
+  font-size: 8.4px;
+  line-height: 1.3;
+  color: var(--ivory-dim);
+  margin-top: 2px;
+}
+
+.sim-world-pin:hover .sim-pin-desc,
+.sim-world-pin.active .sim-pin-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sim-pin-stem {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  width: 2px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, var(--pin-accent), transparent);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   TOP-LEFT 3-TAB EXPERIENCE MODE SWITCHER (1. LEARN | 2. PLAN | 3. SIMULATE)
+   ========================================================================== */
+
+.exp-mode-dock-wrap {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.exp-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+}
+
+.exp-mode-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.exp-mode-tab-btn {
+  appearance: none;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  background: rgba(8, 13, 24, 0.85);
+  color: var(--ivory-dim);
+  padding: 5px 11px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.2px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.exp-mode-tab-btn:hover {
+  border-color: var(--gold-bright);
+  color: var(--ivory);
+  background: rgba(20, 30, 50, 0.94);
+}
+
+.exp-mode-tab-btn.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(245, 158, 11, 0.22));
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.32);
+}
+
+.exp-mode-tab-btn.locked {
+  opacity: 0.68;
+  border-style: dashed;
+  color: #94a3b8;
+}
+
+.exp-mode-tab-btn.locked:hover {
+  opacity: 0.95;
+  border-color: #fbbf24;
+  color: #fde68a;
+}
+
+.exp-lock-notice-toast {
+  max-width: 390px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #fbbf24;
+  border-left: 3px solid #f59e0b;
+  border-radius: 3px;
+  color: #fef3c7;
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+}
+
+/* ==========================================================================
+   PLAN MODE: DURATION PICKER & LAUNCH SIMULATION CTA
+   ========================================================================== */
+
+.sim-plan-config-section,
+.sim-live-run-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-duration-pills-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.sim-duration-pill-btn {
+  appearance: none;
+  padding: 5px 4px;
+  background: rgba(8, 13, 24, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 3px;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sim-duration-pill-btn:hover {
+  border-color: var(--gold-bright);
+  color: var(--ivory);
+}
+
+.sim-duration-pill-btn.active {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.28);
+}
+
+.sim-duration-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-duration-slider {
+  flex: 1;
+}
+
+.sim-duration-readout-pill {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #7dd3fc;
+  padding: 2px 6px;
+  background: rgba(7, 14, 26, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.sim-launch-cta-btn {
+  appearance: none;
+  width: 100%;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.36), rgba(212, 175, 55, 0.32));
+  border: 1px solid #34d399;
+  border-radius: 4px;
+  color: #ecfdf5;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+  transition: all 0.16s ease;
+}
+
+.sim-launch-cta-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.52), rgba(212, 175, 55, 0.45));
+  border-color: #6ee7b7;
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.48);
+  transform: translateY(-1px);
+}
+
+@keyframes launchPulseAttention {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.85);
+    border-color: #fbbf24;
+    transform: scale(1.02);
+  }
+}
+
+.sim-launch-cta-btn.pulse-attention {
+  animation: launchPulseAttention 0.55s ease-in-out 2;
+}
+
+/* ==========================================================================
+   SIMULATE MODE: RACE CONDITION LIVE RUN CONTROLS & BOTTOM CONSOLE
+   ========================================================================== */
+
+.rc-status-pill {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.rc-status-pill.running {
+  background: rgba(239, 68, 68, 0.25);
+  border: 1px solid #f87171;
+  color: #fecaca;
+}
+
+.rc-status-pill.paused {
+  background: rgba(245, 158, 11, 0.25);
+  border: 1px solid #fbbf24;
+  color: #fde68a;
+}
+
+.rc-status-pill.completed {
+  background: rgba(16, 185, 129, 0.28);
+  border: 1px solid #34d399;
+  color: #d1fae5;
+}
+
+.rc-dock-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(5, 9, 18, 0.78);
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 3px;
+}
+
+.rc-dock-clock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.rc-timer-readout {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--gold-bright);
+}
+
+.rc-sim-hours-readout {
+  font-family: var(--font-mono);
+  font-size: 8.8px;
+  color: #7dd3fc;
+}
+
+.rc-progress-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rc-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #10b981, #38bdf8);
+  transition: width 0.25s linear;
+}
+
+.rc-dock-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.rc-speed-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rc-dock-lifecycle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rc-complete-now-btn {
+  justify-content: center;
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #a7f3d0;
+  background: rgba(6, 78, 59, 0.35);
+}
+
+.rc-complete-now-btn:hover {
+  border-color: #34d399;
+  color: #ecfdf5;
+  background: rgba(5, 150, 105, 0.48);
+}
+
+.rc-open-report-btn {
+  justify-content: center;
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  background: rgba(212, 175, 55, 0.2);
+}
+
+.rc-cancel-end-btn {
+  appearance: none;
+  padding: 6px 10px;
+  background: rgba(127, 29, 29, 0.42);
+  border: 1px solid rgba(248, 113, 113, 0.65);
+  border-radius: 3px;
+  color: #fecaca;
+  font-family: var(--font-mono);
+  font-size: 8.6px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rc-cancel-end-btn:hover {
+  background: rgba(185, 28, 28, 0.65);
+  border-color: #fca5a5;
+  color: #ffffff;
+}
+
+/* Race Condition Bottom Console Bar (replaces 1900-2026 Timeline during Simulate Mode) */
+.rc-sim-console {
+  width: min(1160px, 95vw);
+  margin: 0 auto;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.rc-console-left,
+.rc-console-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rc-console-center {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rc-console-center-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   A2UI v0.8 POST-SIMULATION REPORT CARD MODAL OVERLAY
+   ========================================================================== */
+
+.a2ui-report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(3, 7, 15, 0.78);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  pointer-events: auto;
+}
+
+.a2ui-report-card {
+  width: min(760px, 94vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  background: rgba(8, 13, 25, 0.96);
+  border: 1px solid var(--gold-bright);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.88),
+    0 0 28px rgba(212, 175, 55, 0.25);
+  overflow: hidden;
+}
+
+.a2ui-modal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+.a2ui-protocol-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.a2ui-protocol-pill {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid #38bdf8;
+  border-radius: 3px;
+  color: #bae6fd;
+}
+
+.a2ui-surface-id {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--ivory-dim);
+}
+
+.a2ui-grade-badge {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--gold-bright);
+}
+
+.a2ui-grade-badge.grade-a {
+  background: rgba(16, 185, 129, 0.26);
+  border-color: #34d399;
+  color: #a7f3d0;
+}
+
+.a2ui-grade-badge.grade-b {
+  background: rgba(56, 189, 248, 0.24);
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+
+.a2ui-grade-badge.grade-c {
+  background: rgba(245, 158, 11, 0.26);
+  border-color: #fbbf24;
+  color: #fde68a;
+}
+
+.a2ui-grade-badge.grade-d {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #f87171;
+  color: #fecaca;
+}
+
+.a2ui-surface-tree-root {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.45) transparent;
+}
+
+.a2ui-node-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.a2ui-node-column {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.a2ui-node-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.a2ui-node-row.dist-spaceBetween {
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 3px;
+}
+
+.a2ui-node-text.hint-h1 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gold-bright);
+  letter-spacing: 0.03em;
+}
+
+.a2ui-node-text.hint-h2 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #7dd3fc;
+}
+
+.a2ui-node-text.hint-h3 {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.a2ui-node-text.hint-body {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 1.42;
+  color: var(--ivory);
+}
+
+.a2ui-node-text.hint-caption {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.38;
+  color: var(--ivory-dim);
+}
+
+.a2ui-node-divider {
+  border: none;
+  border-top: 1px solid rgba(212, 175, 55, 0.26);
+  margin: 4px 0;
+}
+
+.a2ui-node-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.a2ui-tabs-header-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.a2ui-tab-btn {
+  appearance: none;
+  padding: 6px 8px;
+  background: rgba(11, 18, 32, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 3px;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 8.8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.a2ui-tab-btn:hover {
+  border-color: var(--gold-bright);
+  color: var(--ivory);
+}
+
+.a2ui-tab-btn.active {
+  background: rgba(212, 175, 55, 0.24);
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+}
+
+.a2ui-tab-pane {
+  padding: 6px 2px;
+}
+
+.a2ui-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid rgba(212, 175, 55, 0.28);
+}
 

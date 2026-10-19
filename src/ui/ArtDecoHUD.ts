@@ -54,6 +54,19 @@ import {
   SELECTABLE_CITIES,
   switchActiveCity
 } from '../cities/activeCityRuntime';
+import {
+  A2uiComponentDef,
+  ParisHeroProbe,
+  ParisScenarioPresetId,
+  ParisSimulationEventLogItem,
+  ParisSimulationModeId,
+  ParisSimulationPhaseId,
+  ParisSimulationReportCard,
+  ParisSurfaceSimulation,
+  ParisWorldHotspot
+} from '../world/ParisSurfaceSimulation';
+
+export type ExperienceModeId = 'learn' | 'plan' | 'simulate';
 
 export interface HUDCallbacks {
   onYearChange: (year: number) => void;
@@ -77,10 +90,11 @@ export interface HUDCallbacks {
   onStepCityOrbit: (deltaRadians: number) => void;
   onZoomCamera: (factor: number) => void;
   onFocusTarget: (kind: 'station' | 'monument' | 'arrondissement', id: string) => void;
+  onFocusWorldPoint?: (x: number, y: number, z: number, colorHex: number) => void;
   onSelectTourStop: (stop: ParisNaturalisationTourStop | null) => void;
 }
 
-type ExplorerTabId = 'stations' | 'monuments' | 'arrondissements' | 'tour';
+type ExplorerTabId = 'stations' | 'monuments' | 'arrondissements' | 'tour' | 'sim';
 type StationFilterId =
   | 'specialInteriors'
   | 'hubs'
@@ -798,6 +812,70 @@ export class ArtDecoHUD {
   private isAutoTourPlaying = false;
   private autoTourTimer = 0.0;
 
+  // 3-Tab Top-Level Experience Mode ('learn' | 'plan' | 'simulate') + Race Condition Controls + A2UI Report Card
+  private experienceMode: ExperienceModeId = 'learn';
+  private selectedPlanScenario: ParisSimulationModeId = 'marathon';
+  private selectedDurationSec = 60;
+  private expTabBtns: Map<ExperienceModeId, HTMLButtonElement> = new Map();
+  private expLockNoticeEl!: HTMLElement;
+  private expLockNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+  private lineDockEl!: HTMLElement;
+  private explorerSearchRowEl!: HTMLElement;
+  private explorerTabsHeaderEl!: HTMLElement;
+  private historicalTimelineConsoleEl!: HTMLElement;
+  private simBottomConsoleEl!: HTMLElement;
+  private simPlanConfigSectionEl!: HTMLElement;
+  private simLiveRunSectionEl!: HTMLElement;
+  private simDurationPillBtns: Map<number, HTMLButtonElement> = new Map();
+  private simDurationSliderEl!: HTMLInputElement;
+  private simDurationReadoutEl!: HTMLElement;
+  private simLaunchLiveBtnEl!: HTMLButtonElement;
+  private rcPauseBtns: HTMLButtonElement[] = [];
+  private rcSpeedBtns: Map<1 | 2 | 4, HTMLButtonElement[]> = new Map();
+  private rcProgressBarFillEls: HTMLElement[] = [];
+  private rcTimerReadoutEls: HTMLElement[] = [];
+  private rcSimHoursReadoutEls: HTMLElement[] = [];
+  private rcStatusPillEls: HTMLElement[] = [];
+  private rcOpenReportBtns: HTMLButtonElement[] = [];
+  private a2uiReportModalEl!: HTMLElement;
+  private a2uiActiveTabIdx = 0;
+
+  // Tab 5: Paris Multi-Modal City Simulation, Two-Phase Workflow & 3D World Callouts
+  private surfaceSimulation: ParisSurfaceSimulation | null = null;
+  private simModeBtns: Map<ParisSimulationModeId, HTMLButtonElement> = new Map();
+  private topSimPhaseWrapEl!: HTMLElement;
+  private topPhasePlanningBtnEl!: HTMLButtonElement;
+  private topPhaseLiveBtnEl!: HTMLButtonElement;
+  private topSimSummaryBadgeEl!: HTMLElement;
+  private simStopBtnEl!: HTMLButtonElement;
+  private simActiveSubTab: 'hotspots' | 'events' | 'agents' = 'hotspots';
+  private simSubTabBtns: Map<'hotspots' | 'events' | 'agents', HTMLButtonElement> = new Map();
+  private simSubTabPanes: Map<'hotspots' | 'events' | 'agents', HTMLElement> = new Map();
+  private simWorldCalloutLayerEl!: HTMLElement;
+  private simHotspotPinEls: Map<string, { el: HTMLElement; hotspot: ParisWorldHotspot }> = new Map();
+  private simPhasePlanningBtnEl!: HTMLButtonElement;
+  private simPhaseLiveBtnEl!: HTMLButtonElement;
+  private simPhaseStatusBannerEl!: HTMLElement;
+  private simMitigationBtnEl!: HTMLButtonElement;
+  private simDomainTitleEl!: HTMLElement;
+  private simDomainDescEl!: HTMLElement;
+  private simKpiCells: { labelEl: HTMLElement; valEl: HTMLElement; cellEl: HTMLElement }[] = [];
+  private simScenarioBtns: Map<ParisScenarioPresetId, HTMLButtonElement> = new Map();
+  private simTrafficLightsBtn!: HTMLButtonElement;
+  private simCongestionBtn!: HTMLButtonElement;
+  private simMarathonBtn!: HTMLButtonElement;
+  private simBarriersBtn!: HTMLButtonElement;
+  private simProbesBtn!: HTMLButtonElement;
+  private simEventLogHeaderEl!: HTMLElement;
+  private simEventLogListEl!: HTMLElement;
+  private simHotspotsHeaderEl!: HTMLElement;
+  private simHotspotsListEl!: HTMLElement;
+  private simProbesListEl!: HTMLElement;
+  private simMacroListEl!: HTMLElement;
+  private activeHeroProbeId = 'probe-runner-elodie';
+  private activeHotspotId = '';
+  private simUiRefreshAccum = 0.0;
+
   // Floating Hover Dossier Card
   private dossierCardEl!: HTMLElement;
   private dossierCategoryEl!: HTMLElement;
@@ -855,12 +933,21 @@ export class ArtDecoHUD {
     const frame = createEl('div', 'deco-viewport-frame');
     container.appendChild(frame);
 
+    // 3D-Projected Simulation Warning & Event Callout Layer (renders directly over the 3D Paris map)
+    this.simWorldCalloutLayerEl = createEl('div', 'sim-world-callout-layer');
+    container.appendChild(this.simWorldCalloutLayerEl);
+
     // Main HUD flex container
     const hudLayer = createEl('div', 'hud-layer');
     hudLayer.appendChild(this.buildTopBar());
     hudLayer.appendChild(this.buildMiddleArea());
     hudLayer.appendChild(this.buildBottomTimelineBar());
     container.appendChild(hudLayer);
+
+    // A2UI Post-Simulation Report Card Modal Overlay
+    this.a2uiReportModalEl = createEl('div', 'a2ui-report-modal-backdrop');
+    this.a2uiReportModalEl.style.display = 'none';
+    container.appendChild(this.a2uiReportModalEl);
 
     // 3D-Anchored Special Station Interior Photo Card (above selected special station)
     this.specialStationCardEl = this.buildSpecialStationInteriorCard();
@@ -888,32 +975,82 @@ export class ArtDecoHUD {
   private buildTopBar(): HTMLElement {
     const topBar = createEl('header', 'hud-top-bar');
 
-    // Top-Right City Selector Bar (#paris, #sydney, #nyc)
+    // 1. Top-Left 3-Mode Experience Switcher: [📖 1. Learn] | [📋 2. Plan] | [⚡ 3. Simulate]
+    if (ACTIVE_CITY_ID === 'paris') {
+      const expDockWrap = createEl('div', 'exp-mode-dock-wrap hud-interactive');
+      const expDock = createEl('nav', 'deco-panel exp-mode-bar');
+      expDock.setAttribute('aria-label', 'Experience Mode');
+      attachDecoCorners(expDock);
+      expDock.appendChild(createEl('span', 'city-selector-label', 'MODE'));
+
+      const tabsRow = createEl('div', 'exp-mode-tabs-row');
+      const modeTabs: { id: ExperienceModeId; label: string; title: string }[] = [
+        {
+          id: 'learn',
+          label: '📖 1. Learn',
+          title: 'Explore stations, monuments, districts, walking tours, and 1900–2026 history'
+        },
+        {
+          id: 'plan',
+          label: '📋 2. Plan',
+          title: 'Choose a city simulation scenario, pick run duration, and inspect 3D forecast warnings'
+        },
+        {
+          id: 'simulate',
+          label: '🔒 3. Simulate',
+          title: 'Run live simulation with Race Condition controls and generate an A2UI Report Card (Launch from Plan mode)'
+        }
+      ];
+
+      this.expTabBtns.clear();
+      for (const mt of modeTabs) {
+        const btn = createEl(
+          'button',
+          `exp-mode-tab-btn${mt.id === this.experienceMode ? ' active' : ''}${mt.id === 'simulate' ? ' locked' : ''}`,
+          mt.label
+        );
+        btn.type = 'button';
+        btn.title = mt.title;
+        btn.addEventListener('click', () => {
+          this.handleExperienceModeTabClick(mt.id);
+        });
+        this.expTabBtns.set(mt.id, btn);
+        tabsRow.appendChild(btn);
+      }
+      expDock.appendChild(tabsRow);
+      expDockWrap.appendChild(expDock);
+
+      this.expLockNoticeEl = createEl('div', 'exp-lock-notice-toast');
+      this.expLockNoticeEl.style.display = 'none';
+      expDockWrap.appendChild(this.expLockNoticeEl);
+
+      topBar.appendChild(expDockWrap);
+    }
+
+    // 2. Top-Right City Selector Bar (Paris | Sydney | New York)
     const cityBar = createEl('nav', 'deco-panel city-selector-bar hud-interactive');
-    cityBar.setAttribute('aria-label', 'Select Active City');
+    cityBar.setAttribute('aria-label', 'City Selector');
     attachDecoCorners(cityBar);
     cityBar.appendChild(createEl('span', 'city-selector-label', 'CITY'));
 
     const cityPills = createEl('div', 'city-selector-pills');
     for (const city of SELECTABLE_CITIES) {
+      const isCurrent = city.id === ACTIVE_CITY_ID;
       const btn = createEl(
         'button',
-        `city-selector-btn${city.id === ACTIVE_CITY_ID ? ' active' : ''}`
+        `city-selector-btn${isCurrent ? ' active' : ''}`
       );
       btn.type = 'button';
-      btn.title = `Switch to ${city.label} (${city.country}) — #${city.id} • ${city.vibeBadge}`;
-      btn.setAttribute('aria-pressed', city.id === ACTIVE_CITY_ID ? 'true' : 'false');
+      btn.title = `Switch to ${city.label}, ${city.country} (${city.vibeBadge})`;
+      btn.setAttribute('aria-pressed', isCurrent ? 'true' : 'false');
       btn.appendChild(createEl('span', 'city-selector-name', city.label));
-      btn.appendChild(createEl('span', 'city-selector-code', `#${city.id}`));
+      btn.appendChild(createEl('span', 'city-selector-code', city.shortCode));
       btn.addEventListener('click', () => {
         switchActiveCity(city.id);
       });
       cityPills.appendChild(btn);
     }
     cityBar.appendChild(cityPills);
-    cityBar.appendChild(
-      createEl('span', 'city-selector-vibe-badge', ACTIVE_CITY_META.vibeBadge)
-    );
     topBar.appendChild(cityBar);
 
     // Top-Center Collapsible Configuration & Atmosphere Panel (shrinks until hovered over)
@@ -1396,6 +1533,7 @@ export class ArtDecoHUD {
 
     // 1. Left Dock: RATP Line Medallion Selector
     const lineDock = createEl('aside', 'deco-panel line-selector-dock hud-interactive');
+    this.lineDockEl = lineDock;
     attachDecoCorners(lineDock);
     lineDock.appendChild(createEl('span', 'dock-title', 'LINES'));
 
@@ -1443,8 +1581,9 @@ export class ArtDecoHUD {
     // Cultural Motif Header Banner (Aboriginal Dot-Art for Sydney, Gotham Art Deco + Vignelli for NYC, Belle Époque for Paris)
     this.explorerCardEl.appendChild(this.buildCityCulturalBanner());
 
-    // Top Unified Search Bar (appears above the Stations / Monuments / Arrondissements / Tour tab selector)
+    // Top Unified Search Bar (appears above the Stations / Monuments / Arrondissements / Tour tab selector in Learn mode)
     const searchRow = createEl('div', 'station-search-row explorer-top-search-row');
+    this.explorerSearchRowEl = searchRow;
     this.stationSearchInputEl = createEl('input', 'station-search-input');
     this.stationSearchInputEl.type = 'text';
     this.stationSearchInputEl.placeholder = ACTIVE_CITY_META.searchPlaceholder;
@@ -1472,8 +1611,9 @@ export class ArtDecoHUD {
     searchRow.appendChild(clearSearchBtn);
     this.explorerCardEl.appendChild(searchRow);
 
-    // Explorer Mode Switcher Header (Stations / Monuments / Arrondissements / Tour)
+    // Explorer Mode Switcher Header (Stations / Monuments / Arrondissements / Tour — visible in Learn mode)
     const topTabHeader = createEl('div', 'explorer-tabs-header');
+    this.explorerTabsHeaderEl = topTabHeader;
     const tabsGroup = createEl('div', 'explorer-tabs-group');
 
     const tabs: { id: ExplorerTabId; icon: string; label: string; title: string }[] = [
@@ -1540,16 +1680,19 @@ export class ArtDecoHUD {
     const monumentsPane = this.buildMonumentsExplorerPane();
     const arrondissementsPane = this.buildArrondissementsExplorerPane();
     const tourPane = this.buildTourExplorerPane();
+    const simPane = this.buildSimulationExplorerPane();
 
     this.explorerPaneEls.set('stations', stationsPane);
     this.explorerPaneEls.set('monuments', monumentsPane);
     this.explorerPaneEls.set('arrondissements', arrondissementsPane);
     this.explorerPaneEls.set('tour', tourPane);
+    this.explorerPaneEls.set('sim', simPane);
 
     this.explorerBodyWrapEl.appendChild(stationsPane);
     this.explorerBodyWrapEl.appendChild(monumentsPane);
     this.explorerBodyWrapEl.appendChild(arrondissementsPane);
     this.explorerBodyWrapEl.appendChild(tourPane);
+    this.explorerBodyWrapEl.appendChild(simPane);
     this.explorerCardEl.appendChild(this.explorerBodyWrapEl);
 
     this.switchExplorerTab('stations');
@@ -1573,6 +1716,172 @@ export class ArtDecoHUD {
     for (const [id, pane] of this.explorerPaneEls.entries()) {
       pane.style.display = id === tabId ? 'flex' : 'none';
     }
+  }
+
+  // ── 3-Tab Experience Mode State Machine (Learn -> Plan -> Simulate) ────────
+
+  private showExperienceLockToast(message: string): void {
+    if (!this.expLockNoticeEl) return;
+    this.expLockNoticeEl.textContent = message;
+    this.expLockNoticeEl.style.display = 'block';
+    if (this.expLockNoticeTimer) {
+      clearTimeout(this.expLockNoticeTimer);
+    }
+    this.expLockNoticeTimer = setTimeout(() => {
+      if (this.expLockNoticeEl) {
+        this.expLockNoticeEl.style.display = 'none';
+      }
+    }, 3600);
+  }
+
+  public handleExperienceModeTabClick(targetMode: ExperienceModeId): void {
+    if (targetMode === this.experienceMode) return;
+
+    // Rule 1: While in SIMULATE mode, you MUST cancel/end the simulation to return to Learn or Plan
+    if (this.experienceMode === 'simulate') {
+      this.showExperienceLockToast(
+        '🔒 Simulation in progress — click "⏹ Cancel / End Simulation" to return to Learn or Plan.'
+      );
+      return;
+    }
+
+    // Rule 2: SIMULATE mode can ONLY be triggered from the PLAN phase via "Launch Simulation"
+    if (targetMode === 'simulate') {
+      if (this.experienceMode === 'learn') {
+        this.setExperienceMode('plan');
+        this.showExperienceLockToast(
+          '📋 Choose your scenario & run duration in Plan mode, then click "▶ Launch Simulation".'
+        );
+      } else {
+        this.showExperienceLockToast(
+          '👉 Pick your scenario & duration on the right, then click "▶ Launch Simulation" to begin!'
+        );
+        if (this.simLaunchLiveBtnEl) {
+          this.simLaunchLiveBtnEl.classList.remove('pulse-attention');
+          void this.simLaunchLiveBtnEl.offsetWidth;
+          this.simLaunchLiveBtnEl.classList.add('pulse-attention');
+        }
+      }
+      return;
+    }
+
+    this.setExperienceMode(targetMode);
+  }
+
+  public setExperienceMode(mode: ExperienceModeId): void {
+    this.experienceMode = mode;
+    if (this.expLockNoticeEl) {
+      this.expLockNoticeEl.style.display = 'none';
+    }
+
+    // Update top-left 3-Tab buttons and lock badges
+    const learnBtn = this.expTabBtns.get('learn');
+    const planBtn = this.expTabBtns.get('plan');
+    const simBtn = this.expTabBtns.get('simulate');
+
+    if (learnBtn && planBtn && simBtn) {
+      learnBtn.classList.toggle('active', mode === 'learn');
+      planBtn.classList.toggle('active', mode === 'plan');
+      simBtn.classList.toggle('active', mode === 'simulate');
+
+      if (mode === 'simulate') {
+        learnBtn.textContent = '🔒 1. Learn';
+        learnBtn.classList.add('locked');
+        planBtn.textContent = '🔒 2. Plan';
+        planBtn.classList.add('locked');
+        simBtn.textContent = '⚡ 3. Simulate (Active)';
+        simBtn.classList.remove('locked');
+      } else {
+        learnBtn.textContent = '📖 1. Learn';
+        learnBtn.classList.remove('locked');
+        planBtn.textContent = '📋 2. Plan';
+        planBtn.classList.remove('locked');
+        simBtn.textContent = '🔒 3. Simulate';
+        simBtn.classList.add('locked');
+      }
+    }
+
+    if (this.isExplorerCollapsed) {
+      this.toggleExplorerCollapsed(false);
+    }
+
+    if (mode === 'learn') {
+      // Show Learn UI: Left Line Dock, Station Search, 4 Cultural Tabs, and 1900-2026 Timeline
+      if (this.lineDockEl) this.lineDockEl.style.display = '';
+      if (this.explorerSearchRowEl) this.explorerSearchRowEl.style.display = '';
+      if (this.explorerTabsHeaderEl) this.explorerTabsHeaderEl.style.display = '';
+      if (this.historicalTimelineConsoleEl) this.historicalTimelineConsoleEl.style.display = '';
+      if (this.simBottomConsoleEl) this.simBottomConsoleEl.style.display = 'none';
+      if (this.a2uiReportModalEl) this.a2uiReportModalEl.style.display = 'none';
+
+      if (this.activeExplorerTab === 'sim') {
+        this.switchExplorerTab('stations');
+      } else {
+        this.switchExplorerTab(this.activeExplorerTab);
+      }
+
+      if (this.surfaceSimulation) {
+        this.surfaceSimulation.cancelSimulationRun('learn');
+      }
+      this.rebuildWorldHotspotCalloutPins();
+    } else if (mode === 'plan') {
+      // Show Plan UI: Hide station search & 4 learn tab buttons, open the Simulation Plan pane
+      if (this.lineDockEl) this.lineDockEl.style.display = '';
+      if (this.explorerSearchRowEl) this.explorerSearchRowEl.style.display = 'none';
+      if (this.explorerTabsHeaderEl) this.explorerTabsHeaderEl.style.display = 'none';
+      if (this.historicalTimelineConsoleEl) this.historicalTimelineConsoleEl.style.display = '';
+      if (this.simBottomConsoleEl) this.simBottomConsoleEl.style.display = 'none';
+      if (this.a2uiReportModalEl) this.a2uiReportModalEl.style.display = 'none';
+      if (this.simPlanConfigSectionEl) this.simPlanConfigSectionEl.style.display = '';
+      if (this.simLiveRunSectionEl) this.simLiveRunSectionEl.style.display = 'none';
+
+      this.switchExplorerTab('sim');
+
+      if (this.surfaceSimulation) {
+        const curMode = this.surfaceSimulation.getSimulationMode();
+        const planScenario = curMode === 'none' ? this.selectedPlanScenario : curMode;
+        this.selectedPlanScenario = planScenario;
+        this.surfaceSimulation.setTargetDurationSeconds(this.selectedDurationSec);
+        this.surfaceSimulation.setSimulationMode(planScenario, 'planning');
+      }
+      this.rebuildWorldHotspotCalloutPins();
+      this.refreshSimulationTelemetryUI();
+    } else if (mode === 'simulate') {
+      // Show Simulate UI: Race Condition Bottom Console + Live Simulation Right Dock (hide Learn chrome)
+      this.setPlaying(false);
+      if (this.lineDockEl) this.lineDockEl.style.display = 'none';
+      if (this.explorerSearchRowEl) this.explorerSearchRowEl.style.display = 'none';
+      if (this.explorerTabsHeaderEl) this.explorerTabsHeaderEl.style.display = 'none';
+      if (this.historicalTimelineConsoleEl) this.historicalTimelineConsoleEl.style.display = 'none';
+      if (this.simBottomConsoleEl) this.simBottomConsoleEl.style.display = 'flex';
+      if (this.simPlanConfigSectionEl) this.simPlanConfigSectionEl.style.display = 'none';
+      if (this.simLiveRunSectionEl) this.simLiveRunSectionEl.style.display = '';
+
+      this.switchExplorerTab('sim');
+
+      if (this.surfaceSimulation) {
+        this.surfaceSimulation.startLiveSimulationRun(
+          this.selectedPlanScenario,
+          this.selectedDurationSec
+        );
+      }
+      this.rebuildWorldHotspotCalloutPins();
+      this.refreshSimulationTelemetryUI();
+    }
+  }
+
+  public launchSimulationFromPlan(): void {
+    this.setExperienceMode('simulate');
+  }
+
+  public cancelOrEndSimulation(returnTo: 'plan' | 'learn' = 'plan'): void {
+    if (this.a2uiReportModalEl) {
+      this.a2uiReportModalEl.style.display = 'none';
+    }
+    if (this.surfaceSimulation) {
+      this.surfaceSimulation.cancelSimulationRun(returnTo);
+    }
+    this.setExperienceMode(returnTo);
   }
 
   /**
@@ -2879,14 +3188,1054 @@ export class ArtDecoHUD {
     }
   }
 
+  /**
+   * Connects the live ParisSurfaceSimulation instance from VoxelParisBuilder to the HUD
+   */
+  public setSurfaceSimulation(sim: ParisSurfaceSimulation): void {
+    this.surfaceSimulation = sim;
+    sim.setTargetDurationSeconds(this.selectedDurationSec);
+    sim.onSimulationCompleted = (report) => {
+      this.renderAndOpenA2uiReportModal(report);
+      this.refreshSimulationTelemetryUI();
+    };
+    this.rebuildWorldHotspotCalloutPins();
+    this.refreshSimulationTelemetryUI();
+  }
+
+  /**
+   * Switches the active Paris Simulation Mode ('none' | 'traffic' | 'marathon' | 'heatwave' | 'protest' | 'flood' | 'cyberattack')
+   * and optional phase ('planning' | 'live').
+   */
+  public setSimulationMode(mode: ParisSimulationModeId, phase?: ParisSimulationPhaseId): void {
+    if (mode !== 'none') {
+      this.selectedPlanScenario = mode;
+    }
+    if (this.surfaceSimulation) {
+      this.surfaceSimulation.setSimulationMode(mode, phase);
+    }
+    this.rebuildWorldHotspotCalloutPins();
+    this.refreshSimulationTelemetryUI();
+  }
+
+  /**
+   * Switches between Phase 1 (Planning & Forecast Warnings) and Phase 2 (Live Simulation & Impact Recording)
+   */
+  public setSimulationPhase(phase: ParisSimulationPhaseId): void {
+    if (this.surfaceSimulation) {
+      this.surfaceSimulation.setSimulationPhase(phase);
+    }
+    this.rebuildWorldHotspotCalloutPins();
+    this.refreshSimulationTelemetryUI();
+  }
+
+  /**
+   * Updates the selected simulation duration (15s - 300s) in Plan mode
+   */
+  public setSelectedDurationSeconds(seconds: number): void {
+    const clamped = Math.max(15, Math.min(300, Math.round(seconds)));
+    this.selectedDurationSec = clamped;
+    if (this.surfaceSimulation) {
+      this.surfaceSimulation.setTargetDurationSeconds(clamped);
+    }
+    for (const [sec, btn] of this.simDurationPillBtns.entries()) {
+      btn.classList.toggle('active', sec === clamped);
+    }
+    if (this.simDurationSliderEl) {
+      this.simDurationSliderEl.value = String(clamped);
+    }
+    const simHours = (clamped * 0.05).toFixed(1);
+    if (this.simDurationReadoutEl) {
+      this.simDurationReadoutEl.textContent = `⏱ ${clamped}s Run • ${simHours} hrs Simulated`;
+    }
+    if (this.simLaunchLiveBtnEl) {
+      this.simLaunchLiveBtnEl.textContent = `▶ Launch ${clamped}s Live Simulation (Enter Simulate Mode) →`;
+    }
+  }
+
+  private formatClockMmSs(seconds: number): string {
+    const s = Math.max(0, Math.floor(seconds));
+    const mm = Math.floor(s / 60);
+    const ss = s % 60;
+    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  }
+
+  /**
+   * Rebuilds the floating 3D world callout pins over the Paris map whenever the simulation domain or phase changes
+   */
+  public rebuildWorldHotspotCalloutPins(): void {
+    if (!this.simWorldCalloutLayerEl) return;
+    this.simWorldCalloutLayerEl.replaceChildren();
+    this.simHotspotPinEls.clear();
+
+    if (!this.surfaceSimulation) return;
+    const mode = this.surfaceSimulation.getSimulationMode();
+    if (mode === 'none') return;
+
+    const phase = this.surfaceSimulation.getSimulationPhase();
+    const hotspots = this.surfaceSimulation.getActiveWorldHotspots();
+
+    for (const h of hotspots) {
+      const pinEl = createEl(
+        'button',
+        `sim-world-pin severity-${h.severity} phase-${phase}${h.id === this.activeHotspotId ? ' active' : ''}`
+      );
+      pinEl.type = 'button';
+      pinEl.style.setProperty('--pin-accent', h.colorHex);
+
+      const topRow = createEl('div', 'sim-pin-top-row');
+      const sevLabel =
+        phase === 'planning'
+          ? h.severity === 'critical'
+            ? '🔮 CRITICAL FORECAST'
+            : h.severity === 'warning'
+              ? '⚠ CHOKE POINT FORECAST'
+              : 'ℹ PLANNING ADVISORY'
+          : h.severity === 'critical'
+            ? '🔴 LIVE CRITICAL'
+            : h.severity === 'warning'
+              ? '🟠 LIVE WARNING'
+              : '🔵 LIVE STATUS';
+      topRow.appendChild(createEl('span', 'sim-pin-sev', sevLabel));
+      topRow.appendChild(createEl('span', 'sim-pin-metric', h.metricBadge));
+      pinEl.appendChild(topRow);
+
+      pinEl.appendChild(createEl('div', 'sim-pin-title', h.title));
+      const detailText = phase === 'planning' ? h.planningPrediction : h.liveStatus;
+      pinEl.appendChild(createEl('div', 'sim-pin-desc', detailText));
+
+      const stem = createEl('span', 'sim-pin-stem');
+      pinEl.appendChild(stem);
+
+      pinEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.focusWorldHotspot(h);
+        if (this.isExplorerCollapsed) {
+          this.toggleExplorerCollapsed(false);
+        }
+        if (this.experienceMode === 'learn') {
+          this.setExperienceMode('plan');
+        } else {
+          this.switchExplorerTab('sim');
+        }
+      });
+
+      this.simWorldCalloutLayerEl.appendChild(pinEl);
+      this.simHotspotPinEls.set(h.id, { el: pinEl, hotspot: h });
+    }
+  }
+
+  /**
+   * Projects all active 3D simulation hotspot pins onto the 2D screen every animation frame
+   */
+  public updateWorldHotspotPositions(
+    projectFn: (x: number, y: number, z: number) => { x: number; y: number; visible: boolean }
+  ): void {
+    if (!this.surfaceSimulation || this.simHotspotPinEls.size === 0) return;
+    const mode = this.surfaceSimulation.getSimulationMode();
+    if (mode === 'none') return;
+
+    const phase = this.surfaceSimulation.getSimulationPhase();
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    for (const { el, hotspot } of this.simHotspotPinEls.values()) {
+      const proj = projectFn(hotspot.x, hotspot.y + 2.1, hotspot.z);
+      const inBounds =
+        proj.visible && proj.x >= 60 && proj.x <= w - 60 && proj.y >= 70 && proj.y <= h - 90;
+      if (!inBounds) {
+        el.style.display = 'none';
+        continue;
+      }
+      el.style.display = 'flex';
+      el.style.left = `${proj.x.toFixed(1)}px`;
+      el.style.top = `${proj.y.toFixed(1)}px`;
+
+      const metricEl = el.querySelector('.sim-pin-metric');
+      if (metricEl) {
+        metricEl.textContent = hotspot.metricBadge;
+      }
+      const descEl = el.querySelector('.sim-pin-desc');
+      if (descEl) {
+        descEl.textContent = phase === 'planning' ? hotspot.planningPrediction : hotspot.liveStatus;
+      }
+    }
+  }
+
+  private focusWorldHotspot(hotspot: ParisWorldHotspot): void {
+    this.activeHotspotId = hotspot.id;
+    this.hideSpecialStationInteriorCard();
+    for (const [id, entry] of this.simHotspotPinEls.entries()) {
+      entry.el.classList.toggle('active', id === hotspot.id);
+    }
+    if (this.callbacks.onFocusWorldPoint) {
+      const numericHex = parseInt(hotspot.colorHex.replace('#', ''), 16) || 0xff5252;
+      this.callbacks.onFocusWorldPoint(hotspot.x, hotspot.y, hotspot.z, numericHex);
+    }
+    this.refreshSimulationTelemetryUI();
+  }
+
+  /**
+   * TAB 5: Paris Multi-Modal City Simulation Pane
+   * Serves both Top-Level Mode 2 (📋 Plan: Scenario Picker + Duration Picker + Launch Simulation)
+   * and Top-Level Mode 3 (⚡ Simulate: Race Condition Live Controls + Progress + Sub-Tabs).
+   */
+  private buildSimulationExplorerPane(): HTMLElement {
+    const pane = createEl('div', 'explorer-pane sim-explorer-pane');
+
+    // 1. Header Card (Dynamically switches between Plan Config Section and Live Run Section)
+    const headerCard = createEl('div', 'explorer-spotlight-card sim-control-card');
+
+    // =========================================================================
+    // SECTION A: PLAN MODE CONFIGURATION (Scenario Grid + Duration + Launch CTA)
+    // =========================================================================
+    this.simPlanConfigSectionEl = createEl('div', 'sim-plan-config-section');
+
+    const planTopRow = createEl('div', 'spot-top-row');
+    planTopRow.appendChild(createEl('span', 'spot-category-tag', '📋 2. PLAN • FORECAST & SETUP'));
+    planTopRow.appendChild(createEl('span', 'spot-year-pill', 'PHASE 1 FORECAST'));
+    this.simPlanConfigSectionEl.appendChild(planTopRow);
+
+    // Step 1: 2x3 Scenario Selector Grid
+    const scenarioStepLabel = createEl(
+      'div',
+      'sim-section-subhead',
+      'STEP 1 • SELECT SIMULATION SCENARIO (PREVIEWS 3D WARNINGS)'
+    );
+    this.simPlanConfigSectionEl.appendChild(scenarioStepLabel);
+
+    const scenarioGrid = createEl('div', 'sim-scenario-grid');
+    const scenarios: {
+      id: ParisSimulationModeId;
+      icon: string;
+      label: string;
+      sub: string;
+    }[] = [
+      {
+        id: 'traffic',
+        icon: '🚗',
+        label: 'Traffic & Gares',
+        sub: '260 Cars • 300 Commuters'
+      },
+      {
+        id: 'marathon',
+        icon: '🏃',
+        label: 'Marathon 42K',
+        sub: 'Course & Road Closures'
+      },
+      {
+        id: 'heatwave',
+        icon: '🔥',
+        label: 'Heat Wave 44°C',
+        sub: 'SAMU & ICU Overload'
+      },
+      {
+        id: 'protest',
+        icon: '🪧',
+        label: 'Protest / Riot',
+        sub: 'Cortège & Store Fires'
+      },
+      {
+        id: 'flood',
+        icon: '🌊',
+        label: 'Seine Flood',
+        sub: '+8.6m Crue & Quais'
+      },
+      {
+        id: 'cyberattack',
+        icon: '💻',
+        label: 'Cyberattack',
+        sub: 'SCADA & Grid Blackout'
+      }
+    ];
+
+    this.simModeBtns.clear();
+    for (const sc of scenarios) {
+      const btn = createEl('button', 'sim-scenario-card');
+      btn.type = 'button';
+      const head = createEl('div', 'sim-scenario-card-head');
+      head.appendChild(createEl('span', 'sim-scenario-icon', sc.icon));
+      head.appendChild(createEl('span', 'sim-scenario-name', sc.label));
+      btn.appendChild(head);
+      btn.appendChild(createEl('div', 'sim-scenario-sub', sc.sub));
+      btn.addEventListener('click', () => {
+        this.selectedPlanScenario = sc.id;
+        this.setSimulationMode(sc.id, 'planning');
+      });
+      this.simModeBtns.set(sc.id, btn);
+      scenarioGrid.appendChild(btn);
+    }
+    this.simPlanConfigSectionEl.appendChild(scenarioGrid);
+
+    // Step 2: Pick Simulation Run Duration
+    const durationStepLabel = createEl(
+      'div',
+      'sim-section-subhead',
+      'STEP 2 • PICK SIMULATION RUN DURATION'
+    );
+    this.simPlanConfigSectionEl.appendChild(durationStepLabel);
+
+    const durationPillsRow = createEl('div', 'sim-duration-pills-row');
+    const durationPresets = [
+      { sec: 30, label: '30s Sprint' },
+      { sec: 60, label: '60s Standard' },
+      { sec: 120, label: '2m Extended' },
+      { sec: 300, label: '5m Full Crisis' }
+    ];
+    this.simDurationPillBtns.clear();
+    for (const dp of durationPresets) {
+      const pBtn = createEl(
+        'button',
+        `sim-duration-pill-btn${dp.sec === this.selectedDurationSec ? ' active' : ''}`,
+        dp.label
+      );
+      pBtn.type = 'button';
+      pBtn.addEventListener('click', () => {
+        this.setSelectedDurationSeconds(dp.sec);
+      });
+      this.simDurationPillBtns.set(dp.sec, pBtn);
+      durationPillsRow.appendChild(pBtn);
+    }
+    this.simPlanConfigSectionEl.appendChild(durationPillsRow);
+
+    const durationSliderRow = createEl('div', 'sim-duration-slider-row');
+    this.simDurationSliderEl = createEl('input', 'deco-mini-slider sim-duration-slider');
+    this.simDurationSliderEl.type = 'range';
+    this.simDurationSliderEl.min = '15';
+    this.simDurationSliderEl.max = '300';
+    this.simDurationSliderEl.step = '15';
+    this.simDurationSliderEl.value = String(this.selectedDurationSec);
+    this.simDurationSliderEl.addEventListener('input', () => {
+      this.setSelectedDurationSeconds(parseInt(this.simDurationSliderEl.value, 10) || 60);
+    });
+
+    this.simDurationReadoutEl = createEl(
+      'span',
+      'sim-duration-readout-pill',
+      '⏱ 60s Run • 3.0 hrs Simulated'
+    );
+    durationSliderRow.appendChild(this.simDurationSliderEl);
+    durationSliderRow.appendChild(this.simDurationReadoutEl);
+    this.simPlanConfigSectionEl.appendChild(durationSliderRow);
+
+    // Step 3: Prominent Launch Simulation CTA Button (The ONLY gateway into Simulate mode)
+    const launchStepLabel = createEl(
+      'div',
+      'sim-section-subhead',
+      'STEP 3 • LAUNCH LIVE SIMULATION'
+    );
+    this.simPlanConfigSectionEl.appendChild(launchStepLabel);
+
+    this.simLaunchLiveBtnEl = createEl(
+      'button',
+      'sim-launch-cta-btn',
+      `▶ Launch ${this.selectedDurationSec}s Live Simulation (Enter Simulate Mode) →`
+    );
+    this.simLaunchLiveBtnEl.type = 'button';
+    this.simLaunchLiveBtnEl.title =
+      'Lock in scenario and duration, transition to Simulate mode, and start the live city run';
+    this.simLaunchLiveBtnEl.addEventListener('click', () => {
+      this.launchSimulationFromPlan();
+    });
+    this.simPlanConfigSectionEl.appendChild(this.simLaunchLiveBtnEl);
+
+    headerCard.appendChild(this.simPlanConfigSectionEl);
+
+    // =========================================================================
+    // SECTION B: SIMULATE MODE LIVE RUN CONTROLS (Race Condition Dock Card)
+    // =========================================================================
+    this.simLiveRunSectionEl = createEl('div', 'sim-live-run-section');
+    this.simLiveRunSectionEl.style.display = 'none';
+
+    const liveTopRow = createEl('div', 'spot-top-row');
+    liveTopRow.appendChild(createEl('span', 'spot-category-tag', '⚡ 3. SIMULATE • RACE CONDITION ENGINE'));
+    const dockStatusPill = createEl('span', 'rc-status-pill running', '🔴 RUNNING');
+    this.rcStatusPillEls.push(dockStatusPill);
+    liveTopRow.appendChild(dockStatusPill);
+    this.simLiveRunSectionEl.appendChild(liveTopRow);
+
+    // Progress Track & Dual Clock Readouts inside Right Dock
+    const dockProgressBox = createEl('div', 'rc-dock-progress-box');
+    const dockClockRow = createEl('div', 'rc-dock-clock-row');
+    const dockTimerEl = createEl('span', 'rc-timer-readout', '00:00 / 01:00');
+    const dockSimHoursEl = createEl('span', 'rc-sim-hours-readout', '0h 00m simulated');
+    this.rcTimerReadoutEls.push(dockTimerEl);
+    this.rcSimHoursReadoutEls.push(dockSimHoursEl);
+    dockClockRow.appendChild(dockTimerEl);
+    dockClockRow.appendChild(dockSimHoursEl);
+    dockProgressBox.appendChild(dockClockRow);
+
+    const dockProgressTrack = createEl('div', 'rc-progress-track');
+    const dockProgressFill = createEl('div', 'rc-progress-fill');
+    this.rcProgressBarFillEls.push(dockProgressFill);
+    dockProgressTrack.appendChild(dockProgressFill);
+    dockProgressBox.appendChild(dockProgressTrack);
+    this.simLiveRunSectionEl.appendChild(dockProgressBox);
+
+    // Race Condition Run Controls Row (Pause/Run + Speed 1x/2x/4x)
+    const rcControlsRow = createEl('div', 'rc-dock-controls-row');
+    const dockPauseBtn = createEl('button', 'deco-btn rc-pause-btn', '❚❚ Pause');
+    dockPauseBtn.type = 'button';
+    dockPauseBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.togglePaused();
+      this.refreshSimulationTelemetryUI();
+    });
+    this.rcPauseBtns.push(dockPauseBtn);
+    rcControlsRow.appendChild(dockPauseBtn);
+
+    const speedGroup = createEl('div', 'rc-speed-group');
+    const speeds: (1 | 2 | 4)[] = [1, 2, 4];
+    for (const spd of speeds) {
+      const sBtn = createEl('button', `deco-btn rc-speed-btn${spd === 1 ? ' active' : ''}`, `${spd}×`);
+      sBtn.type = 'button';
+      sBtn.addEventListener('click', () => {
+        if (!this.surfaceSimulation) return;
+        this.surfaceSimulation.setSimSpeedMultiplier(spd);
+        this.refreshSimulationTelemetryUI();
+      });
+      const existing = this.rcSpeedBtns.get(spd) ?? [];
+      existing.push(sBtn);
+      this.rcSpeedBtns.set(spd, existing);
+      speedGroup.appendChild(sBtn);
+    }
+    rcControlsRow.appendChild(speedGroup);
+    this.simLiveRunSectionEl.appendChild(rcControlsRow);
+
+    // Complete Now & Cancel/End Simulation Actions
+    const rcLifecycleRow = createEl('div', 'rc-dock-lifecycle-row');
+
+    const completeNowBtn = createEl(
+      'button',
+      'deco-btn rc-complete-now-btn',
+      '📊 Complete & Score Now (A2UI)'
+    );
+    completeNowBtn.type = 'button';
+    completeNowBtn.title =
+      'Finish the simulation immediately and compile the A2UI Post-Simulation Report Card';
+    completeNowBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.completeSimulationRun();
+    });
+    rcLifecycleRow.appendChild(completeNowBtn);
+
+    const viewReportBtn = createEl(
+      'button',
+      'deco-btn rc-open-report-btn',
+      '📋 View A2UI Report Card'
+    );
+    viewReportBtn.type = 'button';
+    viewReportBtn.style.display = 'none';
+    viewReportBtn.addEventListener('click', () => {
+      const report = this.surfaceSimulation?.getLastReportCard();
+      if (report) {
+        this.renderAndOpenA2uiReportModal(report);
+      }
+    });
+    this.rcOpenReportBtns.push(viewReportBtn);
+    rcLifecycleRow.appendChild(viewReportBtn);
+
+    const cancelEndBtn = createEl(
+      'button',
+      'rc-cancel-end-btn',
+      '⏹ Cancel / End Simulation (Unlock Learn & Plan)'
+    );
+    cancelEndBtn.type = 'button';
+    cancelEndBtn.addEventListener('click', () => {
+      this.cancelOrEndSimulation('plan');
+    });
+    rcLifecycleRow.appendChild(cancelEndBtn);
+
+    this.simLiveRunSectionEl.appendChild(rcLifecycleRow);
+    headerCard.appendChild(this.simLiveRunSectionEl);
+
+    // =========================================================================
+    // SECTION C: SHARED SCENARIO BRIEF, 4 KPIs, MITIGATION & 3D LAYER TOGGLES
+    // =========================================================================
+    this.simDomainTitleEl = createEl(
+      'h2',
+      'chronicle-title spot-title',
+      '🏃 Marathon de Paris (42.195 km Planning → Live)'
+    );
+    headerCard.appendChild(this.simDomainTitleEl);
+
+    this.simDomainDescEl = createEl(
+      'p',
+      'chronicle-body spot-desc',
+      'Phase 1 predicts boulevard choke points (Rivoli, Bastille, Alma, Trocadéro) & Metro spillover. Phase 2 closes 19 crossing axes, launches 220 runners, and records live detours.'
+    );
+    headerCard.appendChild(this.simDomainDescEl);
+
+    this.simPhaseStatusBannerEl = createEl(
+      'div',
+      'sim-phase-status-banner',
+      '📋 PHASE 1 (PLANNING FORECAST): 3D Forecast Domes & Choke-Point Warnings active on the Paris map.'
+    );
+    headerCard.appendChild(this.simPhaseStatusBannerEl);
+
+    // 4 Dynamic Domain KPIs Grid
+    const telemetryGrid = createEl('div', 'sim-telemetry-grid');
+    this.simKpiCells = [];
+    for (let i = 0; i < 4; i++) {
+      const cell = createEl('div', 'sim-telemetry-cell');
+      const labelEl = createEl('span', 'sim-telemetry-label', 'METRIC');
+      const valEl = createEl('span', 'sim-telemetry-val', '--');
+      cell.appendChild(labelEl);
+      cell.appendChild(valEl);
+      telemetryGrid.appendChild(cell);
+      this.simKpiCells.push({ labelEl, valEl, cellEl: cell });
+    }
+    headerCard.appendChild(telemetryGrid);
+
+    // 1-Click Mitigation Action Button (Available in Plan to test forecast or in Simulate to intervene live)
+    this.simMitigationBtnEl = createEl(
+      'button',
+      'deco-btn sim-mitigation-btn',
+      '🛡 Deploy Pre-Event Mitigation (Green-Wave, Flood Barriers & Mobile ICU)'
+    );
+    this.simMitigationBtnEl.type = 'button';
+    this.simMitigationBtnEl.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.toggleMitigation();
+      this.rebuildWorldHotspotCalloutPins();
+      this.refreshSimulationTelemetryUI();
+    });
+    headerCard.appendChild(this.simMitigationBtnEl);
+
+    // Compact 3D Layer Toggles
+    const togglesWrap = createEl('div', 'explorer-filter-chips sim-layer-toggles');
+
+    this.simTrafficLightsBtn = createEl('button', 'explorer-chip-btn active', '🚦 Signals');
+    this.simTrafficLightsBtn.title = 'Toggle 3D multi-phase traffic signal masts at Parisian carrefours';
+    this.simTrafficLightsBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const t = this.surfaceSimulation.getTelemetry();
+      this.surfaceSimulation.setSignalsEnabled(!t.signalsEnabled);
+      this.refreshSimulationTelemetryUI();
+    });
+
+    this.simCongestionBtn = createEl('button', 'explorer-chip-btn active', '🔥 Congestion');
+    this.simCongestionBtn.title = 'Toggle boulevard congestion heat ribbons and 3D vertical congestion columns';
+    this.simCongestionBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const t = this.surfaceSimulation.getTelemetry();
+      this.surfaceSimulation.setCongestionHeatmapEnabled(!t.congestionHeatmapEnabled);
+      this.refreshSimulationTelemetryUI();
+    });
+
+    this.simMarathonBtn = createEl('button', 'explorer-chip-btn active', '🏃 Course');
+    this.simMarathonBtn.title = 'Toggle the 42.195 km Marathon de Paris course and 220 autopilot runners';
+    this.simMarathonBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const next = !this.surfaceSimulation.marathonGroup.visible;
+      this.surfaceSimulation.marathonGroup.visible = next;
+      this.simMarathonBtn.classList.toggle('active', next);
+      this.refreshSimulationTelemetryUI();
+    });
+
+    this.simBarriersBtn = createEl('button', 'explorer-chip-btn', '🚧 Closures');
+    this.simBarriersBtn.title = 'Close crossing streets along the crisis corridor and force Dijkstra vehicle rerouting';
+    this.simBarriersBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const t = this.surfaceSimulation.getTelemetry();
+      this.surfaceSimulation.setMarathonClosuresEnabled(!t.marathonClosuresEnabled);
+      this.refreshSimulationTelemetryUI();
+    });
+
+    this.simProbesBtn = createEl('button', 'explorer-chip-btn active', '💎 Beacons');
+    this.simProbesBtn.title = 'Toggle 3D floating beacons above Tier 2 Spotlighted Hero Probes';
+    this.simProbesBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const next = !this.surfaceSimulation.probesGroup.visible;
+      this.surfaceSimulation.probesGroup.visible = next;
+      this.simProbesBtn.classList.toggle('active', next);
+    });
+
+    const minusCarsBtn = createEl('button', 'explorer-chip-btn', '−40 Cars');
+    minusCarsBtn.title = 'Reduce autonomous surface vehicle fleet by 40 cars';
+    minusCarsBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.adjustCarCount(-40);
+      this.refreshSimulationTelemetryUI();
+    });
+
+    const plusCarsBtn = createEl('button', 'explorer-chip-btn', '+40 Cars');
+    plusCarsBtn.title = 'Increase autonomous surface vehicle fleet by 40 cars (up to 320)';
+    plusCarsBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.adjustCarCount(40);
+      this.refreshSimulationTelemetryUI();
+    });
+
+    togglesWrap.appendChild(this.simTrafficLightsBtn);
+    togglesWrap.appendChild(this.simCongestionBtn);
+    togglesWrap.appendChild(this.simMarathonBtn);
+    togglesWrap.appendChild(this.simBarriersBtn);
+    togglesWrap.appendChild(this.simProbesBtn);
+    togglesWrap.appendChild(minusCarsBtn);
+    togglesWrap.appendChild(plusCarsBtn);
+    headerCard.appendChild(togglesWrap);
+
+    pane.appendChild(headerCard);
+
+    // 2. Clean Sub-Tab Bar (Hotspots | Event Log | AI Agents) so only one list shows at a time
+    const subTabsBar = createEl('div', 'sim-subtabs-row');
+    const subTabsConfig: { id: 'hotspots' | 'events' | 'agents'; label: string }[] = [
+      { id: 'hotspots', label: '📍 Hotspots' },
+      { id: 'events', label: '📜 Event Log' },
+      { id: 'agents', label: '🧠 AI Agents' }
+    ];
+
+    this.simSubTabBtns.clear();
+    this.simSubTabPanes.clear();
+
+    for (const st of subTabsConfig) {
+      const btn = createEl(
+        'button',
+        `sim-subtab-btn${this.simActiveSubTab === st.id ? ' active' : ''}`,
+        st.label
+      );
+      btn.type = 'button';
+      btn.addEventListener('click', () => {
+        this.switchSimSubTab(st.id);
+      });
+      this.simSubTabBtns.set(st.id, btn);
+      subTabsBar.appendChild(btn);
+    }
+    pane.appendChild(subTabsBar);
+
+    // 3. Scrollable Sub-Tab Content Area
+    const feedScroll = createEl('div', 'sim-agents-scroll');
+
+    // Sub-Tab Pane A: Hotspots (Warnings & Active 3D Impact Zones)
+    const hotspotsPane = createEl('div', 'sim-subtab-pane');
+    this.simHotspotsHeaderEl = createEl(
+      'div',
+      'tour-list-header',
+      '3D MAP HOTSPOTS • CLICK ANY ZONE TO FLY CAMERA'
+    );
+    hotspotsPane.appendChild(this.simHotspotsHeaderEl);
+    this.simHotspotsListEl = createEl('div', 'sim-hotspots-list');
+    hotspotsPane.appendChild(this.simHotspotsListEl);
+    this.simSubTabPanes.set('hotspots', hotspotsPane);
+    feedScroll.appendChild(hotspotsPane);
+
+    // Sub-Tab Pane B: Chronological Event Log
+    const eventsPane = createEl('div', 'sim-subtab-pane');
+    eventsPane.style.display = 'none';
+    this.simEventLogHeaderEl = createEl(
+      'div',
+      'tour-list-header',
+      'CHRONOLOGICAL SIMULATION EVENT LOG (WHAT HAPPENED)'
+    );
+    eventsPane.appendChild(this.simEventLogHeaderEl);
+    this.simEventLogListEl = createEl('div', 'sim-event-log-list');
+    eventsPane.appendChild(this.simEventLogListEl);
+    this.simSubTabPanes.set('events', eventsPane);
+    feedScroll.appendChild(eventsPane);
+
+    // Sub-Tab Pane C: AI Agents (Tier 2 Hero Probes + Tier 3 Macro-Controllers)
+    const agentsPane = createEl('div', 'sim-subtab-pane');
+    agentsPane.style.display = 'none';
+    const tier3Header = createEl(
+      'div',
+      'tour-list-header',
+      'TIER 3 • CITY MACRO-CONTROLLERS (A2UI DISPATCH)'
+    );
+    agentsPane.appendChild(tier3Header);
+    this.simMacroListEl = createEl('div', 'sim-macro-list');
+    agentsPane.appendChild(this.simMacroListEl);
+
+    const tier2Header = createEl(
+      'div',
+      'tour-list-header',
+      'TIER 2 • SPOTLIGHTED HERO PROBES (CLICK TO FLY)'
+    );
+    agentsPane.appendChild(tier2Header);
+    this.simProbesListEl = createEl('div', 'sim-probes-list');
+    agentsPane.appendChild(this.simProbesListEl);
+    this.simSubTabPanes.set('agents', agentsPane);
+    feedScroll.appendChild(agentsPane);
+
+    pane.appendChild(feedScroll);
+    return pane;
+  }
+
+  private switchSimSubTab(tabId: 'hotspots' | 'events' | 'agents'): void {
+    this.simActiveSubTab = tabId;
+    for (const [id, btn] of this.simSubTabBtns.entries()) {
+      btn.classList.toggle('active', id === tabId);
+    }
+    for (const [id, pane] of this.simSubTabPanes.entries()) {
+      pane.style.display = id === tabId ? '' : 'none';
+    }
+  }
+
+  private focusHeroProbe(probe: ParisHeroProbe): void {
+    this.activeHeroProbeId = probe.id;
+    this.hideSpecialStationInteriorCard();
+    if (this.callbacks.onFocusWorldPoint) {
+      const numericHex = parseInt(probe.colorHex.replace('#', ''), 16) || 0xf4c430;
+      this.callbacks.onFocusWorldPoint(
+        probe.position.x,
+        probe.position.y,
+        probe.position.z,
+        numericHex
+      );
+    }
+    this.refreshSimulationTelemetryUI();
+  }
+
+  private focusEventLogItem(ev: ParisSimulationEventLogItem): void {
+    this.hideSpecialStationInteriorCard();
+    if (this.callbacks.onFocusWorldPoint) {
+      const colorHex =
+        ev.severity === 'critical' ? 0xff3b3b : ev.severity === 'warning' ? 0xffa726 : 0x38bdf8;
+      this.callbacks.onFocusWorldPoint(ev.x, 0.8, ev.z, colorHex);
+    }
+  }
+
+  public refreshSimulationTelemetryUI(): void {
+    if (!this.surfaceSimulation) return;
+    const t = this.surfaceSimulation.getTelemetry();
+
+    // Sync scenario cards in Explorer
+    const activeScenarioCardId = t.mode === 'none' ? this.selectedPlanScenario : t.mode;
+    for (const [id, btn] of this.simModeBtns.entries()) {
+      const active = id === activeScenarioCardId;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+
+    // Sync Race Condition Timer, Progress Bar, Pause/Run & Speed buttons across Dock & Bottom Console
+    const elapsedClock = this.formatClockMmSs(t.runElapsedSec);
+    const targetClock = this.formatClockMmSs(t.targetDurationSec);
+    const timerStr = `${elapsedClock} / ${targetClock}`;
+    const simHoursStr = `⏱ ${t.simulatedElapsedHours}h ${String(t.simulatedElapsedMins).padStart(2, '0')}m simulated`;
+
+    for (const el of this.rcTimerReadoutEls) {
+      el.textContent = timerStr;
+    }
+    for (const el of this.rcSimHoursReadoutEls) {
+      el.textContent = simHoursStr;
+    }
+    for (const fillEl of this.rcProgressBarFillEls) {
+      fillEl.style.width = `${t.runProgressPct.toFixed(1)}%`;
+    }
+    for (const pauseBtn of this.rcPauseBtns) {
+      if (t.isCompleted) {
+        pauseBtn.textContent = '✅ Done';
+        pauseBtn.classList.remove('active');
+      } else if (t.isPaused) {
+        pauseBtn.textContent = '▶ Run';
+        pauseBtn.classList.add('active');
+      } else {
+        pauseBtn.textContent = '❚❚ Pause';
+        pauseBtn.classList.remove('active');
+      }
+    }
+    for (const [spd, btns] of this.rcSpeedBtns.entries()) {
+      for (const b of btns) {
+        b.classList.toggle('active', spd === t.simSpeedMultiplier);
+      }
+    }
+    for (const pillEl of this.rcStatusPillEls) {
+      if (t.isCompleted) {
+        pillEl.className = 'rc-status-pill completed';
+        pillEl.textContent = '✅ COMPLETED';
+      } else if (t.isPaused) {
+        pillEl.className = 'rc-status-pill paused';
+        pillEl.textContent = '⏸ PAUSED';
+      } else {
+        pillEl.className = 'rc-status-pill running';
+        pillEl.textContent = `🔴 RUNNING (${t.simSpeedMultiplier}×)`;
+      }
+    }
+    for (const repBtn of this.rcOpenReportBtns) {
+      repBtn.style.display = t.isCompleted ? 'inline-flex' : 'none';
+    }
+
+    // Domain Titles & Descriptions
+    const domainMeta: Record<ParisSimulationModeId, { title: string; desc: string }> = {
+      none: {
+        title: 'Select a Scenario Above to Begin',
+        desc: 'Pick any of the 6 Paris scenarios above (Traffic, Marathon 42K, Heat Wave, Protest/Riot, Seine Flood, or Cyberattack) to inspect Phase 1 Planning forecasts or launch Phase 2 Live Simulation.'
+      },
+      traffic: {
+        title: '🚗 Boulevard Traffic & Commuter Congestion',
+        desc: 'Simulates 260+ autonomous vehicles, 300 pedestrian commuters between the 6 Grandes Gares, multi-phase carrefour signals, and 3D vertical congestion columns.'
+      },
+      marathon: {
+        title: '🏃 Marathon de Paris (42.195 km Planning → Live)',
+        desc: 'Phase 1 predicts boulevard choke points (Rivoli, Bastille, Alma, Trocadéro) & Metro spillover. Phase 2 closes 19 crossing axes, launches 220 runners, and records live detours.'
+      },
+      heatwave: {
+        title: '🔥 Extreme 44°C Canicule — SAMU & ICU Surge',
+        desc: 'Phase 1 forecasts Urban Heat Islands (+6.5°C) and ICU saturation. Phase 2 dispatches SAMU 75 ambulances and visualizes overwhelmed AP-HP hospitals (Hôtel-Dieu, Lariboisière, Pitié).'
+      },
+      protest: {
+        title: '🪧 Manifestation & Urban Unrest (République → Nation)',
+        desc: 'Phase 1 predicts storefront looting risk and arterial severing. Phase 2 simulates the marching cortège, burning commercial buildings with 3D fire/smoke plumes, and Pompiers response.'
+      },
+      flood: {
+        title: '🌊 Centenary Crue de la Seine (+8.60m Flood)',
+        desc: 'Phase 1 maps low-lying Quais and under-river Metro flood risk. Phase 2 raises 3D Seine floodwaters across Bercy, Louvre/Orsay, Alma, and Javel and seals 18 Metro stations.'
+      },
+      cyberattack: {
+        title: '💻 SCADA Cyberattack — Signal Spoofing & Blackout',
+        desc: 'Phase 1 identifies SCADA signal and CBTC rail vulnerabilities. Phase 2 triggers flashing carrefour conflict gridlock, halts automated Metro Lines 1/4/14, and blacks out 3 districts.'
+      }
+    };
+
+    const meta = domainMeta[activeScenarioCardId] ?? domainMeta.marathon;
+    if (this.simDomainTitleEl) this.simDomainTitleEl.textContent = meta.title;
+    if (this.simDomainDescEl) this.simDomainDescEl.textContent = meta.desc;
+
+    if (this.simPhaseStatusBannerEl) {
+      this.simPhaseStatusBannerEl.className = `sim-phase-status-banner phase-${t.phase}`;
+      this.simPhaseStatusBannerEl.textContent =
+        t.phase === 'planning'
+          ? '📋 PHASE 1 (PLANNING FORECAST): Showing predicted choke points & 3D warning domes before the event.'
+          : t.isCompleted
+            ? '✅ SIMULATION COMPLETED: Review the A2UI Report Card or click "⏹ Cancel / End Simulation" to return.'
+            : '🔴 PHASE 2 (LIVE SIMULATION): Organic 3D city impact active — recording live traffic, dispatches & cascading events.';
+    }
+
+    if (this.simMitigationBtnEl) {
+      this.simMitigationBtnEl.classList.toggle('active', t.mitigationActive);
+      this.simMitigationBtnEl.textContent = t.mitigationActive
+        ? '✅ Pre-Event Mitigation ACTIVE (Green-Wave, Mobile ICU & Flood Barriers)'
+        : '🛡 Deploy Pre-Event Mitigation (Reduce Congestion, ICU Load & Flood Risk)';
+    }
+
+    // Populate 4 Dynamic Domain KPIs
+    const kpiEntries: { label: string; value: string; tone: string }[] = [
+      {
+        label: t.kpi1Label,
+        value: t.kpi1Value,
+        tone: t.phase === 'live' ? 'critical' : 'warning'
+      },
+      {
+        label: t.kpi2Label,
+        value: t.kpi2Value,
+        tone: t.mitigationActive ? 'nominal' : t.phase === 'live' ? 'critical' : 'warning'
+      },
+      {
+        label: t.kpi3Label,
+        value: t.kpi3Value,
+        tone: t.congestionIndexPct >= 65 ? 'critical' : 'warning'
+      },
+      {
+        label: t.kpi4Label,
+        value: t.kpi4Value,
+        tone: t.mitigationActive ? 'nominal' : 'warning'
+      }
+    ];
+    for (let i = 0; i < this.simKpiCells.length; i++) {
+      const kpi = kpiEntries[i];
+      const cell = this.simKpiCells[i];
+      if (!kpi || !cell) continue;
+      cell.labelEl.textContent = kpi.label;
+      cell.valEl.textContent = kpi.value;
+      cell.cellEl.className = `sim-telemetry-cell tone-${kpi.tone}`;
+    }
+
+    // Sync toggle chip states
+    if (this.simTrafficLightsBtn) {
+      this.simTrafficLightsBtn.classList.toggle('active', t.signalsEnabled);
+    }
+    if (this.simCongestionBtn) {
+      this.simCongestionBtn.classList.toggle('active', t.congestionHeatmapEnabled);
+    }
+    if (this.simMarathonBtn) {
+      this.simMarathonBtn.classList.toggle('active', this.surfaceSimulation.marathonGroup.visible);
+    }
+    if (this.simBarriersBtn) {
+      this.simBarriersBtn.classList.toggle('active', t.closedEdgesCount > 0);
+    }
+
+    // Update Sub-Tab button counts
+    const hotspots = this.surfaceSimulation.getActiveWorldHotspots();
+    const events = this.surfaceSimulation.getEventLog();
+    const hotspotsSubBtn = this.simSubTabBtns.get('hotspots');
+    if (hotspotsSubBtn) {
+      hotspotsSubBtn.textContent = `📍 Hotspots (${hotspots.length})`;
+    }
+    const eventsSubBtn = this.simSubTabBtns.get('events');
+    if (eventsSubBtn) {
+      eventsSubBtn.textContent = `📜 Event Log (${events.length})`;
+    }
+    const agentsSubBtn = this.simSubTabBtns.get('agents');
+    if (agentsSubBtn) {
+      agentsSubBtn.textContent = `🧠 AI Agents (${this.surfaceSimulation.heroProbes.length})`;
+    }
+
+    // Render Sub-Tab 1: 3D Map Hotspots list (Predicted Warnings in Planning -> Active Impacts in Live)
+    if (this.simHotspotsListEl) {
+      this.simHotspotsHeaderEl.textContent =
+        t.phase === 'planning'
+          ? `🔮 PREDICTED CHOKE POINTS & WARNINGS (${hotspots.length} SITES)`
+          : `🔴 ACTIVE 3D WORLD IMPACT ZONES (${hotspots.length} SITES)`;
+      this.simHotspotsListEl.replaceChildren();
+
+      for (const h of hotspots) {
+        const card = createEl(
+          'button',
+          `sim-hotspot-card severity-${h.severity}${h.id === this.activeHotspotId ? ' active' : ''}`
+        );
+        card.type = 'button';
+        card.style.borderLeftColor = h.colorHex;
+
+        const top = createEl('div', 'sim-probe-top');
+        top.appendChild(createEl('span', 'sim-probe-name', h.title));
+        const badge = createEl('span', 'sim-probe-badge', h.metricBadge);
+        badge.style.borderColor = h.colorHex;
+        badge.style.color = h.colorHex;
+        top.appendChild(badge);
+        card.appendChild(top);
+
+        const bodyText =
+          t.phase === 'planning'
+            ? `🔮 Forecast: ${h.planningPrediction}`
+            : `⚡ Live Impact: ${h.liveStatus}`;
+        card.appendChild(createEl('div', 'sim-hotspot-body', bodyText));
+
+        card.addEventListener('click', () => {
+          this.focusWorldHotspot(h);
+        });
+        this.simHotspotsListEl.appendChild(card);
+      }
+    }
+
+    // Render Sub-Tab 2: Chronological Event Log (What Happened / Forecast Timeline)
+    if (this.simEventLogListEl) {
+      this.simEventLogHeaderEl.textContent =
+        t.phase === 'planning'
+          ? `📋 SIMULATION FORECAST TIMELINE (${events.length} ENTRIES)`
+          : `📜 LIVE RECORDED EVENT LOG — WHAT HAPPENED (${events.length} EVENTS)`;
+      this.simEventLogListEl.replaceChildren();
+
+      for (const ev of events) {
+        const row = createEl('button', `sim-event-log-item severity-${ev.severity}`);
+        row.type = 'button';
+
+        const top = createEl('div', 'sim-event-log-top');
+        top.appendChild(createEl('span', 'sim-event-time', ev.simTimeLabel));
+        top.appendChild(createEl('span', 'sim-event-title', ev.headline));
+        row.appendChild(top);
+
+        row.appendChild(createEl('div', 'sim-event-detail', ev.detail));
+        row.appendChild(createEl('div', 'sim-event-loc', `📍 ${ev.category} — Click to fly`));
+
+        row.addEventListener('click', () => {
+          this.focusEventLogItem(ev);
+        });
+        this.simEventLogListEl.appendChild(row);
+      }
+    }
+
+    // Render Sub-Tab 3: Tier 3 Macro-Controller A2UI Cards + Tier 2 Hero Probes
+    if (this.simMacroListEl) {
+      const macros = this.surfaceSimulation.getMacroControllerCards();
+      this.simMacroListEl.replaceChildren();
+      for (const m of macros) {
+        const severityClass =
+          m.status === 'intervention'
+            ? 'critical'
+            : m.status === 'advisory'
+              ? 'advisory'
+              : 'nominal';
+        const card = createEl('div', `sim-macro-card severity-${severityClass}`);
+        const top = createEl('div', 'sim-macro-top');
+        top.appendChild(createEl('span', 'sim-macro-agent', m.agentName));
+        top.appendChild(createEl('span', 'sim-macro-authority', m.roleBadge));
+        card.appendChild(top);
+
+        card.appendChild(createEl('div', 'sim-macro-headline', m.headline));
+        card.appendChild(createEl('div', 'sim-macro-impact', m.recommendation));
+        card.appendChild(createEl('div', 'sim-macro-action', `📊 ${m.metricSummary}`));
+
+        const dispatchRow = createEl('div', 'sim-probe-actions');
+        const dispatchBtn = createEl('button', 'deco-btn sim-fly-probe-btn', `⚡ ${m.actionLabel}`);
+        dispatchBtn.type = 'button';
+        dispatchBtn.addEventListener('click', () => {
+          if (!this.surfaceSimulation) return;
+          this.surfaceSimulation.toggleMitigation();
+          this.rebuildWorldHotspotCalloutPins();
+          this.refreshSimulationTelemetryUI();
+        });
+        dispatchRow.appendChild(dispatchBtn);
+        card.appendChild(dispatchRow);
+
+        this.simMacroListEl.appendChild(card);
+      }
+    }
+
+    if (this.simProbesListEl) {
+      const probes = this.surfaceSimulation.heroProbes;
+      this.simProbesListEl.replaceChildren();
+      for (const p of probes) {
+        const card = createEl(
+          'div',
+          `sim-probe-card${p.id === this.activeHeroProbeId ? ' active' : ''}`
+        );
+        card.style.borderLeftColor = p.colorHex;
+
+        const top = createEl('div', 'sim-probe-top');
+        const nameWrap = createEl('div', 'sim-probe-title-wrap');
+        nameWrap.appendChild(createEl('span', 'sim-probe-name', p.name));
+        nameWrap.appendChild(createEl('span', 'sim-probe-role', p.role));
+        top.appendChild(nameWrap);
+
+        const badge = createEl('span', 'sim-probe-badge', p.statusBadge);
+        badge.style.borderColor = p.colorHex;
+        badge.style.color = p.colorHex;
+        top.appendChild(badge);
+        card.appendChild(top);
+
+        const metaRow = createEl('div', 'sim-probe-meta-row');
+        metaRow.appendChild(createEl('span', 'sim-probe-loc', `📍 ${p.locationLabel}`));
+        metaRow.appendChild(
+          createEl('span', 'sim-probe-metrics', `${p.metricPrimary} • ${p.metricSecondary}`)
+        );
+        card.appendChild(metaRow);
+
+        const currentThought =
+          p.innerThoughts[p.currentThoughtIdx % p.innerThoughts.length] ?? '';
+        const thoughtBox = createEl('div', 'sim-probe-thought');
+        thoughtBox.appendChild(createEl('span', 'sim-thought-prefix', '🧠 inner_thought: '));
+        thoughtBox.appendChild(createEl('span', 'sim-thought-text', `"${currentThought}"`));
+        card.appendChild(thoughtBox);
+
+        const actionRow = createEl('div', 'sim-probe-actions');
+        const flyBtn = createEl('button', 'deco-btn sim-fly-probe-btn', '🎯 Fly to Live Probe');
+        flyBtn.type = 'button';
+        flyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.focusHeroProbe(p);
+        });
+        actionRow.appendChild(flyBtn);
+        card.appendChild(actionRow);
+
+        card.addEventListener('click', () => {
+          this.focusHeroProbe(p);
+        });
+
+        this.simProbesListEl.appendChild(card);
+      }
+    }
+  }
+
   private buildBottomTimelineBar(): HTMLElement {
     const bottom = createEl('footer', 'hud-bottom-bar');
+
+    // =========================================================================
+    // 1. HISTORICAL TIMELINE CONSOLE (1900-2026) — Visible in LEARN & PLAN modes
+    // =========================================================================
     const consolePanel = createEl('div', 'deco-panel timeline-console hud-interactive');
     attachDecoCorners(consolePanel);
+    this.historicalTimelineConsoleEl = consolePanel;
 
-    // Top Row inside Timeline Console: Transport Controls + Event Headline + Legend
     const topRow = createEl('div', 'timeline-top-row');
-
     const transport = createEl('div', 'timeline-transport-controls');
 
     const stepBackBtn = createEl('button', 'deco-btn', '◀ -1');
@@ -2937,14 +4286,12 @@ export class ArtDecoHUD {
     transport.appendChild(speedBtn);
     transport.appendChild(ghostBtn);
 
-    // Center Historical Event Banner
     const eventBanner = createEl('div', 'timeline-event-banner');
     this.eventYearPillEl = createEl('span', 'event-year-pill', '2026');
     this.eventHeadlineEl = createEl('span', '', '');
     eventBanner.appendChild(this.eventYearPillEl);
     eventBanner.appendChild(this.eventHeadlineEl);
 
-    // Right Legend Pills
     const legend = createEl('div', 'timeline-legend-pills');
     const l1 = createEl('span');
     l1.appendChild(createEl('span', 'legend-dot active-station'));
@@ -2966,7 +4313,6 @@ export class ArtDecoHUD {
     topRow.appendChild(eventBanner);
     topRow.appendChild(legend);
 
-    // Slider Track + Clickable Historical Milestones
     const sliderWrapper = createEl('div', 'timeline-slider-wrapper');
     this.timelineInput = createEl('input', 'timeline-range-input');
     this.timelineInput.type = 'range';
@@ -3003,7 +4349,352 @@ export class ArtDecoHUD {
     consolePanel.appendChild(topRow);
     consolePanel.appendChild(sliderWrapper);
     bottom.appendChild(consolePanel);
+
+    // =========================================================================
+    // 2. RACE CONDITION SIMULATION CONSOLE — Visible in SIMULATE mode
+    // =========================================================================
+    const rcConsole = createEl('div', 'deco-panel rc-sim-console hud-interactive');
+    attachDecoCorners(rcConsole);
+    rcConsole.style.display = 'none';
+    this.simBottomConsoleEl = rcConsole;
+
+    // Left: Pause/Run + Speed (1x, 2x, 4x)
+    const rcLeftGroup = createEl('div', 'rc-console-left');
+    const bottomPauseBtn = createEl('button', 'deco-btn rc-pause-btn', '❚❚ Pause');
+    bottomPauseBtn.type = 'button';
+    bottomPauseBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.togglePaused();
+      this.refreshSimulationTelemetryUI();
+    });
+    this.rcPauseBtns.push(bottomPauseBtn);
+    rcLeftGroup.appendChild(bottomPauseBtn);
+
+    const bottomSpeedGroup = createEl('div', 'rc-speed-group');
+    const rcSpeeds: (1 | 2 | 4)[] = [1, 2, 4];
+    for (const spd of rcSpeeds) {
+      const sBtn = createEl('button', `deco-btn rc-speed-btn${spd === 1 ? ' active' : ''}`, `${spd}×`);
+      sBtn.type = 'button';
+      sBtn.addEventListener('click', () => {
+        if (!this.surfaceSimulation) return;
+        this.surfaceSimulation.setSimSpeedMultiplier(spd);
+        this.refreshSimulationTelemetryUI();
+      });
+      const existing = this.rcSpeedBtns.get(spd) ?? [];
+      existing.push(sBtn);
+      this.rcSpeedBtns.set(spd, existing);
+      bottomSpeedGroup.appendChild(sBtn);
+    }
+    rcLeftGroup.appendChild(bottomSpeedGroup);
+    rcConsole.appendChild(rcLeftGroup);
+
+    // Center: Status Pill + Progress Bar + Real/Simulated Clock Readout
+    const rcCenterGroup = createEl('div', 'rc-console-center');
+    const rcCenterTop = createEl('div', 'rc-console-center-top');
+    const bottomStatusPill = createEl('span', 'rc-status-pill running', '🔴 RUNNING');
+    this.rcStatusPillEls.push(bottomStatusPill);
+    const bottomTimerEl = createEl('span', 'rc-timer-readout', '00:00 / 01:00');
+    this.rcTimerReadoutEls.push(bottomTimerEl);
+    const bottomSimHoursEl = createEl('span', 'rc-sim-hours-readout', '⏱ 0h 00m simulated');
+    this.rcSimHoursReadoutEls.push(bottomSimHoursEl);
+
+    rcCenterTop.appendChild(bottomStatusPill);
+    rcCenterTop.appendChild(bottomTimerEl);
+    rcCenterTop.appendChild(bottomSimHoursEl);
+    rcCenterGroup.appendChild(rcCenterTop);
+
+    const bottomProgressTrack = createEl('div', 'rc-progress-track');
+    const bottomProgressFill = createEl('div', 'rc-progress-fill');
+    this.rcProgressBarFillEls.push(bottomProgressFill);
+    bottomProgressTrack.appendChild(bottomProgressFill);
+    rcCenterGroup.appendChild(bottomProgressTrack);
+    rcConsole.appendChild(rcCenterGroup);
+
+    // Right: Race Condition Camera Controls + Complete & Score + Cancel/End Simulation
+    const rcRightGroup = createEl('div', 'rc-console-right');
+
+    const followLeadBtn = createEl('button', 'deco-btn', '🎯 Follow Lead Probe');
+    followLeadBtn.type = 'button';
+    followLeadBtn.title = 'Focus camera on the primary hero probe for this scenario';
+    followLeadBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const probes = this.surfaceSimulation.heroProbes;
+      if (probes.length > 0) {
+        this.focusHeroProbe(probes[0]);
+      }
+    });
+    rcRightGroup.appendChild(followLeadBtn);
+
+    const feelingLuckyBtn = createEl('button', 'deco-btn', '🎲 Feeling Lucky');
+    feelingLuckyBtn.type = 'button';
+    feelingLuckyBtn.title = 'Jump camera to a random active hotspot or hero probe across Paris';
+    feelingLuckyBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      const hotspots = this.surfaceSimulation.getActiveWorldHotspots();
+      const probes = this.surfaceSimulation.heroProbes;
+      if (hotspots.length > 0 && Math.random() < 0.55) {
+        const pick = hotspots[Math.floor(Math.random() * hotspots.length)];
+        this.focusWorldHotspot(pick);
+      } else if (probes.length > 0) {
+        const pick = probes[Math.floor(Math.random() * probes.length)];
+        this.focusHeroProbe(pick);
+      }
+    });
+    rcRightGroup.appendChild(feelingLuckyBtn);
+
+    const bottomCompleteBtn = createEl('button', 'deco-btn rc-complete-now-btn', '📊 Complete & Score');
+    bottomCompleteBtn.type = 'button';
+    bottomCompleteBtn.title = 'Finish the simulation run now and open the A2UI Report Card';
+    bottomCompleteBtn.addEventListener('click', () => {
+      if (!this.surfaceSimulation) return;
+      this.surfaceSimulation.completeSimulationRun();
+    });
+    rcRightGroup.appendChild(bottomCompleteBtn);
+
+    const bottomCancelBtn = createEl('button', 'rc-cancel-end-btn', '⏹ Cancel / End Simulation');
+    bottomCancelBtn.type = 'button';
+    bottomCancelBtn.title = 'End the active simulation and unlock Learn and Plan modes';
+    bottomCancelBtn.addEventListener('click', () => {
+      this.cancelOrEndSimulation('plan');
+    });
+    rcRightGroup.appendChild(bottomCancelBtn);
+
+    rcConsole.appendChild(rcRightGroup);
+    bottom.appendChild(rcConsole);
+
     return bottom;
+  }
+
+  /**
+   * Renders the Post-Simulation Report Card generated via A2UI v0.8 `surfaceUpdate` component graph
+   * (modeled on Race Condition's `completing-the-race` A2UI surface) and opens the modal overlay.
+   */
+  public renderAndOpenA2uiReportModal(report: ParisSimulationReportCard): void {
+    if (!this.a2uiReportModalEl) return;
+    this.a2uiReportModalEl.replaceChildren();
+    this.a2uiReportModalEl.style.display = 'flex';
+
+    const modalCard = createEl('div', 'deco-panel a2ui-report-card hud-interactive');
+    attachDecoCorners(modalCard);
+
+    // Top Header Bar with A2UI Protocol Badge + Resilience Grade Badge
+    const topBar = createEl('div', 'a2ui-modal-topbar');
+    const protocolLeft = createEl('div', 'a2ui-protocol-left');
+    protocolLeft.appendChild(
+      createEl('span', 'a2ui-protocol-pill', '✨ A2UI v0.8 • SURFACE UPDATE REPORT CARD')
+    );
+    protocolLeft.appendChild(
+      createEl(
+        'span',
+        'a2ui-surface-id',
+        `surfaceId: ${report.a2uiSurface.surfaceId}`
+      )
+    );
+    topBar.appendChild(protocolLeft);
+
+    const gradeLetter = report.resilienceGrade.charAt(0).toLowerCase();
+    const gradeBadge = createEl(
+      'div',
+      `a2ui-grade-badge grade-${gradeLetter}`,
+      `GRADE ${report.resilienceGrade} • ${report.resilienceScore}/100`
+    );
+    topBar.appendChild(gradeBadge);
+    modalCard.appendChild(topBar);
+
+    // Render the A2UI Component Graph starting from `report.a2uiSurface.rootComponentId`
+    const compMap = new Map<string, A2uiComponentDef>();
+    for (const c of report.a2uiSurface.components) {
+      compMap.set(c.id, c);
+    }
+
+    const a2uiTreeContainer = createEl('div', 'a2ui-surface-tree-root');
+    const rootNode = this.renderA2uiNode(
+      report.a2uiSurface.rootComponentId,
+      compMap,
+      report
+    );
+    if (rootNode) {
+      a2uiTreeContainer.appendChild(rootNode);
+    }
+    modalCard.appendChild(a2uiTreeContainer);
+
+    // Bottom Modal Action Bar: Inspect Frozen Map | Re-Run | End & Return to Plan | End & Return to Learn
+    const footerBar = createEl('div', 'a2ui-modal-footer');
+
+    const inspectMapBtn = createEl(
+      'button',
+      'deco-btn',
+      '👁 Inspect Frozen 3D Map (Keep Simulate Mode)'
+    );
+    inspectMapBtn.type = 'button';
+    inspectMapBtn.addEventListener('click', () => {
+      this.a2uiReportModalEl.style.display = 'none';
+    });
+    footerBar.appendChild(inspectMapBtn);
+
+    const rerunBtn = createEl(
+      'button',
+      'deco-btn',
+      `🔄 Re-Run ${report.durationWallSec}s Simulation`
+    );
+    rerunBtn.type = 'button';
+    rerunBtn.addEventListener('click', () => {
+      this.a2uiReportModalEl.style.display = 'none';
+      if (this.surfaceSimulation) {
+        this.surfaceSimulation.startLiveSimulationRun(
+          report.mode,
+          report.durationWallSec
+        );
+      }
+      this.refreshSimulationTelemetryUI();
+    });
+    footerBar.appendChild(rerunBtn);
+
+    const endToPlanBtn = createEl(
+      'button',
+      'rc-cancel-end-btn a2ui-end-plan-btn',
+      '📋 End Simulation & Return to Plan'
+    );
+    endToPlanBtn.type = 'button';
+    endToPlanBtn.addEventListener('click', () => {
+      this.cancelOrEndSimulation('plan');
+    });
+    footerBar.appendChild(endToPlanBtn);
+
+    const endToLearnBtn = createEl(
+      'button',
+      'deco-btn a2ui-end-learn-btn',
+      '📖 End Simulation & Return to Learn'
+    );
+    endToLearnBtn.type = 'button';
+    endToLearnBtn.addEventListener('click', () => {
+      this.cancelOrEndSimulation('learn');
+    });
+    footerBar.appendChild(endToLearnBtn);
+
+    modalCard.appendChild(footerBar);
+    this.a2uiReportModalEl.appendChild(modalCard);
+  }
+
+  /**
+   * Recursively renders an A2UI v0.8 component node (`Card`, `Column`, `Row`, `Text`, `Divider`, `Tabs`, `Button`)
+   * into safe DOM elements.
+   */
+  private renderA2uiNode(
+    nodeId: string,
+    compMap: Map<string, A2uiComponentDef>,
+    report: ParisSimulationReportCard
+  ): HTMLElement | null {
+    const def = compMap.get(nodeId);
+    if (!def) return null;
+    const c = def.component;
+
+    if (c.Card) {
+      const cardEl = createEl('div', 'a2ui-node-card');
+      for (const childId of c.Card.children) {
+        const childEl = this.renderA2uiNode(childId, compMap, report);
+        if (childEl) cardEl.appendChild(childEl);
+      }
+      return cardEl;
+    }
+
+    if (c.Column) {
+      const colEl = createEl('div', 'a2ui-node-column');
+      for (const childId of c.Column.children) {
+        const childEl = this.renderA2uiNode(childId, compMap, report);
+        if (childEl) colEl.appendChild(childEl);
+      }
+      return colEl;
+    }
+
+    if (c.Row) {
+      const rowEl = createEl('div', 'a2ui-node-row dist-spaceBetween');
+      for (const childId of c.Row.children) {
+        const childEl = this.renderA2uiNode(childId, compMap, report);
+        if (childEl) rowEl.appendChild(childEl);
+      }
+      return rowEl;
+    }
+
+    if (c.Text) {
+      const hint = c.Text.usageHint ?? 'body';
+      const txtEl = createEl(
+        'div',
+        `a2ui-node-text hint-${hint}`,
+        c.Text.text
+      );
+      return txtEl;
+    }
+
+    if (c.Divider) {
+      return createEl('hr', 'a2ui-node-divider');
+    }
+
+    if (c.Tabs) {
+      const tabsWrap = createEl('div', 'a2ui-node-tabs');
+      const tabHeaderRow = createEl('div', 'a2ui-tabs-header-row');
+      const tabBodyWrap = createEl('div', 'a2ui-tabs-body-wrap');
+      const items = c.Tabs.tabItems;
+      const tabBtns: HTMLButtonElement[] = [];
+      const tabPanes: HTMLElement[] = [];
+
+      items.forEach((item, idx) => {
+        const btn = createEl(
+          'button',
+          `a2ui-tab-btn${idx === this.a2uiActiveTabIdx ? ' active' : ''}`,
+          item.title
+        );
+        btn.type = 'button';
+        const pane = createEl('div', 'a2ui-tab-pane');
+        pane.style.display = idx === this.a2uiActiveTabIdx ? '' : 'none';
+        const renderedChild = this.renderA2uiNode(item.child, compMap, report);
+        if (renderedChild) pane.appendChild(renderedChild);
+
+        btn.addEventListener('click', () => {
+          this.a2uiActiveTabIdx = idx;
+          tabBtns.forEach((b, i) => b.classList.toggle('active', i === idx));
+          tabPanes.forEach((p, i) => {
+            p.style.display = i === idx ? '' : 'none';
+          });
+        });
+
+        tabBtns.push(btn);
+        tabPanes.push(pane);
+        tabHeaderRow.appendChild(btn);
+        tabBodyWrap.appendChild(pane);
+      });
+
+      tabsWrap.appendChild(tabHeaderRow);
+      tabsWrap.appendChild(tabBodyWrap);
+      return tabsWrap;
+    }
+
+    if (c.Button) {
+      const btnEl = createEl(
+        'button',
+        `deco-btn a2ui-node-button${c.Button.primary ? ' primary' : ''}`,
+        c.Button.label
+      );
+      btnEl.type = 'button';
+      btnEl.addEventListener('click', () => {
+        const actName = c.Button?.action.name;
+        if (actName === 'return_to_plan') {
+          this.cancelOrEndSimulation('plan');
+        } else if (actName === 'return_to_learn') {
+          this.cancelOrEndSimulation('learn');
+        } else if (actName === 'rerun_simulation') {
+          this.a2uiReportModalEl.style.display = 'none';
+          this.surfaceSimulation?.startLiveSimulationRun(
+            report.mode,
+            report.durationWallSec
+          );
+          this.refreshSimulationTelemetryUI();
+        }
+      });
+      return btnEl;
+    }
+
+    return null;
   }
 
   private buildSpecialStationInteriorCard(): HTMLElement {
@@ -3153,7 +4844,7 @@ export class ArtDecoHUD {
       btn.classList.toggle('dimmed', lineId !== null && id !== lineId);
     }
 
-    if (lineId !== null) {
+    if (lineId !== null && this.experienceMode === 'learn') {
       // Automatically open the Stations Explorer Route Diagram for the selected line
       this.switchExplorerTab('stations');
       const lineCfg = this.lineMap.get(lineId);
@@ -3174,6 +4865,9 @@ export class ArtDecoHUD {
   }
 
   public handleCanvasEntityClick(clicked: HoveredEntity): void {
+    if (this.experienceMode !== 'learn') {
+      return;
+    }
     if (clicked.kind === 'station' && clicked.station) {
       this.switchExplorerTab('stations');
       this.selectStationInExplorer(clicked.station.id, true);
@@ -3216,6 +4910,15 @@ export class ArtDecoHUD {
       }
     }
 
+    // 2.5 Refresh Paris Multi-Modal Simulation telemetry every ~0.35s when in Plan or Simulate mode
+    this.simUiRefreshAccum += deltaSeconds;
+    if (this.simUiRefreshAccum >= 0.35) {
+      this.simUiRefreshAccum = 0.0;
+      if (this.experienceMode === 'plan' || this.experienceMode === 'simulate') {
+        this.refreshSimulationTelemetryUI();
+      }
+    }
+
     // 3. Advance timeline playback if playing
     if (!this.isPlaying) return;
     // At 1x speed, advance ~3.2 years per second so 1900->2026 progresses smoothly
@@ -3249,7 +4952,11 @@ export class ArtDecoHUD {
   }
 
   public togglePaperModel(): void {
-    this.isPaperModel = !this.isPaperModel;
+    this.setPaperModelState(!this.isPaperModel);
+  }
+
+  public setPaperModelState(enabled: boolean): void {
+    this.isPaperModel = enabled;
     this.paperModelBtn.classList.toggle('active', this.isPaperModel);
     this.paperModelBtn.textContent = this.isPaperModel ? '◼ Grey Model' : '◻ Grey Model';
     this.callbacks.onTogglePaperModel(this.isPaperModel);

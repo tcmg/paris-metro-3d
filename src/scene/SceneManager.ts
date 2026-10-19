@@ -21,6 +21,7 @@ import { MetroNetworkRenderer } from '../world/MetroNetworkRenderer';
 import { MetroStationData } from '../data/parisMetroData';
 import { getParisTerrainElevation, ParisMonumentData } from '../data/parisHistoricalData';
 import { SkyWeatherSystem, WeatherModeId } from './SkyWeatherSystem';
+import { getSharedWebGPU } from './WebGPUComputeAndTSL';
 
 export type CameraPresetId = 'overground' | 'xray' | 'underground';
 export type AtmosphereModeId = 'dusk' | 'night' | 'day' | 'dawn';
@@ -73,6 +74,7 @@ export class SceneManager {
   private lastClientX = 0;
   private lastClientY = 0;
   private isPointerInside = false;
+  private raycastDirty = false;
 
   private flightStartPos = new THREE.Vector3();
   private flightEndPos = new THREE.Vector3();
@@ -89,6 +91,18 @@ export class SceneManager {
   private isFocusedOnArrondissement = false;
   private focusedMonumentTarget = new THREE.Vector3();
   private isPointerDown = false;
+  private orbitDirectionSign: 1 | -1 = 1;
+  private lastOrbitFlipTimeMs = -1000;
+  private readonly keysPressed = {
+    w: false,
+    a: false,
+    s: false,
+    d: false,
+    shift: false
+  };
+  private readonly scratchForward = new THREE.Vector3();
+  private readonly scratchOffset = new THREE.Vector3();
+  private readonly scratchSpherical = new THREE.Spherical();
 
   constructor(
     container: HTMLElement,
@@ -100,6 +114,7 @@ export class SceneManager {
     private readonly onCityOrbitChange?: (active: boolean) => void
   ) {
     this.scene = new THREE.Scene();
+    this.scene.matrixWorldAutoUpdate = false;
     this.scene.background = new THREE.Color(0xd2e8fc);
     this.scene.fog = new THREE.Fog(0xd2e8fc, 215, 820);
 
@@ -111,9 +126,27 @@ export class SceneManager {
     );
     this.camera.position.set(0, 62, 88);
 
-    const dpr = Math.min(window.devicePixelRatio, 2);
     const { renderer, isLowPowerFallback } = this.createResilientRenderer();
     this.renderer = renderer;
+
+    let isInteg = false;
+    try {
+      const gl = renderer.getContext();
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      const unmasked = dbg
+        ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '').toLowerCase()
+        : '';
+      isInteg =
+        isLowPowerFallback ||
+        unmasked.includes('intel') ||
+        unmasked.includes('radeon(tm) graphics') ||
+        unmasked.includes('mali') ||
+        unmasked.includes('adreno');
+    } catch {
+      // Ignore WebGL debug info errors
+    }
+
+    const dpr = Math.min(window.devicePixelRatio, isInteg ? 1.35 : 2);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(isLowPowerFallback ? 1 : dpr);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -128,14 +161,14 @@ export class SceneManager {
     const effectiveDpr = isLowPowerFallback ? 1 : dpr;
     const rtW = Math.max(1, Math.floor(window.innerWidth * effectiveDpr));
     const rtH = Math.max(1, Math.floor(window.innerHeight * effectiveDpr));
-    const msaaSamples = isLowPowerFallback ? 0 : 4;
+    const msaaSamples = isLowPowerFallback || isInteg ? 0 : 2;
 
-    // Lazy-allocated HDR MSAA render target for X-Ray semi-transparent overground compositing:
+    // Lazy-allocated HDR render target for X-Ray semi-transparent overground compositing:
     // Starts at 1x1 in standard 100% opaque Overground view and expands on demand when X-Ray mode is used
     const overgroundDepthTex = new THREE.DepthTexture(1, 1, THREE.UnsignedIntType);
     this.overgroundRT = new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType,
-      samples: msaaSamples,
+      samples: 0,
       depthBuffer: true,
       stencilBuffer: false,
       depthTexture: overgroundDepthTex
@@ -251,24 +284,32 @@ export class SceneManager {
   }
 
   /**
-   * Probes the browser's WebGPU API (`navigator.gpu`) when available to inspect the hardware
-   * adapter tier (`isFallbackAdapter` / compute limits) and dynamically tune offscreen MSAA sample counts.
+   * Probes the browser's shared WebGPU adapter (`navigator.gpu`) when available to inspect hardware
+   * adapter tier (`isFallbackAdapter` / architecture) and dynamically tune offscreen MSAA sample counts.
    */
   private async probeWebGPUAndTunePipeline(): Promise<void> {
     try {
-      const nav = navigator as unknown as {
-        gpu?: {
-          requestAdapter: (opts?: {
-            powerPreference?: 'high-performance' | 'low-power';
-          }) => Promise<{ isFallbackAdapter?: boolean } | null>;
-        };
+      const shared = await getSharedWebGPU();
+      if (!shared || !shared.adapter) {
+        this.postRT.samples = 0;
+        this.overgroundRT.samples = 0;
+        return;
+      }
+      const adapter = shared.adapter as {
+        isFallbackAdapter?: boolean;
+        info?: { architecture?: string; vendor?: string };
       };
-      if (!nav.gpu || typeof nav.gpu.requestAdapter !== 'function') return;
-      const adapter = await nav.gpu.requestAdapter({ powerPreference: 'high-performance' });
-      if (!adapter || adapter.isFallbackAdapter) {
-        // Constrained / software adapter detected via WebGPU probe: reduce offscreen MSAA overhead
-        this.postRT.samples = 2;
-        this.overgroundRT.samples = 2;
+      const info = adapter.info || {};
+      const arch = (info.architecture || '').toLowerCase();
+      const vendor = (info.vendor || '').toLowerCase();
+      const isIntegrated =
+        Boolean(adapter.isFallbackAdapter) ||
+        vendor.includes('intel') ||
+        arch.includes('lpg') ||
+        arch.includes('gen');
+      if (isIntegrated) {
+        this.postRT.samples = 0;
+        this.overgroundRT.samples = 0;
       }
     } catch {
       // WebGPU unavailable or blocked; continue seamlessly with WebGL2 pipeline
@@ -279,19 +320,26 @@ export class SceneManager {
     const dpr = this.renderer.getPixelRatio();
     const rtW = Math.max(1, Math.floor(window.innerWidth * dpr));
     const rtH = Math.max(1, Math.floor(window.innerHeight * dpr));
-    if (!this.overgroundRTAllocated || this.overgroundRT.width !== rtW || this.overgroundRT.height !== rtH) {
+    if (
+      !this.overgroundRTAllocated ||
+      this.overgroundRT.width !== rtW ||
+      this.overgroundRT.height !== rtH
+    ) {
       this.overgroundRT.setSize(rtW, rtH);
       this.overgroundRTAllocated = true;
     }
   }
 
   /**
-   * Builds a single-pass 12-tap Golden-Angle Vogel Disc Bokeh Depth-of-Field shader material
-   * with view-angle-dependent optical blur (Scheimpflug tilt-shift modulation: full miniature
-   * bokeh from overhead angles, automatically opening the focal zone and keeping the skyline/horizon
-   * crisp when tilting down to shallow panoramic angles), plus a 4px hover stroke outline.
+   * Builds a single-pass precomputed Golden-Angle Vogel Disc Bokeh Depth-of-Field shader material
+   * with view-angle-dependent optical blur (Scheimpflug tilt-shift modulation), adaptive 6/12-tap stride,
+   * and screen-space UV bounding-box scissoring for the 4px hover stroke outline.
    */
-  private createBokehShaderMaterial(width: number, height: number, dpr: number): THREE.ShaderMaterial {
+  private createBokehShaderMaterial(
+    width: number,
+    height: number,
+    dpr: number
+  ): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       toneMapped: true,
       depthTest: false,
@@ -303,6 +351,8 @@ export class SceneManager {
         tMonumentMask: { value: this.monumentMaskRT.texture },
         uUseOvergroundDepth: { value: 0.0 },
         uOutlineActive: { value: 0.0 },
+        uOutlineBoundsUv: { value: new THREE.Vector3(0, 0, 1) },
+        uOutlineMaxV: { value: 1.0 },
         uOutlineWidthPx: { value: 4.0 * dpr },
         uTexelSize: { value: new THREE.Vector2(1.0 / width, 1.0 / height) },
         uNear: { value: this.camera.near },
@@ -327,6 +377,8 @@ export class SceneManager {
         uniform sampler2D tMonumentMask;
         uniform float uUseOvergroundDepth;
         uniform float uOutlineActive;
+        uniform vec3 uOutlineBoundsUv;
+        uniform float uOutlineMaxV;
         uniform float uOutlineWidthPx;
         uniform vec2 uTexelSize;
         uniform float uNear;
@@ -339,6 +391,36 @@ export class SceneManager {
 
         varying vec2 vUv;
 
+        const vec2 OUTLINE_DIRS[12] = vec2[12](
+          vec2(1.0, 0.0),
+          vec2(0.8660254, 0.5),
+          vec2(0.5, 0.8660254),
+          vec2(0.0, 1.0),
+          vec2(-0.5, 0.8660254),
+          vec2(-0.8660254, 0.5),
+          vec2(-1.0, 0.0),
+          vec2(-0.8660254, -0.5),
+          vec2(-0.5, -0.8660254),
+          vec2(0.0, -1.0),
+          vec2(0.5, -0.8660254),
+          vec2(0.8660254, -0.5)
+        );
+
+        const vec3 VOGEL[12] = vec3[12](
+          vec3(0.20412415, 0.0, 0.91307228),
+          vec3(-0.26072814, 0.23863274, 0.95192389),
+          vec3(0.03981554, -0.45469629, 0.97867378),
+          vec3(0.29667621, 0.53570816, 1.01921684),
+          vec3(-0.67432551, -0.32419732, 1.05456619),
+          vec3(0.79958384, -0.25285549, 1.07753167),
+          vec3(-0.46484476, 0.74299546, 1.09725405),
+          vec3(-0.22866941, -0.92283978, 1.11457808),
+          vec3(0.86862145, 0.53155966, 1.13021991),
+          vec3(-0.98541509, 0.30083602, 1.14460499),
+          vec3(0.45349876, -0.96130835, 1.15799664),
+          vec3(0.39108141, 1.01386319, 1.17058010)
+        );
+
         float readLinearDepthFromRaw(float z) {
           float zNdc = z * 2.0 - 1.0;
           return (2.0 * uNear * uFar) / (uFar + uNear - zNdc * (uFar - uNear));
@@ -346,18 +428,14 @@ export class SceneManager {
 
         float computeCoC(vec2 uv) {
           float rawZ = texture2D(tDepth, uv).r;
-          float d = readLinearDepthFromRaw(rawZ);
           if (uUseOvergroundDepth > 0.5) {
-            float rawOver = texture2D(tOvergroundDepth, uv).r;
-            if (rawOver < rawZ) {
-              rawZ = rawOver;
-              d = readLinearDepthFromRaw(rawOver);
-            }
+            rawZ = min(rawZ, texture2D(tOvergroundDepth, uv).r);
           }
           // Sky dome & horizon protection: keep the horizon and sky completely sharp at shallow view angles
           if (rawZ > 0.9985) {
             return 0.28 * uAperture * uViewSteepness * uViewSteepness;
           }
+          float d = readLinearDepthFromRaw(rawZ);
           float distDelta = abs(d - uFocusDistance);
           float coc = smoothstep(uFocalRange * 0.34, uFocalRange * 2.35, distDelta);
 
@@ -374,7 +452,15 @@ export class SceneManager {
 
         // Renders a crisp 4px-thick black stroke outline around the hovered 3D monument's outer silhouette
         vec3 applyMonumentOutline(vec3 baseColor, vec2 uv) {
-          if (uOutlineActive < 0.5) return baseColor;
+          if (
+            uOutlineActive < 0.5 ||
+            uv.x < uOutlineBoundsUv.x ||
+            uv.x > uOutlineBoundsUv.z ||
+            uv.y < uOutlineBoundsUv.y ||
+            uv.y > uOutlineMaxV
+          ) {
+            return baseColor;
+          }
           float centerMask = texture2D(tMonumentMask, uv).r;
           if (centerMask > 0.45) {
             return baseColor;
@@ -383,8 +469,7 @@ export class SceneManager {
           vec2 stepInner = stepOuter * 0.52;
           float maxNeighbor = 0.0;
           for (int i = 0; i < 12; i++) {
-            float angle = float(i) * 0.5235987756;
-            vec2 dir = vec2(cos(angle), sin(angle));
+            vec2 dir = OUTLINE_DIRS[i];
             maxNeighbor = max(maxNeighbor, texture2D(tMonumentMask, uv + dir * stepInner).r);
             maxNeighbor = max(maxNeighbor, texture2D(tMonumentMask, uv + dir * stepOuter).r);
           }
@@ -400,7 +485,7 @@ export class SceneManager {
           float centerCoC = computeCoC(vUv);
 
           // Fast early-out for sharp in-focus pixels inside the focal zone
-          if (centerCoC < 0.015) {
+          if (centerCoC < 0.018) {
             vec3 outlinedRGB = applyMonumentOutline(centerRGB, vUv);
             gl_FragColor = vec4(outlinedRGB, 1.0);
             #include <tonemapping_fragment>
@@ -408,32 +493,23 @@ export class SceneManager {
             return;
           }
 
-          float blurRadius = centerCoC * uMaxBlurPx;
+          vec2 blurStep = (centerCoC * uMaxBlurPx) * uTexelSize;
           vec3 accumColor = centerRGB;
           float accumWeight = 1.0;
+          int stepStride = centerCoC < 0.22 ? 2 : 1;
+          float depthGate = smoothstep(0.0, 0.12, centerCoC + 0.035);
+          float boostScale = 2.4 * centerCoC;
 
-          // 12-tap Golden-Angle (2.39996323 rad) Vogel Disc Spiral (25% fewer texture fetches than 16-tap)
           for (int i = 0; i < 12; i++) {
-            float fi = float(i);
-            float r = sqrt((fi + 0.5) / 12.0);
-            float theta = fi * 2.39996323;
-            vec2 offset = vec2(cos(theta), sin(theta)) * r * blurRadius * uTexelSize;
-            vec2 sampleUv = clamp(vUv + offset, 0.001, 0.999);
+            if (stepStride == 2 && (i & 1) == 1) continue;
+            vec3 vg = VOGEL[i];
+            vec2 sampleUv = clamp(vUv + vg.xy * blurStep, 0.001, 0.999);
 
             vec3 sampleRGB = max(texture2D(tColor, sampleUv).rgb, vec3(0.0));
-            float sampleCoC = computeCoC(sampleUv);
-
-            // Prevent sharp in-focus foreground buildings from bleeding onto blurred backgrounds
-            float depthGate = smoothstep(0.0, 0.12, sampleCoC + 0.035);
-
-            // Optical Bokeh Highlight Boost: bright HDR highlights bloom into circular aperture discs
             float luma = dot(sampleRGB, vec3(0.2126, 0.7152, 0.0722));
-            float bokehBoost = 1.0 + smoothstep(0.55, 1.45, luma) * 2.4 * sampleCoC;
+            float bokehBoost = 1.0 + smoothstep(0.55, 1.45, luma) * boostScale;
 
-            // Subtle spherical aberration outer-ring emphasis
-            float ringWeight = 0.86 + 0.26 * r;
-
-            float w = depthGate * bokehBoost * ringWeight;
+            float w = depthGate * bokehBoost * vg.z;
             accumColor += sampleRGB * w;
             accumWeight += w;
           }
@@ -519,6 +595,23 @@ export class SceneManager {
     }
   }
 
+  /**
+   * Flips the orbital rotation direction between counter-clockwise (+1) and clockwise (-1)
+   * on each new selection. Guards against duplicate calls within the same event tick.
+   */
+  public flipOrbitDirection(): 1 | -1 {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now - this.lastOrbitFlipTimeMs > 40) {
+      this.orbitDirectionSign = this.orbitDirectionSign === 1 ? -1 : 1;
+      this.lastOrbitFlipTimeMs = now;
+    }
+    return this.orbitDirectionSign;
+  }
+
+  public getOrbitDirectionSign(): 1 | -1 {
+    return this.orbitDirectionSign;
+  }
+
   private startCameraFlight(
     destCamPos: THREE.Vector3,
     destLookAt: THREE.Vector3,
@@ -532,13 +625,18 @@ export class SceneManager {
     this.flightArcScale = arcScale;
 
     // Compute horizontal perpendicular vector for a graceful orbital S-curve sweep
+    // oriented along the current alternating orbit direction
     const dx = destCamPos.x - this.flightStartPos.x;
     const dz = destCamPos.z - this.flightStartPos.z;
     const horizDist = Math.hypot(dx, dz);
     if (horizDist > 0.5) {
-      this.flightLateralDir.set(-dz / horizDist, 0, dx / horizDist);
+      this.flightLateralDir.set(
+        (-dz / horizDist) * this.orbitDirectionSign,
+        0,
+        (dx / horizDist) * this.orbitDirectionSign
+      );
     } else {
-      this.flightLateralDir.set(1, 0, 0);
+      this.flightLateralDir.set(this.orbitDirectionSign, 0, 0);
     }
 
     const totalDist = Math.max(
@@ -571,6 +669,7 @@ export class SceneManager {
   public setCityAutoOrbit(enabled: boolean): void {
     this.cityAutoOrbitEnabled = enabled;
     if (enabled) {
+      this.flipOrbitDirection();
       this.isFocusedOnMonument = false;
       this.isFocusedOnArrondissement = false;
       this.setSelectedMonument(null);
@@ -660,9 +759,10 @@ export class SceneManager {
 
   /**
    * Computes an azimuth-preserving cinematic approach vector with a subtle 20-degree orbital reveal
-   * and launches a smooth 3D crane-arc camera flight toward the clicked station or monument.
+   * (alternating clockwise and counter-clockwise on each new selection) and launches a smooth 3D crane-arc camera flight.
    */
   public focusOnWorldPoint(x: number, y: number, z: number, orbitAroundTarget = false): void {
+    const dirSign = this.flipOrbitDirection();
     const destLookAt = new THREE.Vector3(x, y, z);
     if (this.cityAutoOrbitEnabled) {
       this.cityAutoOrbitEnabled = false;
@@ -675,7 +775,7 @@ export class SceneManager {
     }
 
     // Preserve the user's current viewing azimuth relative to the target (or current orbit angle)
-    // and add a subtle 20-degree (0.35 rad) orbital reveal so the camera never whips 180 degrees
+    // and add a subtle 20-degree (0.32 rad) orbital reveal in the alternating orbit direction
     let vx = this.camera.position.x - x;
     let vz = this.camera.position.z - z;
     let vLen = Math.hypot(vx, vz);
@@ -685,7 +785,7 @@ export class SceneManager {
       vLen = Math.hypot(vx, vz) || 1.0;
     }
     const curAzimuth = Math.atan2(vx, vz);
-    const arrivalAzimuth = curAzimuth + 0.32;
+    const arrivalAzimuth = curAzimuth + 0.32 * dirSign;
     const standOffRadius = 24.5;
     const destCamY = Math.max(13.5, y + 16.0);
 
@@ -698,8 +798,8 @@ export class SceneManager {
   }
 
   /**
-   * Flies the camera to a panoramic neighborhood vantage point over a selected Paris Arrondissement
-   * and continuously pans/orbits around the arrondissement's streets, rooftops, and landmarks.
+   * Flies the camera to a panoramic neighborhood vantage point over a selected Arrondissement / District
+   * and continuously pans/orbits around the district in an alternating direction on each selection.
    */
   public focusOnArrondissement(
     x: number,
@@ -708,6 +808,7 @@ export class SceneManager {
     standOffRadius = 31.5,
     heightOffset = 18.5
   ): void {
+    const dirSign = this.flipOrbitDirection();
     const destLookAt = new THREE.Vector3(x, y, z);
     if (this.cityAutoOrbitEnabled) {
       this.cityAutoOrbitEnabled = false;
@@ -726,7 +827,7 @@ export class SceneManager {
       vLen = Math.hypot(vx, vz) || 1.0;
     }
     const curAzimuth = Math.atan2(vx, vz);
-    const arrivalAzimuth = curAzimuth + 0.36;
+    const arrivalAzimuth = curAzimuth + 0.36 * dirSign;
     const destCamY = Math.max(15.5, y + heightOffset);
 
     const destCamPos = new THREE.Vector3(
@@ -831,11 +932,12 @@ export class SceneManager {
           this.metroNetwork.setTourPinnedPosition(null);
         }
       }
-      this.performRaycast();
+      this.raycastDirty = true;
     });
 
     canvas.addEventListener('pointerleave', () => {
       this.isPointerInside = false;
+      this.raycastDirty = false;
       this.hoveredMonumentId = null;
       this.syncOutlinedMonument();
       this.metroNetwork.setHoveredPosition(null);
@@ -862,20 +964,167 @@ export class SceneManager {
         if (hit?.kind === 'station' && hit.station) {
           this.hoveredMonumentId = null;
           this.syncOutlinedMonument();
-          this.setSelectedMonument(null);
-          const liftY = this.metroNetwork.getLiftOffsetY();
-          this.focusOnWorldPoint(hit.station.x, -3 + liftY, hit.station.z, false);
-          this.onEntityClick?.(hit);
+          if (this.onEntityClick) {
+            this.onEntityClick(hit);
+          } else {
+            this.setSelectedMonument(null);
+            const liftY = this.metroNetwork.getLiftOffsetY();
+            this.focusOnWorldPoint(hit.station.x, -3 + liftY, hit.station.z, false);
+          }
         } else if (hit?.kind === 'monument' && hit.monument) {
           this.hoveredMonumentId = null;
           this.syncOutlinedMonument();
-          this.setSelectedMonument(hit.monument.id);
-          const terrainY = getParisTerrainElevation(hit.monument.x, hit.monument.z);
-          this.focusOnWorldPoint(hit.monument.x, terrainY + 2, hit.monument.z, true);
-          this.onEntityClick?.(hit);
+          if (this.onEntityClick) {
+            this.onEntityClick(hit);
+          } else {
+            this.setSelectedMonument(hit.monument.id);
+            const terrainY = getParisTerrainElevation(hit.monument.x, hit.monument.z);
+            this.focusOnWorldPoint(hit.monument.x, terrainY + 2, hit.monument.z, true);
+          }
         }
       }
     });
+
+    const resetKeys = () => {
+      this.keysPressed.w = false;
+      this.keysPressed.a = false;
+      this.keysPressed.s = false;
+      this.keysPressed.d = false;
+      this.keysPressed.shift = false;
+    };
+
+    window.addEventListener('blur', resetKeys);
+
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      this.keysPressed.shift = e.shiftKey;
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (e.code === 'KeyW' || k === 'w') {
+        this.keysPressed.w = true;
+        this.isFlyingCamera = false;
+      } else if (e.code === 'KeyA' || k === 'a') {
+        this.keysPressed.a = true;
+        this.isFlyingCamera = false;
+      } else if (e.code === 'KeyS' || k === 's') {
+        this.keysPressed.s = true;
+        this.isFlyingCamera = false;
+      } else if (e.code === 'KeyD' || k === 'd') {
+        this.keysPressed.d = true;
+        this.isFlyingCamera = false;
+      }
+    });
+
+    window.addEventListener('keyup', (e: KeyboardEvent) => {
+      this.keysPressed.shift = e.shiftKey;
+      const k = e.key.toLowerCase();
+      if (e.code === 'KeyW' || k === 'w') {
+        this.keysPressed.w = false;
+      } else if (e.code === 'KeyA' || k === 'a') {
+        this.keysPressed.a = false;
+      } else if (e.code === 'KeyS' || k === 's') {
+        this.keysPressed.s = false;
+      } else if (e.code === 'KeyD' || k === 'd') {
+        this.keysPressed.d = false;
+      }
+    });
+  }
+
+  /**
+   * Handles continuous WASD camera navigation:
+   * - WASD (without Shift): Pans the camera and target forward/up (W), backward/down (S),
+   *   left (A), and right (D) along the horizontal XZ plane relative to the camera's view direction.
+   * - Shift + WASD: Rotates (orbits/tilts) the camera around the focal point (Shift+A/D yaw, Shift+W/S pitch).
+   */
+  private applyKeyboardNavigation(dt: number): boolean {
+    const { w, a, s, d, shift } = this.keysPressed;
+    if (!w && !a && !s && !d) {
+      return false;
+    }
+
+    this.isFlyingCamera = false;
+    const forwardAxis = (w ? 1 : 0) - (s ? 1 : 0);
+    const rightAxis = (d ? 1 : 0) - (a ? 1 : 0);
+    if (forwardAxis === 0 && rightAxis === 0) {
+      return false;
+    }
+
+    if (shift) {
+      // Shift + WASD: Rotate camera around the current target (A/D = horizontal yaw, W/S = vertical pitch)
+      const yawSpeed = 1.45; // rad/s (~83 deg/s)
+      const pitchSpeed = 1.05; // rad/s (~60 deg/s)
+      this.scratchOffset.copy(this.camera.position).sub(this.controls.target);
+      this.scratchSpherical.setFromVector3(this.scratchOffset);
+
+      this.scratchSpherical.theta += rightAxis * yawSpeed * dt;
+      this.scratchSpherical.phi = THREE.MathUtils.clamp(
+        this.scratchSpherical.phi - forwardAxis * pitchSpeed * dt,
+        0.08,
+        this.controls.maxPolarAngle
+      );
+      this.scratchSpherical.makeSafe();
+
+      this.scratchOffset.setFromSpherical(this.scratchSpherical);
+      this.camera.position.copy(this.controls.target).add(this.scratchOffset);
+      return true;
+    }
+
+    // WASD (no Shift): Pan camera and target across the horizontal plane (up/down/left/right)
+    if (this.cityAutoOrbitEnabled) {
+      this.cityAutoOrbitEnabled = false;
+      this.onCityOrbitChange?.(false);
+    }
+    if (this.isFocusedOnMonument || this.isFocusedOnArrondissement) {
+      this.isFocusedOnMonument = false;
+      this.isFocusedOnArrondissement = false;
+    }
+
+    let fx = this.controls.target.x - this.camera.position.x;
+    let fz = this.controls.target.z - this.camera.position.z;
+    let fLen = Math.hypot(fx, fz);
+    if (fLen < 1e-4) {
+      this.camera.getWorldDirection(this.scratchForward);
+      fx = this.scratchForward.x;
+      fz = this.scratchForward.z;
+      fLen = Math.hypot(fx, fz) || 1.0;
+    }
+    fx /= fLen;
+    fz /= fLen;
+
+    // Right vector on XZ plane: cross(forward, up) = (-fz, 0, fx)
+    const rx = -fz;
+    const rz = fx;
+
+    const inputLen = Math.hypot(forwardAxis, rightAxis) || 1.0;
+    const normF = forwardAxis / inputLen;
+    const normR = rightAxis / inputLen;
+
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    const panSpeed = THREE.MathUtils.clamp(dist * 0.72, 16.0, 105.0);
+    const step = panSpeed * dt;
+
+    const moveX = (fx * normF + rx * normR) * step;
+    const moveZ = (fz * normF + rz * normR) * step;
+
+    const maxCoord = 195.0;
+    const nextTargetX = THREE.MathUtils.clamp(this.controls.target.x + moveX, -maxCoord, maxCoord);
+    const nextTargetZ = THREE.MathUtils.clamp(this.controls.target.z + moveZ, -maxCoord, maxCoord);
+    const actualDx = nextTargetX - this.controls.target.x;
+    const actualDz = nextTargetZ - this.controls.target.z;
+
+    this.controls.target.x = nextTargetX;
+    this.controls.target.z = nextTargetZ;
+    this.camera.position.x += actualDx;
+    this.camera.position.z += actualDz;
+    return true;
   }
 
   private getHoveredHit(): HoveredEntity | null {
@@ -886,11 +1135,11 @@ export class SceneManager {
     const liftY = this.metroNetwork.getLiftOffsetY();
     const isOvergroundView = surfaceOpacity > 0.25 && liftY < 2.0;
 
-    // 1. Raycast against actual 3D monument meshes + tightly fitted 4-slice OBB proxies
+    // 1. Raycast against actual 3D monument meshes + tightly fitted 4-slice OBB proxies (pre-filtered by world AABB)
     let monResult: { hit: THREE.Intersection; monument: ParisMonumentData; isDirect: boolean } | null =
       null;
     if (surfaceOpacity > 0.02) {
-      const monTargets = this.voxelParis.getMonumentRaycastTargets();
+      const monTargets = this.voxelParis.getMonumentRaycastTargets(this.raycaster.ray);
       const monHits = this.raycaster.intersectObjects(monTargets, true);
       let bestDirect: {
         hit: THREE.Intersection;
@@ -1031,11 +1280,57 @@ export class SceneManager {
     }
   }
 
+  /**
+   * Projects the 8 corners of the currently outlined monument's world-space AABB into screen UV
+   * coordinates so `applyMonumentOutline` skips the 24-tap mask lookup for all pixels outside
+   * the monument's 2D bounding rectangle.
+   */
+  private updateOutlineUvBounds(): void {
+    const box = this.voxelParis.getOutlinedMonumentWorldBox();
+    if (!box) {
+      this.bokehMaterial.uniforms.uOutlineBoundsUv.value.set(0, 0, 1);
+      this.bokehMaterial.uniforms.uOutlineMaxV.value = 1;
+      return;
+    }
+
+    let minU = 1;
+    let minV = 1;
+    let maxU = 0;
+    let maxV = 0;
+    const v = this.scratchProjVec;
+
+    for (let i = 0; i < 8; i++) {
+      v.set(
+        i & 1 ? box.max.x : box.min.x,
+        i & 2 ? box.max.y : box.min.y,
+        i & 4 ? box.max.z : box.min.z
+      ).project(this.camera);
+
+      const u = v.x * 0.5 + 0.5;
+      const vt = v.y * 0.5 + 0.5;
+      if (u < minU) minU = u;
+      if (u > maxU) maxU = u;
+      if (vt < minV) minV = vt;
+      if (vt > maxV) maxV = vt;
+    }
+
+    const padU = this.bokehMaterial.uniforms.uTexelSize.value.x * 16;
+    const padV = this.bokehMaterial.uniforms.uTexelSize.value.y * 16;
+    this.bokehMaterial.uniforms.uOutlineBoundsUv.value.set(
+      Math.max(0, minU - padU),
+      Math.max(0, minV - padV),
+      Math.min(1, maxU + padU)
+    );
+    this.bokehMaterial.uniforms.uOutlineMaxV.value = Math.min(1, maxV + padV);
+  }
+
   public update(elapsedTime: number, deltaSeconds = 0.016): void {
     const dt = Math.min(0.05, Math.max(0.001, deltaSeconds));
     const monumentOrbitSpeed = 0.22; // ~12.6 deg/s gentle architectural showcase orbit
     const arrondissementPanSpeed = 0.17; // ~9.7 deg/s panoramic neighborhood sweep around the arrondissement
     const cityOrbitSpeed = 0.14; // ~8.0 deg/s panoramic 360° city turntable orbit
+
+    const isKeyboardActive = this.applyKeyboardNavigation(dt);
 
     if (this.isFlyingCamera) {
       this.flightElapsed += dt;
@@ -1051,7 +1346,7 @@ export class SceneManager {
             ? monumentOrbitSpeed
             : 0.0;
       if (activeFlightOrbitSpeed > 0.0) {
-        const dTheta = activeFlightOrbitSpeed * dt * u;
+        const dTheta = activeFlightOrbitSpeed * this.orbitDirectionSign * dt * u;
         const cosA = Math.cos(dTheta);
         const sinA = Math.sin(dTheta);
         const fdx = this.flightEndPos.x - this.flightEndTarget.x;
@@ -1085,20 +1380,20 @@ export class SceneManager {
         this.controls.target.copy(this.flightEndTarget);
         this.isFlyingCamera = false;
       }
-    } else if (this.cityAutoOrbitEnabled && !this.isPointerDown) {
-      // Gently keep the orbit center anchored on the heart of Paris (0, target.y, 0)
+    } else if (this.cityAutoOrbitEnabled && !this.isPointerDown && !isKeyboardActive) {
+      // Gently keep the orbit center anchored on the heart of the city (0, target.y, 0)
       const recenterRate = Math.max(0.0, 1.0 - dt * 2.5);
       this.controls.target.x *= recenterRate;
       this.controls.target.z *= recenterRate;
 
-      const dTheta = cityOrbitSpeed * dt;
+      const dTheta = cityOrbitSpeed * this.orbitDirectionSign * dt;
       const cosA = Math.cos(dTheta);
       const sinA = Math.sin(dTheta);
       const dx = this.camera.position.x - this.controls.target.x;
       const dz = this.camera.position.z - this.controls.target.z;
       this.camera.position.x = this.controls.target.x + dx * cosA + dz * sinA;
       this.camera.position.z = this.controls.target.z + dz * cosA - dx * sinA;
-    } else if (this.isFocusedOnArrondissement && !this.isPointerDown) {
+    } else if (this.isFocusedOnArrondissement && !this.isPointerDown && !isKeyboardActive) {
       // Panoramic neighborhood pan & orbital sweep around the selected arrondissement
       const panDrift = Math.hypot(
         this.controls.target.x - this.focusedMonumentTarget.x,
@@ -1119,7 +1414,7 @@ export class SceneManager {
         this.camera.position.x += shiftX;
         this.camera.position.z += shiftZ;
 
-        const dTheta = arrondissementPanSpeed * dt;
+        const dTheta = arrondissementPanSpeed * this.orbitDirectionSign * dt;
         const cosA = Math.cos(dTheta);
         const sinA = Math.sin(dTheta);
         const dx = this.camera.position.x - this.controls.target.x;
@@ -1130,7 +1425,8 @@ export class SceneManager {
     } else if (
       this.isFocusedOnMonument &&
       this.monumentAutoOrbitEnabled &&
-      !this.isPointerDown
+      !this.isPointerDown &&
+      !isKeyboardActive
     ) {
       // Stop monument orbit if user manually panned far away from the monument
       const panDrift = Math.hypot(
@@ -1140,7 +1436,7 @@ export class SceneManager {
       if (panDrift > 16.0) {
         this.isFocusedOnMonument = false;
       } else {
-        const dTheta = monumentOrbitSpeed * dt;
+        const dTheta = monumentOrbitSpeed * this.orbitDirectionSign * dt;
         const cosA = Math.cos(dTheta);
         const sinA = Math.sin(dTheta);
         const dx = this.camera.position.x - this.controls.target.x;
@@ -1154,6 +1450,11 @@ export class SceneManager {
 
     this.controls.update();
 
+    if (this.raycastDirty && !this.isPointerDown && !this.isFlyingCamera) {
+      this.raycastDirty = false;
+      this.performRaycast();
+    }
+
     // Update auto-focus distance & camera view-angle steepness (sin(pitch)) smoothly
     const rawFocusDist = Math.max(1.0, this.camera.position.distanceTo(this.controls.target));
     this.smoothedFocusDist += (rawFocusDist - this.smoothedFocusDist) * 0.15;
@@ -1163,7 +1464,11 @@ export class SceneManager {
     this.smoothedViewPitch += (rawSinPitch - this.smoothedViewPitch) * 0.18;
 
     // Smoothstep view steepness: 0.0 at shallow horizon angles (< 7°), 1.0 at overhead maquette angles (> 33°)
-    const pitchNorm = THREE.MathUtils.clamp((this.smoothedViewPitch - 0.12) / (0.55 - 0.12), 0.0, 1.0);
+    const pitchNorm = THREE.MathUtils.clamp(
+      (this.smoothedViewPitch - 0.12) / (0.55 - 0.12),
+      0.0,
+      1.0
+    );
     const viewSteepness = pitchNorm * pitchNorm * (3.0 - 2.0 * pitchNorm);
 
     // At shallow horizon angles, expand the sharp focal range (from 0.28x up to 0.96x of focus distance)
@@ -1219,18 +1524,35 @@ export class SceneManager {
       this.undergroundLight.intensity = 1.4;
     }
 
-    this.voxelParis.updateAnimation(elapsedTime, this.skyWeather.getTimeOfDay());
-    this.metroNetwork.updateAnimation(elapsedTime, deltaSeconds);
+    this.voxelParis.updateAnimation(elapsedTime, this.skyWeather.getTimeOfDay(), deltaSeconds);
 
     const opacity = this.voxelParis.getSurfaceOpacity();
+    const subOccluded = opacity >= 0.99 && this.metroNetwork.getLiftProgress() <= 0.005;
+    this.metroNetwork.setSubterraneanOccluded(subOccluded);
+    this.metroNetwork.updateAnimation(elapsedTime, deltaSeconds);
+
+    this.scene.updateMatrixWorld();
+
     const hasMonumentOutline = opacity > 0.02 && this.voxelParis.hasOutlinedMonument();
     this.bokehMaterial.uniforms.uOutlineActive.value = hasMonumentOutline ? 1.0 : 0.0;
 
     if (hasMonumentOutline) {
+      this.updateOutlineUvBounds();
       const prevBg = this.scene.background;
       const prevOverride = this.scene.overrideMaterial;
       const prevVis = this.voxelParis.overgroundGroup.visible;
+      const prevSky = this.skyWeather.rootGroup.visible;
+      const prevMetro = this.metroNetwork.rootGroup.visible;
+      const prevOsm = this.voxelParis.osmCityGroup.visible;
+      const prevPlinth = this.voxelParis.plinthGroup.visible;
+      const prevSim = this.voxelParis.surfaceSimulation.rootGroup.visible;
+
       this.voxelParis.overgroundGroup.visible = true;
+      this.skyWeather.rootGroup.visible = false;
+      this.metroNetwork.rootGroup.visible = false;
+      this.voxelParis.osmCityGroup.visible = false;
+      this.voxelParis.plinthGroup.visible = false;
+      this.voxelParis.surfaceSimulation.rootGroup.visible = false;
       this.scene.background = this.maskClearColor;
       this.scene.overrideMaterial = this.monumentMaskMaterial;
       this.camera.layers.set(MONUMENT_OUTLINE_LAYER);
@@ -1241,17 +1563,25 @@ export class SceneManager {
       this.scene.overrideMaterial = prevOverride;
       this.scene.background = prevBg;
       this.voxelParis.overgroundGroup.visible = prevVis;
+      this.skyWeather.rootGroup.visible = prevSky;
+      this.metroNetwork.rootGroup.visible = prevMetro;
+      this.voxelParis.osmCityGroup.visible = prevOsm;
+      this.voxelParis.plinthGroup.visible = prevPlinth;
+      this.voxelParis.surfaceSimulation.rootGroup.visible = prevSim;
     }
 
     const useBokeh = this.bokehAperture > 0.005;
     const usePostPass = useBokeh || hasMonumentOutline;
     const finalTarget = usePostPass ? this.postRT : null;
 
+    const simActive = this.voxelParis.surfaceSimulation.getSimulationMode() !== 'none';
+
     if (opacity >= 0.99) {
       // Fast Path 1: Fully Opaque Overground (Single standard pass)
       this.voxelParis.overgroundGroup.visible = true;
-      this.voxelParis.plinthGroup.visible = true;
+      this.voxelParis.plinthGroup.visible = !subOccluded;
       this.metroNetwork.rootGroup.visible = true;
+      this.voxelParis.surfaceSimulation.rootGroup.visible = simActive;
 
       if (this.shadowNeedsUpdate) {
         this.renderer.shadowMap.needsUpdate = true;
@@ -1267,6 +1597,7 @@ export class SceneManager {
       this.voxelParis.overgroundGroup.visible = false;
       this.voxelParis.plinthGroup.visible = true;
       this.metroNetwork.rootGroup.visible = true;
+      this.voxelParis.surfaceSimulation.rootGroup.visible = false;
 
       this.renderer.setRenderTarget(finalTarget);
       if (finalTarget) this.renderer.clear();
@@ -1275,10 +1606,12 @@ export class SceneManager {
     } else {
       // Fast Path 3: Semi-Transparent Overground X-Ray Mode
       this.ensureOvergroundRTSize();
-      // Step A: Render the entire Overground City 100% OPAQUE with hardware Early-Z into offscreen MSAA render target
+      // Step A: Render the Overground City 100% OPAQUE with hardware Early-Z into offscreen MSAA render target
+      // Exclude surfaceSimulation from the faded overground RT so simulation visuals remain vivid in Step B
       this.voxelParis.overgroundGroup.visible = true;
       this.voxelParis.plinthGroup.visible = false;
       this.metroNetwork.rootGroup.visible = false;
+      this.voxelParis.surfaceSimulation.rootGroup.visible = false;
 
       if (this.shadowNeedsUpdate) {
         this.renderer.shadowMap.needsUpdate = true;
@@ -1289,7 +1622,7 @@ export class SceneManager {
       this.renderer.clear();
       this.renderer.render(this.scene, this.camera);
 
-      // Step B: Render Underground World and composite Overground City in ONE single fullscreen draw operation
+      // Step B: Render Underground World + Surface Simulation and composite Overground City in ONE single fullscreen draw operation
       this.renderer.setRenderTarget(finalTarget);
       if (finalTarget) this.renderer.clear();
       this.compositeMaterial.opacity = opacity;
@@ -1299,6 +1632,7 @@ export class SceneManager {
         this.voxelParis.overgroundGroup.visible = false;
         this.voxelParis.plinthGroup.visible = true;
         this.metroNetwork.rootGroup.visible = true;
+        this.voxelParis.surfaceSimulation.rootGroup.visible = simActive;
         this.renderer.render(this.scene, this.camera);
 
         const prevAutoClear = this.renderer.autoClear;
@@ -1309,6 +1643,7 @@ export class SceneManager {
         this.voxelParis.overgroundGroup.visible = false;
         this.voxelParis.plinthGroup.visible = true;
         this.metroNetwork.rootGroup.visible = false;
+        this.voxelParis.surfaceSimulation.rootGroup.visible = simActive;
         this.renderer.render(this.scene, this.camera);
 
         const prevAutoClear = this.renderer.autoClear;
@@ -1318,6 +1653,7 @@ export class SceneManager {
         const savedBg = this.scene.background;
         this.scene.background = null;
         this.voxelParis.plinthGroup.visible = false;
+        this.voxelParis.surfaceSimulation.rootGroup.visible = false;
         this.metroNetwork.rootGroup.visible = true;
         this.renderer.clearDepth();
         this.renderer.render(this.scene, this.camera);
@@ -1331,6 +1667,7 @@ export class SceneManager {
       this.voxelParis.overgroundGroup.visible = true;
       this.voxelParis.plinthGroup.visible = true;
       this.metroNetwork.rootGroup.visible = true;
+      this.voxelParis.surfaceSimulation.rootGroup.visible = simActive;
     }
 
     // Final Pass: Resolve Golden-Angle Vogel Bokeh and/or 4px Monument Outline to screen

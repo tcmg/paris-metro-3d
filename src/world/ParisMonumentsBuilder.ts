@@ -27,6 +27,7 @@ import {
   ACTIVE_CITY_META,
   ACTIVE_PIPELINE_CITY_DATASET
 } from '../cities/activeCityRuntime';
+import { mergeGroupMeshesByMaterial } from './geometryBatchUtils';
 
 export const MONUMENT_OUTLINE_LAYER = 2;
 
@@ -37,9 +38,22 @@ export interface MonumentHitTarget {
 
 interface YearBoundObject {
   obj: THREE.Object3D;
+  proxyGroup?: THREE.Group | null;
+  worldBox?: THREE.Box3;
   minYear: number;
   maxYear: number;
   monumentId?: string;
+  monumentData?: ParisMonumentData;
+}
+
+interface MonumentRaycastEntry {
+  obj: THREE.Object3D;
+  proxyGroup: THREE.Group | null;
+  worldBox: THREE.Box3;
+  minYear: number;
+  maxYear: number;
+  monumentId?: string;
+  monumentData?: ParisMonumentData;
 }
 
 interface BlenderMonumentPlacement {
@@ -251,6 +265,7 @@ export function applyPaperModelShaderHook<T extends THREE.Material>(
   colorRevealUniform: { value: number } = DEFAULT_NO_COLOR_REVEAL_UNIFORM
 ): T {
   mat.userData = { ...mat.userData, hasPaperModelHook: true, colorRevealUniform };
+  mat.customProgramCacheKey = () => 'paper-hook-v1';
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPaperGreyscale = PAPER_MODEL_UNIFORM;
     shader.uniforms.uColorReveal = colorRevealUniform;
@@ -308,6 +323,7 @@ function applyEiffelMaterialShaderHook<T extends THREE.Material>(
     hasPaperModelHook: true,
     colorRevealUniform
   };
+  mat.customProgramCacheKey = () => 'eiffel-hook-v1';
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPaperGreyscale = eiffelUniforms.uPaperGreyscale;
     shader.uniforms.uColorReveal = colorRevealUniform;
@@ -421,7 +437,9 @@ function applyEiffelMaterialShaderHook<T extends THREE.Material>(
 
 export class ParisMonumentsBuilder {
   public readonly rootGroup = new THREE.Group();
+  public readonly hitProxyRoot = new THREE.Group();
   public readonly monumentTargets: MonumentHitTarget[] = [];
+  public readonly raycastEntries: MonumentRaycastEntry[] = [];
   public onGeometryLoaded?: () => void;
 
   private yearObjects: YearBoundObject[] = [];
@@ -977,10 +995,11 @@ export class ParisMonumentsBuilder {
 
         // Remove initial coarse fallback hit spheres once the exact 3D monument geometry is loaded
         for (const target of this.monumentTargets) {
-          this.rootGroup.remove(target.mesh);
+          this.hitProxyRoot.remove(target.mesh);
           target.mesh.geometry.dispose();
         }
         this.monumentTargets.length = 0;
+        this.raycastEntries.length = 0;
 
         for (const placement of BLENDER_MONUMENT_PLACEMENTS) {
           const sourceNode = scene.getObjectByName(placement.glbNodeName);
@@ -1006,6 +1025,10 @@ export class ParisMonumentsBuilder {
             : undefined;
           const isEiffel = placement.monumentId === ACTIVE_CITY_META.beaconMonumentId;
           const localMeshBoxes: THREE.Box3[] = [];
+          const matCache = new Map<THREE.Material, THREE.Material>();
+          const revealUniform = placement.monumentId
+            ? this.getMonumentColorRevealUniform(placement.monumentId)
+            : undefined;
 
           clone.traverse((child) => {
             if ((child as THREE.Mesh).isMesh && !child.userData?.isHitProxy) {
@@ -1032,26 +1055,27 @@ export class ParisMonumentsBuilder {
               if (mesh.material) {
                 const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
                 const clonedMats: THREE.Material[] = [];
-                const revealUniform = placement.monumentId
-                  ? this.getMonumentColorRevealUniform(placement.monumentId)
-                  : undefined;
                 for (const origMat of mats) {
-                  const m = origMat.clone();
-                  if (isEiffel) {
-                    applyEiffelMaterialShaderHook(m, this.eiffelNightUniforms, revealUniform);
-                  } else {
-                    applyPaperModelShaderHook(m, revealUniform);
-                  }
-                  const mName = m.name.toLowerCase();
-                  const isGlass = mName.includes('glass');
-                  if (isGlass && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
-                    const sm = m as THREE.MeshStandardMaterial;
-                    sm.transparent = true;
-                    sm.opacity = mName.includes('bnf') ? 0.56 : 0.76;
-                  }
-                  if (isEiffel && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
-                    const sm = m as THREE.MeshStandardMaterial;
-                    this.eiffelMaterials.push({ mat: sm, baseColor: sm.color.clone() });
+                  let m = matCache.get(origMat);
+                  if (!m) {
+                    m = origMat.clone();
+                    if (isEiffel) {
+                      applyEiffelMaterialShaderHook(m, this.eiffelNightUniforms, revealUniform);
+                    } else {
+                      applyPaperModelShaderHook(m, revealUniform);
+                    }
+                    const mName = m.name.toLowerCase();
+                    const isGlass = mName.includes('glass');
+                    if (isGlass && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+                      const sm = m as THREE.MeshStandardMaterial;
+                      sm.transparent = true;
+                      sm.opacity = mName.includes('bnf') ? 0.56 : 0.76;
+                    }
+                    if (isEiffel && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+                      const sm = m as THREE.MeshStandardMaterial;
+                      this.eiffelMaterials.push({ mat: sm, baseColor: sm.color.clone() });
+                    }
+                    matCache.set(origMat, m);
                   }
                   clonedMats.push(m);
                 }
@@ -1059,16 +1083,6 @@ export class ParisMonumentsBuilder {
               }
             }
           });
-
-          if (monumentData && localMeshBoxes.length > 0) {
-            this.buildFittedMonumentHitProxies(
-              clone,
-              monumentData,
-              placement.glbNodeName,
-              placement.scale,
-              localMeshBoxes
-            );
-          }
 
           let pos = { x: 0, z: 0 };
           if (placement.monumentId) {
@@ -1082,16 +1096,52 @@ export class ParisMonumentsBuilder {
           clone.rotation.set(0, placement.rotationY, 0);
           clone.scale.setScalar(placement.scale);
 
-          this.rootGroup.add(clone);
+          // Populate Eiffel lights BEFORE merging child meshes so triangle order is 100% identical
           if (isEiffel) {
             this.populateEiffelLightsFromMesh(clone, pos.x, pos.z);
           }
-          this.yearObjects.push({
+
+          // Merge child meshes sharing the same material inside monument clone (1,865 meshes -> ~30 meshes)
+          mergeGroupMeshesByMaterial(clone as THREE.Group, true);
+
+          this.rootGroup.add(clone);
+
+          let proxyGroup: THREE.Group | null = null;
+          if (monumentData && localMeshBoxes.length > 0) {
+            proxyGroup = new THREE.Group();
+            proxyGroup.position.copy(clone.position);
+            proxyGroup.rotation.copy(clone.rotation);
+            proxyGroup.scale.copy(clone.scale);
+            this.buildFittedMonumentHitProxies(
+              proxyGroup,
+              monumentData,
+              placement.glbNodeName,
+              placement.scale,
+              localMeshBoxes
+            );
+            proxyGroup.updateMatrixWorld(true);
+            this.hitProxyRoot.add(proxyGroup);
+          }
+
+          const worldBox = new THREE.Box3().setFromObject(clone);
+          if (proxyGroup) {
+            worldBox.expandByObject(proxyGroup);
+          }
+          worldBox.expandByScalar(0.15);
+
+          const entry: MonumentRaycastEntry = {
             obj: clone,
+            proxyGroup,
+            worldBox,
             minYear: placement.minYear,
             maxYear: placement.maxYear,
-            monumentId: placement.monumentId
-          });
+            monumentId: placement.monumentId,
+            monumentData
+          };
+          this.yearObjects.push(entry);
+          if (monumentData) {
+            this.raycastEntries.push(entry);
+          }
         }
 
         this.glbLoaded = true;
@@ -1182,17 +1232,31 @@ export class ParisMonumentsBuilder {
     }
   }
 
-  public getRaycastTargets(): THREE.Object3D[] {
+  public getRaycastTargets(ray?: THREE.Ray): THREE.Object3D[] {
     if (this.glbLoaded) {
       const roots: THREE.Object3D[] = [];
-      for (const item of this.yearObjects) {
-        if (item.monumentId && item.obj.visible) {
-          roots.push(item.obj);
+      for (const entry of this.raycastEntries) {
+        if (!entry.obj.visible) continue;
+        if (ray && !ray.intersectsBox(entry.worldBox)) continue;
+        roots.push(entry.obj);
+        if (entry.proxyGroup) {
+          roots.push(entry.proxyGroup);
         }
       }
       return roots;
     }
     return this.monumentTargets.filter((t) => t.mesh.scale.x > 0.1).map((t) => t.mesh);
+  }
+
+  public getOutlinedWorldBox(): THREE.Box3 | null {
+    if (!this.outlinedMonumentId) return null;
+    let box: THREE.Box3 | null = null;
+    for (const entry of this.raycastEntries) {
+      if (entry.monumentId === this.outlinedMonumentId && entry.obj.visible) {
+        box = box ? box.union(entry.worldBox) : entry.worldBox.clone();
+      }
+    }
+    return box;
   }
 
   public setOutlinedMonument(monumentId: string | null): void {
@@ -1253,21 +1317,27 @@ export class ParisMonumentsBuilder {
         isDirectMonumentMesh: false,
         isHitProxy: true
       };
-      this.rootGroup.add(mesh);
+      this.hitProxyRoot.add(mesh);
       this.monumentTargets.push({ mesh, data: m });
     }
+    this.hitProxyRoot.updateMatrixWorld(true);
   }
 
   public updateYear(year: number): void {
     this.currentYear = year;
     for (const item of this.yearObjects) {
-      item.obj.visible = year >= item.minYear && year <= item.maxYear;
+      const vis = year >= item.minYear && year <= item.maxYear;
+      item.obj.visible = vis;
+      if (item.proxyGroup) {
+        item.proxyGroup.visible = vis;
+      }
     }
     if (!this.glbLoaded) {
       for (const target of this.monumentTargets) {
         const startYr = target.data.constructionStartYear ?? target.data.builtYear;
         target.mesh.scale.setScalar(year >= startYr ? 1 : 0.0001);
       }
+      this.hitProxyRoot.updateMatrixWorld(true);
     }
     this.syncOutlineLayer();
   }

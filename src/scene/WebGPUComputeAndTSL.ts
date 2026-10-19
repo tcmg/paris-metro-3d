@@ -174,6 +174,8 @@ export function createTSLInstancedStandardMaterial(
     opacity: 1.0
   });
 
+  mat.customProgramCacheKey = () => 'inst-subnode-v1';
+
   mat.onBeforeCompile = (shader) => {
     shader.vertexShader =
       `attribute vec2 aInstanceOpacityEmissive;\nvarying vec2 vInstanceOpacityEmissive;\n` +
@@ -241,16 +243,23 @@ export function writeTranslationScaleMatrix(
   targetArray[o + 15] = 1;
 }
 
+interface MinimalGPUBuffer {
+  getMappedRange: (offset?: number, size?: number) => ArrayBuffer;
+  mapAsync: (mode: number, offset?: number, size?: number) => Promise<void>;
+  unmap: () => void;
+}
+
 interface MinimalGPUDevice {
   createShaderModule: (desc: { code: string }) => unknown;
   createComputePipeline: (desc: {
     layout: 'auto';
     compute: { module: unknown; entryPoint: string };
   }) => { getBindGroupLayout: (index: number) => unknown };
-  createBuffer: (desc: { size: number; usage: number; mappedAtCreation?: boolean }) => {
-    getMappedRange: () => ArrayBuffer;
-    unmap: () => void;
-  };
+  createBuffer: (desc: {
+    size: number;
+    usage: number;
+    mappedAtCreation?: boolean;
+  }) => MinimalGPUBuffer;
   createBindGroup: (desc: {
     layout: unknown;
     entries: { binding: number; resource: { buffer: unknown } }[];
@@ -262,12 +271,59 @@ interface MinimalGPUDevice {
       dispatchWorkgroups: (x: number) => void;
       end: () => void;
     };
+    copyBufferToBuffer: (
+      src: MinimalGPUBuffer,
+      srcOffset: number,
+      dst: MinimalGPUBuffer,
+      dstOffset: number,
+      size: number
+    ) => void;
     finish: () => unknown;
   };
   queue: {
     writeBuffer: (buf: unknown, offset: number, data: BufferSource) => void;
     submit: (cmds: unknown[]) => void;
   };
+}
+
+let sharedWebGPUPromise: Promise<{
+  adapter: unknown;
+  device: MinimalGPUDevice;
+} | null> | null = null;
+
+/**
+ * Returns a shared singleton WebGPU adapter + device so multiple subsystems
+ * do not request redundant GPU devices.
+ */
+export function getSharedWebGPU(): Promise<{
+  adapter: unknown;
+  device: MinimalGPUDevice;
+} | null> {
+  if (!sharedWebGPUPromise) {
+    sharedWebGPUPromise = (async () => {
+      try {
+        const nav = navigator as unknown as {
+          gpu?: {
+            requestAdapter: (opts?: {
+              powerPreference?: 'high-performance' | 'low-power';
+            }) => Promise<{ requestDevice: () => Promise<MinimalGPUDevice> } | null>;
+          };
+        };
+        if (!nav.gpu || typeof nav.gpu.requestAdapter !== 'function') return null;
+
+        const adapter = await nav.gpu.requestAdapter({ powerPreference: 'high-performance' });
+        if (!adapter) return null;
+
+        const device = await adapter.requestDevice();
+        if (!device) return null;
+
+        return { adapter, device };
+      } catch {
+        return null;
+      }
+    })();
+  }
+  return sharedWebGPUPromise;
 }
 
 /**
@@ -279,7 +335,14 @@ export class WebGPUStationComputeAccelerator {
   private device: MinimalGPUDevice | null = null;
   private pipeline: { getBindGroupLayout: (index: number) => unknown } | null = null;
   private bindGroup: unknown = null;
-  private uniformBuffer: unknown = null;
+  private uniformBuffer: MinimalGPUBuffer | null = null;
+  private outSubBuffer: MinimalGPUBuffer | null = null;
+  private outShaftBuffer: MinimalGPUBuffer | null = null;
+  private stagingSub: [MinimalGPUBuffer | null, MinimalGPUBuffer | null] = [null, null];
+  private stagingShaft: [MinimalGPUBuffer | null, MinimalGPUBuffer | null] = [null, null];
+  private stagingBusy: [boolean, boolean] = [false, false];
+  private stagingRingIdx = 0;
+  private stationByteLen = 0;
   private readonly stationCount: number;
   public backendName: 'webgpu' | 'webgl2-fallback' = 'webgl2-fallback';
 
@@ -290,20 +353,9 @@ export class WebGPUStationComputeAccelerator {
 
   private async initWebGPUCompute(stationStaticData: Float32Array): Promise<void> {
     try {
-      const nav = navigator as unknown as {
-        gpu?: {
-          requestAdapter: (opts?: {
-            powerPreference?: 'high-performance' | 'low-power';
-          }) => Promise<{ requestDevice: () => Promise<MinimalGPUDevice> } | null>;
-        };
-      };
-      if (!nav.gpu || typeof nav.gpu.requestAdapter !== 'function') return;
-
-      const adapter = await nav.gpu.requestAdapter({ powerPreference: 'high-performance' });
-      if (!adapter) return;
-
-      const device = await adapter.requestDevice();
-      if (!device) return;
+      const shared = await getSharedWebGPU();
+      if (!shared || !shared.device) return;
+      const device = shared.device;
 
       // WGSL compute kernel for parallel station node & vertical shaft 4x4 matrix generation
       const wgslCode = /* wgsl */ `
@@ -364,10 +416,11 @@ export class WebGPUStationComputeAccelerator {
       `;
 
       const GPUBufferUsageFlags = {
-        STORAGE: 0x0080,
-        UNIFORM: 0x0040,
+        MAP_READ: 0x0001,
+        COPY_SRC: 0x0004,
         COPY_DST: 0x0008,
-        COPY_SRC: 0x0004
+        UNIFORM: 0x0040,
+        STORAGE: 0x0080
       };
 
       const module = device.createShaderModule({ code: wgslCode });
@@ -409,9 +462,29 @@ export class WebGPUStationComputeAccelerator {
         ]
       });
 
+      this.stagingSub[0] = device.createBuffer({
+        size: matBytes,
+        usage: GPUBufferUsageFlags.MAP_READ | GPUBufferUsageFlags.COPY_DST
+      });
+      this.stagingSub[1] = device.createBuffer({
+        size: matBytes,
+        usage: GPUBufferUsageFlags.MAP_READ | GPUBufferUsageFlags.COPY_DST
+      });
+      this.stagingShaft[0] = device.createBuffer({
+        size: matBytes,
+        usage: GPUBufferUsageFlags.MAP_READ | GPUBufferUsageFlags.COPY_DST
+      });
+      this.stagingShaft[1] = device.createBuffer({
+        size: matBytes,
+        usage: GPUBufferUsageFlags.MAP_READ | GPUBufferUsageFlags.COPY_DST
+      });
+
+      this.stationByteLen = this.stationCount * 64;
       this.device = device;
       this.pipeline = pipeline;
       this.uniformBuffer = uniformBuf;
+      this.outSubBuffer = subNodeOutBuf;
+      this.outShaftBuffer = shaftOutBuf;
       this.bindGroup = bindGroup;
       this.backendName = 'webgpu';
     } catch {
@@ -419,7 +492,12 @@ export class WebGPUStationComputeAccelerator {
     }
   }
 
-  public dispatchComputeIfAvailable(liftOffsetY: number, clampedProgress: number): void {
+  public dispatchComputeIfAvailable(
+    liftOffsetY: number,
+    clampedProgress: number,
+    subInst?: THREE.InstancedMesh,
+    shaftInst?: THREE.InstancedMesh
+  ): void {
     if (!this.device || !this.pipeline || !this.bindGroup || !this.uniformBuffer) return;
     try {
       const uData = new Float32Array([liftOffsetY, clampedProgress, this.stationCount, 0]);
@@ -430,7 +508,52 @@ export class WebGPUStationComputeAccelerator {
       pass.setBindGroup(0, this.bindGroup);
       pass.dispatchWorkgroups(Math.ceil(this.stationCount / 64));
       pass.end();
+
+      const slot = this.stagingRingIdx;
+      const canStage =
+        !this.stagingBusy[slot] &&
+        this.stagingSub[slot] !== null &&
+        this.stagingShaft[slot] !== null &&
+        this.outSubBuffer !== null &&
+        this.outShaftBuffer !== null &&
+        this.stationByteLen > 0;
+
+      if (canStage && this.outSubBuffer && this.outShaftBuffer) {
+        const stSub = this.stagingSub[slot]!;
+        const stShaft = this.stagingShaft[slot]!;
+        this.stagingRingIdx = slot ^ 1;
+        this.stagingBusy[slot] = true;
+        encoder.copyBufferToBuffer(this.outSubBuffer, 0, stSub, 0, this.stationByteLen);
+        encoder.copyBufferToBuffer(this.outShaftBuffer, 0, stShaft, 0, this.stationByteLen);
+      }
+
       this.device.queue.submit([encoder.finish()]);
+
+      if (canStage && subInst && shaftInst) {
+        const stSub = this.stagingSub[slot]!;
+        const stShaft = this.stagingShaft[slot]!;
+        const byteLen = this.stationByteLen;
+        Promise.all([stSub.mapAsync(1, 0, byteLen), stShaft.mapAsync(1, 0, byteLen)])
+          .then(() => {
+            try {
+              (subInst.instanceMatrix.array as Float32Array).set(
+                new Float32Array(stSub.getMappedRange(0, byteLen))
+              );
+              (shaftInst.instanceMatrix.array as Float32Array).set(
+                new Float32Array(stShaft.getMappedRange(0, byteLen))
+              );
+              subInst.instanceMatrix.needsUpdate = true;
+              shaftInst.instanceMatrix.needsUpdate = true;
+            } finally {
+              stSub.unmap();
+              stShaft.unmap();
+              this.stagingBusy[slot] = false;
+            }
+          })
+          .catch(() => {
+            this.stagingBusy[slot] = false;
+          });
+      }
     } catch {
       // Fallback silently on any GPU queue error
     }

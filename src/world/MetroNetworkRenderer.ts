@@ -28,30 +28,31 @@ import {
 } from '../data/parisHistoricalData';
 import { applyPaperModelShaderHook } from './ParisMonumentsBuilder';
 import {
-  applyProximityDepthBiasShaderHook,
+  FastCurveLUT,
+  mergeGroupMeshesByMaterial,
+  writeTranslationScaleMatrix
+} from './geometryBatchUtils';
+import {
   createTSLInstancedBasicMaterial,
   createTSLInstancedStandardMaterial,
-  WebGPUStationComputeAccelerator,
-  writeTranslationScaleMatrix
+  WebGPUStationComputeAccelerator
 } from '../scene/WebGPUComputeAndTSL';
 
+const MAX_METRO_SEGMENTS = 128;
+
 interface SegmentRuntime {
+  segIdx: number;
   line: MetroLineConfig;
   openedYear: number;
   closedYear?: number;
   elevated: boolean;
   stationIds: string[];
   curve: THREE.CatmullRomCurve3;
-  tubeMesh: THREE.Mesh;
-  tubeMaterial: THREE.MeshStandardMaterial;
-  surfaceTraceMesh?: THREE.Mesh;
-  surfaceTraceMat?: THREE.MeshBasicMaterial;
-  surfaceProximityMesh?: THREE.Mesh;
-  surfaceProximityMat?: THREE.MeshBasicMaterial;
-  lightCurtainMesh: THREE.Mesh;
-  lightCurtainMat: THREE.MeshBasicMaterial;
+  fastLut: FastCurveLUT;
+  segColor: THREE.Color;
+  active: boolean;
+  trainVisible: boolean;
   viaductMesh?: THREE.Group;
-  trainGroup: THREE.Group;
   trainSpeed: number;
   trainPhase: number;
 }
@@ -81,10 +82,24 @@ export class MetroNetworkRenderer {
   public readonly liftedGroup = new THREE.Group();
   public readonly surfaceGroup = new THREE.Group();
   public readonly lightColumnsGroup = new THREE.Group();
+  public readonly hitMeshGroup = new THREE.Group();
   public readonly stationRuntimes: StationRuntime[] = [];
   public readonly hitMeshes: THREE.Mesh[] = [];
 
   private segments: SegmentRuntime[] = [];
+  private tubeSegState = new Float32Array(MAX_METRO_SEGMENTS * 2);
+  private proxSegAlpha = new Float32Array(MAX_METRO_SEGMENTS);
+  private traceSegAlpha = new Float32Array(MAX_METRO_SEGMENTS);
+  private curtainSegAlpha = new Float32Array(MAX_METRO_SEGMENTS);
+  private mergedTubeMesh: THREE.Mesh | null = null;
+  private mergedElevTubeMesh: THREE.Mesh | null = null;
+  private mergedProxMesh: THREE.Mesh | null = null;
+  private mergedTraceMesh: THREE.Mesh | null = null;
+  private mergedCurtainMesh: THREE.Mesh | null = null;
+  private trainBodyInstanced: THREE.InstancedMesh | null = null;
+  private trainRoofInstanced: THREE.InstancedMesh | null = null;
+  private trainDummy = new THREE.Object3D();
+  private _subterraneanOccluded = false;
   private subNodeInstanced!: THREE.InstancedMesh;
   private subNodeOpacityEmissiveAttr!: THREE.InstancedBufferAttribute;
   private shaftInstanced!: THREE.InstancedMesh;
@@ -569,6 +584,11 @@ export class MetroNetworkRenderer {
       })
     );
 
+    const subTubeGeoms: THREE.BufferGeometry[] = [];
+    const elevTubeGeoms: THREE.BufferGeometry[] = [];
+    const ribGeoms: THREE.BufferGeometry[] = [];
+    const curtGeoms: THREE.BufferGeometry[] = [];
+
     let segIndex = 0;
     for (const line of METRO_LINES) {
       const lineColor = new THREE.Color(line.color);
@@ -585,23 +605,24 @@ export class MetroNetworkRenderer {
         }
         if (points.length < 2) continue;
 
+        const segIdx = segIndex;
         const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.22);
         const approxLen = curve.getLength();
-        const tubularSegments = Math.max(36, points.length * 16, Math.ceil(approxLen * 5.0));
-        const tubeGeo = new THREE.TubeGeometry(curve, tubularSegments, 0.22, 10, false);
+        const tubularSegments = Math.max(24, points.length * 8, Math.ceil(approxLen * 3.2));
+        const tubeGeo = new THREE.TubeGeometry(curve, tubularSegments, 0.22, 8, false);
 
-        const tubeMaterial = new THREE.MeshStandardMaterial({
-          color: lineColor,
-          emissive: lineColor,
-          emissiveIntensity: 0.58,
-          roughness: 0.3,
-          metalness: 0.25,
-          transparent: true,
-          opacity: 0.95
-        });
-
-        const tubeMesh = new THREE.Mesh(tubeGeo, tubeMaterial);
-        this.liftedGroup.add(tubeMesh);
+        const tubeVertCount = tubeGeo.attributes.position.count;
+        const tubeCol = new Float32Array(tubeVertCount * 3);
+        const tubeSeg = new Float32Array(tubeVertCount);
+        for (let vi = 0; vi < tubeVertCount; vi++) {
+          tubeCol[vi * 3] = lineColor.r;
+          tubeCol[vi * 3 + 1] = lineColor.g;
+          tubeCol[vi * 3 + 2] = lineColor.b;
+          tubeSeg[vi] = segIdx;
+        }
+        tubeGeo.setAttribute('color', new THREE.BufferAttribute(tubeCol, 3));
+        tubeGeo.setAttribute('aSegIdx', new THREE.BufferAttribute(tubeSeg, 1));
+        (seg.elevated ? elevTubeGeoms : subTubeGeoms).push(tubeGeo);
 
         // Surface curve along the 3D terrain street alignment of this Metro segment
         const surfPts = points.map(
@@ -617,38 +638,11 @@ export class MetroNetworkRenderer {
           burnedOuterColor,
           0.32
         );
-
-        // Pass 1: Proximity-only semi-transparent ground strip (renders in front of local trees & buildings
-        // within ~25m / 1 building height, while foreground cityscape and all 3D Monuments naturally occlude it)
-        const surfaceProximityMat = applyProximityDepthBiasShaderHook(
-          new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.42,
-            side: THREE.DoubleSide,
-            depthWrite: false
-          })
-        );
-        const surfaceProximityMesh = new THREE.Mesh(surfGeo, surfaceProximityMat);
-        surfaceProximityMesh.renderOrder = 2;
-        this.surfaceGroup.add(surfaceProximityMesh);
-
-        // Pass 2: Crisp unoccluded ground strip on open streets & boulevards
-        const surfaceTraceMat = new THREE.MeshBasicMaterial({
-          color: 0xffffff,
-          vertexColors: true,
-          transparent: true,
-          opacity: 0.94,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-          polygonOffset: true,
-          polygonOffsetFactor: -4,
-          polygonOffsetUnits: -4
-        });
-        const surfaceTraceMesh = new THREE.Mesh(surfGeo, surfaceTraceMat);
-        surfaceTraceMesh.renderOrder = 3;
-        this.surfaceGroup.add(surfaceTraceMesh);
+        const ribVertCount = surfGeo.attributes.position.count;
+        const ribSeg = new Float32Array(ribVertCount);
+        ribSeg.fill(segIdx);
+        surfGeo.setAttribute('aSegIdx', new THREE.BufferAttribute(ribSeg, 1));
+        ribGeoms.push(surfGeo);
 
         // Upward-Radiating Sky Light Curtain with guaranteed minimum height above terrain & viaducts
         const curtainGeo = this.createLightCurtainGeometry(
@@ -657,17 +651,18 @@ export class MetroNetworkRenderer {
           3.25,
           Boolean(seg.elevated)
         );
-        const lightCurtainMat = new THREE.MeshBasicMaterial({
-          color: curtainColor,
-          map: this.lightCurtainTexture,
-          transparent: true,
-          opacity: 0.82,
-          side: THREE.DoubleSide,
-          depthWrite: false
-        });
-        const lightCurtainMesh = new THREE.Mesh(curtainGeo, lightCurtainMat);
-        lightCurtainMesh.renderOrder = 1;
-        this.lightColumnsGroup.add(lightCurtainMesh);
+        const curtVertCount = curtainGeo.attributes.position.count;
+        const curtCol = new Float32Array(curtVertCount * 3);
+        const curtSeg = new Float32Array(curtVertCount);
+        for (let vi = 0; vi < curtVertCount; vi++) {
+          curtCol[vi * 3] = curtainColor.r;
+          curtCol[vi * 3 + 1] = curtainColor.g;
+          curtCol[vi * 3 + 2] = curtainColor.b;
+          curtSeg[vi] = segIdx;
+        }
+        curtainGeo.setAttribute('color', new THREE.BufferAttribute(curtCol, 3));
+        curtainGeo.setAttribute('aSegIdx', new THREE.BufferAttribute(curtSeg, 1));
+        curtGeoms.push(curtainGeo);
 
         // Viaduct Support Deck & Limestone Piers for elevated segments (Lines 2, 6, 5)
         let viaductMesh: THREE.Group | undefined;
@@ -698,30 +693,31 @@ export class MetroNetworkRenderer {
             cap.position.set(pp.x, pp.y - 0.08, pp.z);
             viaductMesh.add(pier, cap);
           }
+          mergeGroupMeshesByMaterial(viaductMesh, false);
           this.liftedGroup.add(viaductMesh);
         }
 
-        // Build Animated Metro Train for this segment
-        const trainGroup = this.createMetroTrainMesh(lineColor);
-        this.liftedGroup.add(trainGroup);
+        if (segIdx < MAX_METRO_SEGMENTS) {
+          this.tubeSegState[segIdx * 2] = 0.95;
+          this.tubeSegState[segIdx * 2 + 1] = 0.58;
+          this.proxSegAlpha[segIdx] = 0.42;
+          this.traceSegAlpha[segIdx] = 0.94;
+          this.curtainSegAlpha[segIdx] = 0.82;
+        }
 
         this.segments.push({
+          segIdx,
           line,
           openedYear: seg.openedYear,
           closedYear: seg.closedYear,
           elevated: Boolean(seg.elevated),
           stationIds: seg.stations,
           curve,
-          tubeMesh,
-          tubeMaterial,
-          surfaceTraceMesh,
-          surfaceTraceMat,
-          surfaceProximityMesh,
-          surfaceProximityMat,
-          lightCurtainMesh,
-          lightCurtainMat,
+          fastLut: new FastCurveLUT(curve, 256, true),
+          segColor: lineColor,
+          active: true,
+          trainVisible: true,
           viaductMesh,
-          trainGroup,
           trainSpeed: 0.055 + (segIndex % 5) * 0.008,
           trainPhase: (segIndex * 0.37) % 1.0
         });
@@ -729,31 +725,281 @@ export class MetroNetworkRenderer {
         segIndex++;
       }
     }
-  }
 
-  private createMetroTrainMesh(lineColor: THREE.Color): THREE.Group {
-    const group = new THREE.Group();
+    const mergeGeomList = (
+      geoms: THREE.BufferGeometry[],
+      attrNames: string[]
+    ): THREE.BufferGeometry => {
+      let totalV = 0;
+      let totalI = 0;
+      for (const g of geoms) {
+        totalV += g.attributes.position.count;
+        totalI += g.index ? g.index.count : g.attributes.position.count;
+      }
+      const out = new THREE.BufferGeometry();
+      for (const name of attrNames) {
+        const itemSize = geoms[0].attributes[name].itemSize;
+        const arr = new Float32Array(totalV * itemSize);
+        let off = 0;
+        for (const g of geoms) {
+          const src = g.attributes[name].array as Float32Array;
+          arr.set(src, off);
+          off += src.length;
+        }
+        out.setAttribute(name, new THREE.BufferAttribute(arr, itemSize));
+      }
+      const idxArr = totalV > 65535 ? new Uint32Array(totalI) : new Uint16Array(totalI);
+      let vOff = 0;
+      let iOff = 0;
+      for (const g of geoms) {
+        const vCnt = g.attributes.position.count;
+        if (g.index) {
+          const srcIdx = g.index.array;
+          for (let k = 0, len = srcIdx.length; k < len; k++) {
+            idxArr[iOff++] = srcIdx[k] + vOff;
+          }
+        } else {
+          for (let k = 0; k < vCnt; k++) {
+            idxArr[iOff++] = vOff + k;
+          }
+        }
+        vOff += vCnt;
+      }
+      out.setIndex(new THREE.BufferAttribute(idxArr, 1));
+      return out;
+    };
 
-    const bodyGeo = new THREE.BoxGeometry(0.48, 0.36, 1.35);
+    if (subTubeGeoms.length > 0 || elevTubeGeoms.length > 0) {
+      const tubeStateUniform = { value: this.tubeSegState };
+      const mergedTubeMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 1.0,
+        vertexColors: true,
+        roughness: 0.3,
+        metalness: 0.25,
+        transparent: true,
+        opacity: 1.0
+      });
+      mergedTubeMat.customProgramCacheKey = () => 'merged-metro-tube-v1';
+      mergedTubeMat.onBeforeCompile = (sh) => {
+        sh.uniforms.uSegState = tubeStateUniform;
+        sh.vertexShader =
+          `uniform vec2 uSegState[${MAX_METRO_SEGMENTS}];\nattribute float aSegIdx;\nvarying vec2 vSegState;\nvarying vec3 vTubeColor;\n` +
+          sh.vertexShader
+            .replace(
+              '#include <begin_vertex>',
+              `#include <begin_vertex>\nint sIdx = int(aSegIdx + 0.5);\nvSegState = uSegState[sIdx];\nvTubeColor = color;`
+            )
+            .replace(
+              '#include <project_vertex>',
+              `#include <project_vertex>\nif (vSegState.x <= 0.001) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }`
+            );
+        sh.fragmentShader =
+          `varying vec2 vSegState;\nvarying vec3 vTubeColor;\n` +
+          sh.fragmentShader
+            .replace(
+              '#include <color_fragment>',
+              `#include <color_fragment>\nif (vSegState.x <= 0.001) discard;\ndiffuseColor.a *= vSegState.x;`
+            )
+            .replace(
+              '#include <emissivemap_fragment>',
+              `#include <emissivemap_fragment>\ntotalEmissiveRadiance = vTubeColor * vSegState.y;`
+            );
+      };
+
+      if (subTubeGeoms.length > 0) {
+        const subGeom = mergeGeomList(subTubeGeoms, [
+          'position',
+          'normal',
+          'uv',
+          'color',
+          'aSegIdx'
+        ]);
+        this.mergedTubeMesh = new THREE.Mesh(subGeom, mergedTubeMat);
+        this.mergedTubeMesh.frustumCulled = false;
+        this.liftedGroup.add(this.mergedTubeMesh);
+      }
+      if (elevTubeGeoms.length > 0) {
+        const elevGeom = mergeGeomList(elevTubeGeoms, [
+          'position',
+          'normal',
+          'uv',
+          'color',
+          'aSegIdx'
+        ]);
+        this.mergedElevTubeMesh = new THREE.Mesh(elevGeom, mergedTubeMat);
+        this.mergedElevTubeMesh.frustumCulled = false;
+        this.liftedGroup.add(this.mergedElevTubeMesh);
+      }
+    }
+
+    if (ribGeoms.length > 0) {
+      const mergedRibGeom = mergeGeomList(ribGeoms, [
+        'position',
+        'normal',
+        'uv',
+        'color',
+        'aProximityBias',
+        'aSegIdx'
+      ]);
+
+      // Pass 1: Proximity-only semi-transparent ground strip
+      const proxAlphaUniform = { value: this.proxSegAlpha };
+      const mergedProxMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      mergedProxMat.customProgramCacheKey = () => 'merged-metro-prox-v1';
+      mergedProxMat.onBeforeCompile = (sh) => {
+        sh.uniforms.uSegAlpha = proxAlphaUniform;
+        sh.vertexShader =
+          `uniform float uSegAlpha[${MAX_METRO_SEGMENTS}];\nattribute float aSegIdx;\nattribute float aProximityBias;\nvarying float vSegAlpha;\n` +
+          sh.vertexShader
+            .replace(
+              '#include <begin_vertex>',
+              `#include <begin_vertex>\nvSegAlpha = uSegAlpha[int(aSegIdx + 0.5)];`
+            )
+            .replace(
+              '#include <project_vertex>',
+              `#include <project_vertex>\nif (vSegAlpha <= 0.001) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); } else if (aProximityBias > 0.001) {\n  float biasedViewZ = min(-0.25, mvPosition.z + aProximityBias);\n  vec4 biasedClip = projectionMatrix * vec4(mvPosition.xy, biasedViewZ, 1.0);\n  gl_Position.z = biasedClip.z * (gl_Position.w / max(0.0001, biasedClip.w));\n}`
+            );
+        sh.fragmentShader =
+          `varying float vSegAlpha;\n` +
+          sh.fragmentShader.replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>\nif (vSegAlpha <= 0.001) discard;\ndiffuseColor.a *= vSegAlpha;`
+          );
+      };
+      this.mergedProxMesh = new THREE.Mesh(mergedRibGeom, mergedProxMat);
+      this.mergedProxMesh.renderOrder = 2;
+      this.mergedProxMesh.frustumCulled = false;
+      this.surfaceGroup.add(this.mergedProxMesh);
+
+      // Pass 2: Crisp unoccluded ground strip on open streets & boulevards
+      const traceAlphaUniform = { value: this.traceSegAlpha };
+      const mergedTraceMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -4,
+        polygonOffsetUnits: -4
+      });
+      mergedTraceMat.customProgramCacheKey = () => 'merged-metro-trace-v1';
+      mergedTraceMat.onBeforeCompile = (sh) => {
+        sh.uniforms.uSegAlpha = traceAlphaUniform;
+        sh.vertexShader =
+          `uniform float uSegAlpha[${MAX_METRO_SEGMENTS}];\nattribute float aSegIdx;\nvarying float vSegAlpha;\n` +
+          sh.vertexShader
+            .replace(
+              '#include <begin_vertex>',
+              `#include <begin_vertex>\nvSegAlpha = uSegAlpha[int(aSegIdx + 0.5)];`
+            )
+            .replace(
+              '#include <project_vertex>',
+              `#include <project_vertex>\nif (vSegAlpha <= 0.001) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }`
+            );
+        sh.fragmentShader =
+          `varying float vSegAlpha;\n` +
+          sh.fragmentShader.replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>\nif (vSegAlpha <= 0.001) discard;\ndiffuseColor.a *= vSegAlpha;`
+          );
+      };
+      this.mergedTraceMesh = new THREE.Mesh(mergedRibGeom, mergedTraceMat);
+      this.mergedTraceMesh.renderOrder = 3;
+      this.mergedTraceMesh.frustumCulled = false;
+      this.surfaceGroup.add(this.mergedTraceMesh);
+    }
+
+    if (curtGeoms.length > 0) {
+      const mergedCurtGeom = mergeGeomList(curtGeoms, [
+        'position',
+        'normal',
+        'uv',
+        'color',
+        'aSegIdx'
+      ]);
+      const curtainAlphaUniform = { value: this.curtainSegAlpha };
+      const mergedCurtMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        map: this.lightCurtainTexture,
+        vertexColors: true,
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      mergedCurtMat.customProgramCacheKey = () => 'merged-metro-curtain-v1';
+      mergedCurtMat.onBeforeCompile = (sh) => {
+        sh.uniforms.uSegAlpha = curtainAlphaUniform;
+        sh.vertexShader =
+          `uniform float uSegAlpha[${MAX_METRO_SEGMENTS}];\nattribute float aSegIdx;\nvarying float vSegAlpha;\n` +
+          sh.vertexShader
+            .replace(
+              '#include <begin_vertex>',
+              `#include <begin_vertex>\nvSegAlpha = uSegAlpha[int(aSegIdx + 0.5)];`
+            )
+            .replace(
+              '#include <project_vertex>',
+              `#include <project_vertex>\nif (vSegAlpha <= 0.001) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }`
+            );
+        sh.fragmentShader =
+          `varying float vSegAlpha;\n` +
+          sh.fragmentShader.replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>\nif (vSegAlpha <= 0.001) discard;\ndiffuseColor.a *= vSegAlpha;`
+          );
+      };
+      this.mergedCurtainMesh = new THREE.Mesh(mergedCurtGeom, mergedCurtMat);
+      this.mergedCurtainMesh.renderOrder = 1;
+      this.mergedCurtainMesh.frustumCulled = false;
+      this.lightColumnsGroup.add(this.mergedCurtainMesh);
+    }
+
+    // Build GPU-Instanced Animated Metro Trains across all segments (2 draw calls total)
+    const maxTrains = Math.max(1, this.segments.length);
+    const bodyGeom = new THREE.BoxGeometry(0.48, 0.36, 1.35);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: lineColor,
-      emissive: lineColor,
-      emissiveIntensity: 0.85,
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 1.0,
       roughness: 0.2,
       metalness: 0.3
     });
+    bodyMat.customProgramCacheKey = () => 'instanced-metro-train-body-v1';
+    bodyMat.onBeforeCompile = (sh) => {
+      sh.fragmentShader = sh.fragmentShader.replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>\n#ifdef USE_INSTANCING_COLOR\ntotalEmissiveRadiance = vInstanceColor * 0.85;\n#endif`
+      );
+    };
 
-    const roofGeo = new THREE.BoxGeometry(0.5, 0.14, 1.38);
+    const roofGeom = new THREE.BoxGeometry(0.5, 0.14, 1.38);
+    roofGeom.translate(0, 0.18, 0);
     const roofMat = new THREE.MeshBasicMaterial({
       color: 0xf7f2e6
     });
 
-    const carMesh = new THREE.Mesh(bodyGeo, bodyMat);
-    const roofMesh = new THREE.Mesh(roofGeo, roofMat);
-    roofMesh.position.y = 0.18;
-
-    group.add(carMesh, roofMesh);
-    return group;
+    this.trainBodyInstanced = new THREE.InstancedMesh(bodyGeom, bodyMat, maxTrains);
+    this.trainRoofInstanced = new THREE.InstancedMesh(roofGeom, roofMat, maxTrains);
+    this.trainBodyInstanced.frustumCulled = false;
+    this.trainRoofInstanced.frustumCulled = false;
+    for (let ti = 0; ti < this.segments.length; ti++) {
+      this.trainBodyInstanced.setColorAt(ti, this.segments[ti].segColor);
+    }
+    if (this.trainBodyInstanced.instanceColor) {
+      this.trainBodyInstanced.instanceColor.needsUpdate = true;
+    }
+    this.liftedGroup.add(this.trainBodyInstanced, this.trainRoofInstanced);
   }
 
   private buildStationNodes(): void {
@@ -959,12 +1205,12 @@ export class MetroNetworkRenderer {
           opacity: 0.9
         });
         ghostHaloMesh = new THREE.Mesh(ghostGeo, ghostMat);
-        ghostHaloMesh.position.set(0, groundSurfaceY + 0.06, 0);
+        ghostHaloMesh.position.set(st.x, groundSurfaceY + 0.06, st.z);
         ghostHaloMesh.visible = false;
-        group.add(ghostHaloMesh);
+        this.rootGroup.add(ghostHaloMesh);
       }
 
-      // 5. Invisible Raycast Hit Target
+      // 5. Invisible Raycast Hit Target (stored in off-scene hitMeshGroup to skip per-frame scene traversal)
       const hitMesh = new THREE.Mesh(hitGeo, hitMat);
       hitMesh.position.set(0, (avgY + groundSurfaceY + 0.6) * 0.5, 0);
       hitMesh.scale.set(1, Math.max(1.5, Math.abs(groundSurfaceY + 0.8 - avgY) * 0.52), 1);
@@ -974,7 +1220,7 @@ export class MetroNetworkRenderer {
       };
       group.add(hitMesh);
 
-      this.rootGroup.add(group);
+      this.hitMeshGroup.add(group);
       this.hitMeshes.push(hitMesh);
       this.stationRuntimes.push({
         index: idx,
@@ -994,6 +1240,7 @@ export class MetroNetworkRenderer {
       });
     }
 
+    this.hitMeshGroup.updateMatrixWorld(true);
     this.subNodeInstanced.instanceMatrix.needsUpdate = true;
     this.shaftInstanced.instanceMatrix.needsUpdate = true;
     this.surfaceRingInstanced.instanceMatrix.needsUpdate = true;
@@ -1151,14 +1398,18 @@ export class MetroNetworkRenderer {
     this.surfaceGroup.visible = true;
 
     for (const seg of this.segments) {
+      if (!seg.active || seg.segIdx >= MAX_METRO_SEGMENTS) continue;
       const isLineSelected = !this.selectedLineId || this.selectedLineId === seg.line.id;
-      if (seg.surfaceTraceMat) {
-        seg.surfaceTraceMat.opacity = isLineSelected ? 0.96 : 0.22;
-      }
+      this.traceSegAlpha[seg.segIdx] = isLineSelected ? 0.96 : 0.22;
     }
 
     // Dispatch parallel WGSL compute pass on WebGPU when available
-    this.webgpuCompute?.dispatchComputeIfAvailable(liftOffsetY, clamped);
+    this.webgpuCompute?.dispatchComputeIfAvailable(
+      liftOffsetY,
+      clamped,
+      this.subNodeInstanced,
+      this.shaftInstanced
+    );
 
     const subMatArr = this.subNodeInstanced.instanceMatrix.array as Float32Array;
     const shaftMatArr = this.shaftInstanced.instanceMatrix.array as Float32Array;
@@ -1214,6 +1465,7 @@ export class MetroNetworkRenderer {
       }
     }
 
+    this.hitMeshGroup.updateMatrixWorld(true);
     this.subNodeInstanced.instanceMatrix.needsUpdate = true;
     this.shaftInstanced.instanceMatrix.needsUpdate = true;
   }
@@ -1259,36 +1511,34 @@ export class MetroNetworkRenderer {
 
     const activeLineSet = new Set<string>();
 
-    // 1. Update segments
+    // 1. Update segments via uniform state arrays
     for (const seg of this.segments) {
       const isOpened = year >= seg.openedYear;
       const isNotClosed = seg.closedYear === undefined || year < seg.closedYear;
       const isActive = isOpened && isNotClosed;
+      const idx = seg.segIdx;
 
-      seg.tubeMesh.visible = isActive;
-      seg.lightCurtainMesh.visible = isActive && this.showLightColumns;
-      if (seg.surfaceTraceMesh) {
-        seg.surfaceTraceMesh.visible = isActive;
-      }
-      if (seg.surfaceProximityMesh) {
-        seg.surfaceProximityMesh.visible = isActive;
-      }
+      seg.active = isActive;
+      seg.trainVisible = isActive && (!selectedLineId || selectedLineId === seg.line.id);
       if (seg.viaductMesh) {
         seg.viaductMesh.visible = isActive;
       }
-      seg.trainGroup.visible = isActive && (!selectedLineId || selectedLineId === seg.line.id);
 
-      if (isActive) {
-        activeLineSet.add(seg.line.id);
-        const isLineSelected = !selectedLineId || selectedLineId === seg.line.id;
-        seg.tubeMaterial.opacity = isLineSelected ? 0.96 : 0.14;
-        seg.tubeMaterial.emissiveIntensity = isLineSelected ? 0.68 : 0.12;
-        seg.lightCurtainMat.opacity = isLineSelected ? 0.82 : 0.12;
-        if (seg.surfaceTraceMat) {
-          seg.surfaceTraceMat.opacity = isLineSelected ? 0.94 : 0.20;
-        }
-        if (seg.surfaceProximityMat) {
-          seg.surfaceProximityMat.opacity = isLineSelected ? 0.42 : 0.09;
+      if (idx < MAX_METRO_SEGMENTS) {
+        if (isActive) {
+          activeLineSet.add(seg.line.id);
+          const isLineSelected = !selectedLineId || selectedLineId === seg.line.id;
+          this.tubeSegState[idx * 2] = isLineSelected ? 0.96 : 0.14;
+          this.tubeSegState[idx * 2 + 1] = isLineSelected ? 0.68 : 0.12;
+          this.curtainSegAlpha[idx] = this.showLightColumns ? (isLineSelected ? 0.82 : 0.12) : 0.0;
+          this.traceSegAlpha[idx] = isLineSelected ? 0.94 : 0.2;
+          this.proxSegAlpha[idx] = isLineSelected ? 0.42 : 0.09;
+        } else {
+          this.tubeSegState[idx * 2] = 0.0;
+          this.tubeSegState[idx * 2 + 1] = 0.0;
+          this.curtainSegAlpha[idx] = 0.0;
+          this.traceSegAlpha[idx] = 0.0;
+          this.proxSegAlpha[idx] = 0.0;
         }
       }
     }
@@ -1309,6 +1559,9 @@ export class MetroNetworkRenderer {
 
       if (!isBorn) {
         stRun.group.visible = false;
+        if (stRun.ghostHaloMesh) {
+          stRun.ghostHaloMesh.visible = false;
+        }
         stRun.hitMesh.scale.setScalar(0.0001);
         this.subNodeOpacityEmissiveAttr.setXY(idx, 0.0, 0.0);
         this.shaftOpacityAttr.setX(idx, 0.0);
@@ -1321,6 +1574,9 @@ export class MetroNetworkRenderer {
         closedGhostStationsCount++;
         if (!showGhostStations) {
           stRun.group.visible = false;
+          if (stRun.ghostHaloMesh) {
+            stRun.ghostHaloMesh.visible = false;
+          }
           stRun.hitMesh.scale.setScalar(0.0001);
           this.subNodeOpacityEmissiveAttr.setXY(idx, 0.0, 0.0);
           this.shaftOpacityAttr.setX(idx, 0.0);
@@ -1489,30 +1745,77 @@ export class MetroNetworkRenderer {
       this.hoverBeamMat.opacity = (0.64 + motionBoost * 0.45) * intensity * presenceEase;
     }
 
-    const pos = new THREE.Vector3();
-    const lookAtPos = new THREE.Vector3();
+    if (this.trainBodyInstanced && this.trainRoofInstanced) {
+      const pos = new THREE.Vector3();
+      const lookAtPos = new THREE.Vector3();
+      const dummy = this.trainDummy;
+      const bodyArr = this.trainBodyInstanced.instanceMatrix.array as Float32Array;
+      const roofArr = this.trainRoofInstanced.instanceMatrix.array as Float32Array;
+      const occl = this._subterraneanOccluded;
 
-    for (const seg of this.segments) {
-      if (!seg.trainGroup.visible) continue;
+      let activeCnt = 0;
+      for (let si = 0, sLen = this.segments.length; si < sLen; si++) {
+        const seg = this.segments[si];
+        if (!seg.trainVisible || (occl && !seg.elevated)) continue;
 
-      let speedMult = 1.0;
-      if (this.liveMetroLinesById) {
-        const liveLine = this.liveMetroLinesById[seg.line.id];
-        if (liveLine) {
-          const qosFactor = Math.max(0.5, Math.min(1.05, (liveLine.serviceQualityPercent || 100) / 100));
-          speedMult = (liveLine.trainSpeedMultiplier || 1.0) * qosFactor;
+        let speedMult = 1.0;
+        if (this.liveMetroLinesById) {
+          const liveLine = this.liveMetroLinesById[seg.line.id];
+          if (liveLine) {
+            const qosFactor = Math.max(
+              0.5,
+              Math.min(1.05, (liveLine.serviceQualityPercent || 100) / 100)
+            );
+            speedMult = (liveLine.trainSpeedMultiplier || 1.0) * qosFactor;
+          }
         }
+
+        const raw = (elapsedTime * seg.trainSpeed * speedMult + seg.trainPhase) % 2.0;
+        const t = raw <= 1.0 ? 0.04 + raw * 0.92 : 0.04 + (2.0 - raw) * 0.92;
+        const nextT = Math.min(0.99, Math.max(0.01, raw <= 1.0 ? t + 0.02 : t - 0.02));
+
+        seg.fastLut.samplePoint(t, pos);
+        seg.fastLut.samplePoint(nextT, lookAtPos);
+
+        dummy.position.copy(pos);
+        dummy.lookAt(lookAtPos);
+        dummy.updateMatrix();
+
+        const me = dummy.matrix.elements;
+        const base = activeCnt * 16;
+        for (let k = 0; k < 16; k++) {
+          bodyArr[base + k] = me[k];
+          roofArr[base + k] = me[k];
+        }
+        this.trainBodyInstanced.setColorAt(activeCnt, seg.segColor);
+        activeCnt++;
       }
 
-      const raw = (elapsedTime * seg.trainSpeed * speedMult + seg.trainPhase) % 2.0;
-      const t = raw <= 1.0 ? 0.04 + raw * 0.92 : 0.04 + (2.0 - raw) * 0.92;
-      const nextT = Math.min(0.99, Math.max(0.01, raw <= 1.0 ? t + 0.02 : t - 0.02));
+      this.trainBodyInstanced.count = activeCnt;
+      this.trainRoofInstanced.count = activeCnt;
+      this.trainBodyInstanced.instanceMatrix.needsUpdate = true;
+      this.trainRoofInstanced.instanceMatrix.needsUpdate = true;
+      if (this.trainBodyInstanced.instanceColor) {
+        this.trainBodyInstanced.instanceColor.needsUpdate = true;
+      }
+    }
+  }
 
-      seg.curve.getPointAt(t, pos);
-      seg.curve.getPointAt(nextT, lookAtPos);
-
-      seg.trainGroup.position.copy(pos);
-      seg.trainGroup.lookAt(lookAtPos);
+  /**
+   * Hides subterranean metro tubes, underground station nodes, vertical shafts, and underground trains
+   * when the surface terrain is 100% opaque and the metro is not lifted (`liftProgress <= 0.005`),
+   * avoiding wasted vertex & fragment shading on completely occluded underground geometry.
+   */
+  public setSubterraneanOccluded(occluded: boolean): void {
+    this._subterraneanOccluded = occluded;
+    if (this.mergedTubeMesh) {
+      this.mergedTubeMesh.visible = !occluded;
+    }
+    if (this.subNodeInstanced) {
+      this.subNodeInstanced.visible = !occluded;
+    }
+    if (this.shaftInstanced) {
+      this.shaftInstanced.visible = !occluded;
     }
   }
 

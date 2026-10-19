@@ -249,7 +249,7 @@ function bootstrapApp(): void {
         }
         const liftY = metroNetwork.getLiftOffsetY();
         const surfaceY = getParisTerrainElevation(st.x, st.z) + 0.25;
-        sceneManager.focusOnWorldPoint(st.x, -2.5 + liftY, st.z, false);
+        sceneManager.focusOnWorldPoint(st.x, -2.5 + liftY, st.z, true);
         const radiusScale = st.lines.length >= 3 ? 1.18 : 0.92;
         const colorHex = metroNetwork.getStationHoverColorHex(st);
         metroNetwork.setTourPinnedPosition(
@@ -310,6 +310,23 @@ function bootstrapApp(): void {
         );
       }
     },
+    onFocusWorldPoint: (x: number, y: number, z: number, colorHex: number) => {
+      sceneManager.setSelectedMonument(null);
+      if (voxelParis.getSurfaceOpacity() <= 0.02) {
+        voxelParis.setUndergroundDarkMode(false);
+        sceneManager.setUndergroundDarkMode(false);
+        voxelParis.setSurfaceOpacity(1.0);
+        hud.setOpacityValue(1.0);
+        hud.setActiveCameraPresetUI('overground');
+      }
+      sceneManager.focusOnWorldPoint(x, y + 1.4, z, true);
+      metroNetwork.setTourPinnedPosition(
+        new THREE.Vector3(x, y + 0.15, z),
+        1.1,
+        colorHex,
+        false
+      );
+    },
     onSelectTourStop: (stop) => {
       if (!stop) {
         sceneManager.setSelectedMonument(null);
@@ -331,7 +348,7 @@ function bootstrapApp(): void {
         hud.triggerYear(stop.timelineYear);
       }
       const terrainY = getParisTerrainElevation(stop.x, stop.z);
-      sceneManager.focusOnWorldPoint(stop.x, terrainY + 1.8, stop.z, false);
+      sceneManager.focusOnWorldPoint(stop.x, terrainY + 1.8, stop.z, true);
       metroNetwork.setTourPinnedPosition(
         new THREE.Vector3(stop.x, terrainY + 0.3, stop.z),
         stop.radiusScale,
@@ -341,6 +358,79 @@ function bootstrapApp(): void {
     }
   });
 
+  let lastFramedSimMode = voxelParis.surfaceSimulation.getSimulationMode();
+  voxelParis.surfaceSimulation.onSimulationStateChanged = (mode) => {
+    if (mode === 'none') {
+      hud.setPaperModelState(false);
+      sceneManager.setWeatherMode('clear');
+      voxelParis.setWeatherSurfaceSheen(false);
+      hud.setActiveWeatherModeUI('clear');
+      sceneManager.setTimeOfDay(14.2);
+      hud.syncTimeOfDayReadout(14.2);
+      lastFramedSimMode = 'none';
+      return;
+    }
+
+    // Ensure surface city is visible and switch buildings to Grey Maquette contrast so 3D crisis visuals pop vividly
+    if (voxelParis.getSurfaceOpacity() <= 0.05) {
+      voxelParis.setUndergroundDarkMode(false);
+      sceneManager.setUndergroundDarkMode(false);
+      voxelParis.setSurfaceOpacity(1.0);
+      hud.setOpacityValue(1.0);
+      hud.setActiveCameraPresetUI('overground');
+    }
+    hud.setPaperModelState(true);
+
+    if (lastFramedSimMode !== mode) {
+      lastFramedSimMode = mode;
+      sceneManager.setSelectedMonument(null);
+      if (mode === 'traffic') {
+        sceneManager.setWeatherMode('clear');
+        voxelParis.setWeatherSurfaceSheen(false);
+        hud.setActiveWeatherModeUI('clear');
+        sceneManager.setTimeOfDay(14.2);
+        hud.syncTimeOfDayReadout(14.2);
+        sceneManager.focusOnArrondissement(0, 1.4, -2, 34, 21);
+      } else if (mode === 'marathon') {
+        sceneManager.setWeatherMode('clear');
+        voxelParis.setWeatherSurfaceSheen(false);
+        hud.setActiveWeatherModeUI('clear');
+        sceneManager.setTimeOfDay(10.8);
+        hud.syncTimeOfDayReadout(10.8);
+        sceneManager.focusOnArrondissement(-2, 1.4, 1, 38, 23);
+      } else if (mode === 'heatwave') {
+        sceneManager.setWeatherMode('clear');
+        voxelParis.setWeatherSurfaceSheen(false);
+        hud.setActiveWeatherModeUI('clear');
+        sceneManager.setTimeOfDay(15.4);
+        hud.syncTimeOfDayReadout(15.4);
+        sceneManager.focusOnArrondissement(1, 1.4, -1, 36, 22);
+      } else if (mode === 'protest') {
+        sceneManager.setWeatherMode('cloudy');
+        voxelParis.setWeatherSurfaceSheen(false);
+        hud.setActiveWeatherModeUI('cloudy');
+        sceneManager.setTimeOfDay(19.15);
+        hud.syncTimeOfDayReadout(19.15);
+        sceneManager.focusOnArrondissement(9.5, 1.4, 0.5, 29, 18);
+      } else if (mode === 'flood') {
+        sceneManager.setWeatherMode('rain');
+        voxelParis.setWeatherSurfaceSheen(true);
+        hud.setActiveWeatherModeUI('rain');
+        sceneManager.setTimeOfDay(16.2);
+        hud.syncTimeOfDayReadout(16.2);
+        sceneManager.focusOnArrondissement(-2, 1.2, 2.5, 36, 21);
+      } else if (mode === 'cyberattack') {
+        sceneManager.setWeatherMode('cloudy');
+        voxelParis.setWeatherSurfaceSheen(false);
+        hud.setActiveWeatherModeUI('cloudy');
+        sceneManager.setTimeOfDay(21.6);
+        hud.syncTimeOfDayReadout(21.6);
+        sceneManager.focusOnArrondissement(1, 1.4, -4, 35, 21);
+      }
+    }
+  };
+
+  hud.setSurfaceSimulation(voxelParis.surfaceSimulation);
   voxelParis.setSurfaceOpacity(1.0);
   syncWorldToState();
 
@@ -394,6 +484,8 @@ function bootstrapApp(): void {
 
     hud.tickPlayback(delta);
     sceneManager.update(elapsed, delta);
+
+    hud.updateWorldHotspotPositions((x, y, z) => sceneManager.projectWorldToScreen(x, y, z));
 
     const anchoredStation = hud.getAnchoredSpecialStation();
     if (anchoredStation) {
