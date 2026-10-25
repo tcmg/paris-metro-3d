@@ -20,7 +20,19 @@
 
 import { CityCulturalUITheme } from './types';
 
-const ALLOWED_CITY_SLUGS = new Set(['paris', 'rio', 'sydney', 'london', 'nyc']);
+const ALLOWED_CITY_SLUGS = new Set([
+  'paris',
+  'rio',
+  'sydney',
+  'london',
+  'nyc',
+  'porto',
+  'tokyo',
+  'san-francisco',
+  'warsaw',
+  'zurich',
+  'melbourne'
+]);
 const SAFE_CITY_REGEX = /^[a-z0-9][a-z0-9_-]{1,23}$/;
 
 const THEME_LINK_ELEMENT_ID = 'city-cultural-theme-stylesheet';

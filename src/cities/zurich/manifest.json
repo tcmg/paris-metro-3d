@@ -1,0 +1,50 @@
+{
+  "cityId": "zurich",
+  "cityName": "Zurich",
+  "country": "Switzerland",
+  "startedAt": "2026-10-20T09:16:53.825Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/zurich_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 235,
+        "waterLines": 27,
+        "parks": 3182,
+        "trees": 8000,
+        "roads": 3126,
+        "buildings": 39859,
+        "topographyPeaks": 4
+      }
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/zurich_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/historicalData.ts",
+      "glbRelPath": "public/models/zurich_monuments.glb",
+      "glbExported": true,
+      "blenderExecutionMode": "blender-mcp-live",
+      "monumentCount": 8
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/districtsData.ts",
+      "lineCount": 14,
+      "terminusCount": 2,
+      "districtCount": 4
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/zurich.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/zurich/index.ts"
+    }
+  },
+  "completedAt": "2026-10-20T11:20:43.900Z"
+}

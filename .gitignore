@@ -6,3 +6,4 @@ dist/
 *.log
 *.zip
 __pycache__/
+scripts/pipeline/.dem_cache/

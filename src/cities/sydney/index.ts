@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import type { CityDataset } from '../types';
-import { SYDNEY_GEO_CONFIG, SYDNEY_WATER_BODIES, SYDNEY_TOPOGRAPHY } from './geoData';
+import { SYDNEY_GEO_CONFIG, SYDNEY_WATER_BODIES, SYDNEY_TOPOGRAPHY, SYDNEY_HEIGHTMAP } from './geoData';
 import {
   SYDNEY_MONUMENTS_GLB_PATH,
   SYDNEY_MONUMENTS,
@@ -38,6 +38,7 @@ export const SYDNEY_CITY_DATASET: CityDataset = {
   geo: SYDNEY_GEO_CONFIG,
   waterBodies: SYDNEY_WATER_BODIES,
   topography: SYDNEY_TOPOGRAPHY,
+  heightmap: SYDNEY_HEIGHTMAP,
   monuments: SYDNEY_MONUMENTS,
   milestones: SYDNEY_MILESTONES,
   eras: SYDNEY_ERAS,

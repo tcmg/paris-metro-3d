@@ -503,6 +503,81 @@ export const SYDNEY_PRESET = {
         { id: 'redfern', name: 'Redfern', lat: -33.8922, lon: 151.1988, openedYear: 1855, arrondissement: 'Redfern', architecture: '12-Platform Main Junction', description: 'All T9 trains stop here before running express toward Burwood and Strathfield.' },
         { id: 'stanmore', name: 'Stanmore', lat: -33.8946, lon: 151.1645, openedYear: 1878, arrondissement: 'Inner West', architecture: 'Main Suburban Six-Track Corridor', description: 'Inner West corridor toward Strathfield and the Hawkesbury River.' }
       ]
+    },
+    {
+      id: 'L1',
+      name: 'L1 — Dulwich Hill Light Rail (Central Grand Concourse ↔ Darling Harbour ↔ Pyrmont ↔ Glebe ↔ Lilyfield ↔ Dulwich Hill)',
+      shortLabel: 'L1',
+      color: '#be1622',
+      textColor: '#ffffff',
+      openedYear: 1997,
+      depthOffset: -0.2,
+      historicCompany: 'Sydney Light Rail (CAF Urbos 3 Inner West Goods Line)',
+      summary: 'Opened August 11, 1997 along the historic 1855 Darling Harbour Goods Line sandstone cuttings, brick viaducts, and tunnels from Central Grand Concourse through Pyrmont, Glebe, and Leichhardt to Dulwich Hill.',
+      stations: [
+        { id: 'central-sydney', name: 'Central (Grand Concourse Light Rail)', lat: -33.8832, lon: 151.2062, openedYear: 1997, elevated: true, arrondissement: 'Haymarket', architecture: '1906 Sandstone Colonnade Turning Loop', description: 'Loops directly beneath the 1906 porte-cochère of Sydney Central Station.' },
+        { id: 'paddys-markets', name: 'Paddy’s Markets (Haymarket)', lat: -33.8798, lon: 151.2038, openedYear: 1997, elevated: true, arrondissement: 'Haymarket / Chinatown', architecture: 'Historic Market Hall Tram Stop', description: 'Serves Chinatown and the heritage Market City halls.' },
+        { id: 'exhibition-centre', name: 'Exhibition Centre (Darling Harbour)', lat: -33.8752, lon: 151.1988, openedYear: 1997, elevated: true, arrondissement: 'Darling Harbour', architecture: 'ICC Sydney & Tumbalong Park Stop', description: 'Adjacent to the International Convention Centre and Chinese Garden of Friendship.' },
+        { id: 'pyrmont-bay', name: 'Pyrmont Bay', lat: -33.8692, lon: 151.1965, openedYear: 1997, elevated: true, arrondissement: 'Pyrmont', architecture: 'Australian National Maritime Museum Waterfront Stop', description: 'Overlooks Pyrmont Bridge (1902) and Darling Harbour.' },
+        { id: 'the-star', name: 'The Star (Pyrmont Sandstone Cutting)', lat: -33.8678, lon: 151.1942, openedYear: 1997, elevated: true, arrondissement: 'Pyrmont', architecture: 'Deep 19th-Century Quarry Sandstone Cutting', description: 'Threads through the historic Pyrmont sandstone cliffs and John Street Square.' },
+        { id: 'fish-market', name: 'Fish Market (Blackwattle Bay)', lat: -33.8732, lon: 151.1922, openedYear: 1997, elevated: true, arrondissement: 'Pyrmont / Glebe', architecture: 'Blackwattle Bay Viaduct Stop', description: 'Serves the Sydney Fish Market on Blackwattle Bay.' },
+        { id: 'glebe', name: 'Glebe (Wentworth Park Brick Viaduct)', lat: -33.8788, lon: 151.1862, openedYear: 2000, elevated: true, arrondissement: 'Glebe', architecture: '1918 Heritage Polychrome Brick Railway Viaduct', description: 'Crosses Wentworth Park and Glebe atop the monumental 1918 brick arches of the Metropolitan Goods Line.' },
+        { id: 'jubilee-park', name: 'Jubilee Park (Rozelle Bay)', lat: -33.8742, lon: 151.1768, openedYear: 2000, elevated: true, arrondissement: 'Glebe / Annandale', architecture: 'Johnston’s Creek Viaduct Stop', description: 'Overlooks Bicentennial Park and Rozelle Bay.' },
+        { id: 'lilyfield', name: 'Lilyfield', lat: -33.8705, lon: 151.1585, openedYear: 2000, elevated: true, arrondissement: 'Lilyfield', architecture: 'Inner West Goods Line Junction', description: 'Original 2000 terminus before the 2014 Dulwich Hill extension.' },
+        { id: 'leichhardt-north', name: 'Leichhardt North', lat: -33.8768, lon: 151.1518, openedYear: 2014, elevated: true, arrondissement: 'Leichhardt', architecture: 'Hawthorne Canal Greenway Stop', description: 'Runs alongside the Hawthorne Canal shared cycling and walking path.' },
+        { id: 'lewisham-west', name: 'Lewisham West (Long Cove Creek Viaduct)', lat: -33.8920, lon: 151.1475, openedYear: 2014, elevated: true, arrondissement: 'Lewisham', architecture: '1886 Whipple Truss & Brick Viaduct Interchange', description: 'Connects with Lewisham Sydney Trains station (T2/T5/T7).' },
+        { id: 'dulwich-hill', name: 'Dulwich Hill (L1 / T3 / M1 Southwest Interchange)', lat: -33.9112, lon: 151.1408, openedYear: 2014, elevated: true, arrondissement: 'Dulwich Hill', architecture: 'Southern Goods Line Terminus', description: 'Southern terminus of the L1 Light Rail with direct transfer to the Bankstown line.' }
+      ]
+    },
+    {
+      id: 'L2',
+      name: 'L2 — Randwick Light Rail (Circular Quay ↔ Wynyard ↔ QVB ↔ Town Hall ↔ Central ↔ Moore Park ↔ Royal Randwick ↔ UNSW High St ↔ Randwick)',
+      shortLabel: 'L2',
+      color: '#dd1e25',
+      textColor: '#ffffff',
+      openedYear: 2019,
+      depthOffset: -0.15,
+      historicCompany: 'CBD and South East Light Rail (Alstom Citadis X05 Wire-Free George St)',
+      summary: 'Opened December 14, 2019, restoring trams to George Street after 58 years using wire-free ground-level power supply (APS) from Circular Quay past the QVB and Central through the Moore Park tunnel to Randwick.',
+      stations: [
+        { id: 'circular-quay', name: 'Circular Quay (Warrane)', lat: -33.8613, lon: 151.2108, openedYear: 2019, elevated: true, arrondissement: 'Circular Quay', architecture: 'Alfred Street Ferry & Harbour Forecourt Terminus', description: 'Wire-free 67-meter coupled Citadis trams depart directly opposite the Circular Quay ferry wharves.' },
+        { id: 'bridge-street', name: 'Bridge Street (First Government House Place)', lat: -33.8636, lon: 151.2078, openedYear: 2019, elevated: true, arrondissement: 'CBD North', architecture: 'Pedestrianized Sandstone Financial Spine', description: 'Serves the Museum of Sydney and heritage sandstone banks on George Street.' },
+        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 2019, elevated: true, arrondissement: 'CBD West', architecture: 'George Street Wire-Free Boulevard Stop', description: 'Surface tram stop directly above Wynyard’s 1932 underground Harbour Bridge tram ghost tunnels.' },
+        { id: 'qvb-light-rail', name: 'QVB (Queen Victoria Building & Market Street)', lat: -33.8718, lon: 151.2067, openedYear: 2019, elevated: true, arrondissement: 'CBD', architecture: '1898 Romanesque Sandstone Arcade Forecourt', description: 'Glides wire-free along the tree-lined George Street pedestrian boulevard beside the QVB.' },
+        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 2019, elevated: true, arrondissement: 'CBD', architecture: 'Sydney Town Hall & St Andrew’s Cathedral Plaza', description: 'Connects George Street Light Rail with Town Hall and Gadigal Metro stations.' },
+        { id: 'chinatown-light-rail', name: 'Chinatown (Dixon Street Gates)', lat: -33.8782, lon: 151.2058, openedYear: 2019, elevated: true, arrondissement: 'Haymarket', architecture: 'Southern George Street & Capitol Theatre Stop', description: 'Serves Sydney’s historic Chinatown and the 1928 Capitol Theatre.' },
+        { id: 'central-sydney', name: 'Central (Chalmers Street Light Rail)', lat: -33.8832, lon: 151.2062, openedYear: 2019, elevated: true, arrondissement: 'Haymarket / Surry Hills', architecture: 'Chalmers Street Eastern Concourse & Prince Alfred Park', description: 'Connects directly to Central’s eastern entrance and the 2024 M1 Metro concourse.' },
+        { id: 'surry-hills', name: 'Surry Hills (Devonshire Street)', lat: -33.8868, lon: 151.2122, openedYear: 2019, elevated: true, arrondissement: 'Surry Hills', architecture: 'Tree-Lined Devonshire Street Terrace Spine', description: 'Climbs through the Victorian terrace streets of Surry Hills.' },
+        { id: 'moore-park', name: 'Moore Park (SCG & Allianz Stadium Tunnel)', lat: -33.8918, lon: 151.2218, openedYear: 2019, elevated: true, arrondissement: 'Moore Park', architecture: 'Sub-Parkway Cut-and-Cover Event Station', description: 'Serves the Sydney Cricket Ground (SCG) and Centennial Parklands.' },
+        { id: 'royal-randwick', name: 'Royal Randwick (Alison Road)', lat: -33.9045, lon: 151.2335, openedYear: 2019, elevated: true, arrondissement: 'Randwick', architecture: 'Royal Randwick Racecourse Boulevard Stop', description: 'Runs along the southern boundary of Centennial Park.' },
+        { id: 'randwick', name: 'Randwick (High Street Hospital & UNSW Hub)', lat: -33.9145, lon: 151.2412, openedYear: 2019, elevated: true, arrondissement: 'Randwick', architecture: 'Prince of Wales Hospital & UNSW Upper Campus Terminus', description: 'Eastern terminus of the L2 Randwick Line.' }
+      ]
+    },
+    {
+      id: 'L3',
+      name: 'L3 — Kingsford Light Rail (Circular Quay ↔ Wynyard ↔ QVB ↔ Town Hall ↔ Central ↔ Moore Park ↔ Kensington ↔ UNSW Anzac Parade ↔ Juniors Kingsford)',
+      shortLabel: 'L3',
+      color: '#781f40',
+      textColor: '#ffffff',
+      openedYear: 2020,
+      depthOffset: -0.25,
+      historicCompany: 'CBD and South East Light Rail (Alstom Citadis X05 Anzac Parade Spine)',
+      summary: 'Opened April 3, 2020, sharing the wire-free George Street trunk from Circular Quay through Central and Moore Park before branching south down the wide grassed reservation of Anzac Parade to UNSW and Kingsford.',
+      stations: [
+        { id: 'circular-quay', name: 'Circular Quay (Warrane)', lat: -33.8613, lon: 151.2108, openedYear: 2020, elevated: true, arrondissement: 'Circular Quay', architecture: 'Harbour Forecourt Terminus', description: 'Northern terminus of both the L2 and L3 CBD Light Rail lines.' },
+        { id: 'bridge-street', name: 'Bridge Street (First Government House Place)', lat: -33.8636, lon: 151.2078, openedYear: 2020, elevated: true, arrondissement: 'CBD North', architecture: 'George Street North', description: 'Shared L2/L3 wire-free trunk.' },
+        { id: 'wynyard', name: 'Wynyard (with Tram Ghost Tunnels)', lat: -33.8655, lon: 151.2060, openedYear: 2020, elevated: true, arrondissement: 'CBD West', architecture: 'George Street Central', description: 'Shared L2/L3 CBD stop.' },
+        { id: 'qvb-light-rail', name: 'QVB (Queen Victoria Building & Market Street)', lat: -33.8718, lon: 151.2067, openedYear: 2020, elevated: true, arrondissement: 'CBD', architecture: 'QVB Pedestrian Boulevard', description: 'Shared L2/L3 stop alongside the Queen Victoria Building.' },
+        { id: 'town-hall', name: 'Town Hall', lat: -33.8735, lon: 151.2068, openedYear: 2020, elevated: true, arrondissement: 'CBD', architecture: 'Town Hall Square', description: 'Shared L2/L3 transfer hub.' },
+        { id: 'chinatown-light-rail', name: 'Chinatown (Dixon Street Gates)', lat: -33.8782, lon: 151.2058, openedYear: 2020, elevated: true, arrondissement: 'Haymarket', architecture: 'Southern George Street', description: 'Shared L2/L3 Haymarket stop.' },
+        { id: 'central-sydney', name: 'Central (Chalmers Street Light Rail)', lat: -33.8832, lon: 151.2062, openedYear: 2020, elevated: true, arrondissement: 'Haymarket / Surry Hills', architecture: 'Chalmers Street Interchange', description: 'Connects L3 directly with Central Station and M1 Metro.' },
+        { id: 'surry-hills', name: 'Surry Hills (Devonshire Street)', lat: -33.8868, lon: 151.2122, openedYear: 2020, elevated: true, arrondissement: 'Surry Hills', architecture: 'Devonshire Street Spine', description: 'Shared L2/L3 climb to Moore Park.' },
+        { id: 'moore-park', name: 'Moore Park (SCG & Allianz Stadium Tunnel)', lat: -33.8918, lon: 151.2218, openedYear: 2020, elevated: true, arrondissement: 'Moore Park', architecture: 'L2 / L3 Branch Junction', description: 'South of Moore Park, L3 diverges down Anzac Parade.' },
+        { id: 'es-marks', name: 'ES Marks (Anzac Parade)', lat: -33.9035, lon: 151.2225, openedYear: 2020, elevated: true, arrondissement: 'Kensington', architecture: 'Moreton Bay Fig Boulevard Reservation', description: 'Runs down the historic Anzac Parade tramway median.' },
+        { id: 'kensington', name: 'Kensington', lat: -33.9102, lon: 151.2242, openedYear: 2020, elevated: true, arrondissement: 'Kensington', architecture: 'Anzac Parade Village Stop', description: 'Serves the Kensington village strip.' },
+        { id: 'unsw-anzac-parade', name: 'UNSW Anzac Parade (University Mall)', lat: -33.9175, lon: 151.2262, openedYear: 2020, elevated: true, arrondissement: 'Kensington', architecture: 'UNSW Lower Campus Gateway', description: 'Primary light-rail gateway at the foot of the UNSW Sydney campus.' },
+        { id: 'juniors-kingsford', name: 'Juniors Kingsford (Nine Ways Terminus)', lat: -33.9245, lon: 151.2278, openedYear: 2020, elevated: true, arrondissement: 'Kingsford', architecture: 'Southern Anzac Parade Turning Loop & Bus Interchange', description: 'Southern terminus of the L3 Kingsford Line.' }
+      ]
     }
   ],
   railTermini: [
@@ -556,7 +631,7 @@ export const SYDNEY_PRESET = {
       standOffRadius: 29.0,
       cameraHeightOffset: 17.5,
       haloRadiusScale: 2.3,
-      metroLines: ['T1', 'T2'],
+      metroLines: ['T1', 'T2', 'T3', 'T8', 'L2', 'L3'],
       history: 'For tens of thousands of years, Tubowgule and Warrane were gathering places of the Gadigal people of the Eora Nation, where shell middens later supplied lime for early colonial buildings—and later inspired the shimmering shells of the Sydney Opera House (1973).',
       notableLandmarks: 'Sydney Opera House, Sydney Harbour Bridge, Circular Quay, Royal Botanic Garden'
     },
@@ -576,7 +651,7 @@ export const SYDNEY_PRESET = {
       standOffRadius: 30.0,
       cameraHeightOffset: 18.0,
       haloRadiusScale: 2.3,
-      metroLines: ['M1', 'T1', 'T2', 'T4'],
+      metroLines: ['M1', 'T1', 'T2', 'T3', 'T4', 'T8', 'T9', 'L1', 'L2', 'L3'],
       history: 'Stretching from the restored sandstone headland of Barangaroo to the Victorian domes of the Queen Victoria Building and Hyde Park, underpinned by both Bradfield’s 1926–1932 City Circle and the 2024 M1 Metro.',
       notableLandmarks: 'Queen Victoria Building, Sydney Tower Eye, St Mary’s Cathedral, Barangaroo, Gadigal Station'
     },
@@ -596,7 +671,7 @@ export const SYDNEY_PRESET = {
       standOffRadius: 31.0,
       cameraHeightOffset: 18.5,
       haloRadiusScale: 2.3,
-      metroLines: ['M1', 'T1', 'T2', 'T4'],
+      metroLines: ['M1', 'T1', 'T2', 'T3', 'T4', 'T7', 'T8', 'T9', 'L1', 'L2', 'L3'],
       history: 'Site of New South Wales’s first 1855 steam train departure and the 1906 Central Terminal, while neighboring Redfern stands as a proud urban heart of Aboriginal community activism, culture, and art.',
       notableLandmarks: 'Central Station Clock Tower, Redfern Station, Railway Square, Waterloo Metro'
     },
@@ -723,7 +798,7 @@ export const SYDNEY_PRESET = {
     culturalMovement: 'First Nations Aboriginal Dot-Art, Red Ochre Country & Sydney Sandstone',
     hudTitle: 'SYDNEY WARRANE • 1855–2026',
     hudSubtitle: 'GADIGAL COUNTRY, HARBOUR SAILS & METRO • 3D ARCHITECTURE & TRANSIT',
-    networkTitle: 'SYDNEY METRO M1 & BRADFIELD CITY CIRCLE',
+    networkTitle: 'SYDNEY METRO M1, SYDNEY TRAINS (T1–T9) & LIGHT RAIL (L1–L3)',
     districtsTabLabel: 'Precincts',
     tourTabLabel: 'Gadigal & Harbour Tour',
     tourPanelTitle: 'GADIGAL COUNTRY & SYDNEY HARBOUR ODYSSEY',

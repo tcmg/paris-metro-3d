@@ -2797,25 +2797,57 @@ export const SPECIAL_STATION_INTERIORS: Record<string, SpecialStationInteriorInf
   }
 };
 
+function isElevatedPipelineLine(l: { line: string; name: string; rollingStockStyle?: string }): boolean {
+  if (
+    l.line.startsWith('L') ||
+    l.line === 'JY' ||
+    l.line === 'JB' ||
+    l.line === 'U' ||
+    l.line === 'PB' ||
+    l.line === 'DB' ||
+    l.line === 'S10' ||
+    l.line === 'S18' ||
+    l.line === '35' ||
+    l.line === '96' ||
+    l.line === '86' ||
+    l.line === '1' ||
+    l.line === '109' ||
+    l.line === '11' ||
+    l.line === '16' ||
+    l.line === '58'
+  ) {
+    return true;
+  }
+  return /yamanote|chuo-sobu|yurikamome|monorail|funicular|bonde|rack railway|polybahn|dolderbahn|tram|light rail|glattalbahn/i.test(
+    `${l.name} ${l.rollingStockStyle ?? ''}`
+  );
+}
+
 export const METRO_LINES: MetroLineConfig[] = ACTIVE_PIPELINE_CITY_DATASET
-  ? ACTIVE_PIPELINE_CITY_DATASET.metroLines.map((l, idx) => ({
-      id: l.line,
-      name: l.name,
-      shortLabel: l.line,
-      color: l.color,
-      textColor: l.textColor ?? '#ffffff',
-      openedYear: l.openedYear,
-      depthOffset: -2.0 - idx * 0.35,
-      historicCompany: 'RATP',
-      summary: `${l.name} (${l.rollingStockStyle ?? 'Transit'} • Opened ${l.openedYear})`,
-      segments: [
-        {
-          openedYear: l.openedYear,
-          elevated: l.line.startsWith('L'),
-          stations: l.stations.map((s) => slugifyCityStationId(s.name))
-        }
-      ]
-    }))
+  ? ACTIVE_PIPELINE_CITY_DATASET.metroLines.map((l, idx) => {
+      const rawStationIds = l.stations.map((s) => slugifyCityStationId(s.name));
+      const dedupedStationIds = rawStationIds.filter(
+        (id, i, arr) => id.length > 0 && (i === 0 || id !== arr[i - 1])
+      );
+      return {
+        id: l.line,
+        name: l.name,
+        shortLabel: l.line,
+        color: l.color,
+        textColor: l.textColor ?? '#ffffff',
+        openedYear: l.openedYear,
+        depthOffset: -2.0 - idx * 0.3,
+        historicCompany: 'RATP',
+        summary: `${l.name} (${l.rollingStockStyle ?? 'Transit'} • Opened ${l.openedYear})`,
+        segments: [
+          {
+            openedYear: l.openedYear,
+            elevated: isElevatedPipelineLine(l),
+            stations: dedupedStationIds
+          }
+        ]
+      };
+    })
   : DEFAULT_PARIS_METRO_LINES;
 
 export const STATIONS_MAP: Map<string, MetroStationData> = new Map();

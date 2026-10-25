@@ -16,6 +16,12 @@ import { RIO_PRESET } from './presets/rio.mjs';
 import { SYDNEY_PRESET } from './presets/sydney.mjs';
 import { LONDON_PRESET } from './presets/london.mjs';
 import { NYC_PRESET } from './presets/nyc.mjs';
+import { PORTO_PRESET } from './presets/porto.mjs';
+import { TOKYO_PRESET } from './presets/tokyo.mjs';
+import { SAN_FRANCISCO_PRESET } from './presets/san_francisco.mjs';
+import { WARSAW_PRESET } from './presets/warsaw.mjs';
+import { ZURICH_PRESET } from './presets/zurich.mjs';
+import { MELBOURNE_PRESET } from './presets/melbourne.mjs';
 
 const ARCHETYPE_SVG_PATHS = {
   christ_statue: 'M30 8 L34 8 L34 16 L54 16 L54 22 L35 22 L36 46 L42 46 L42 54 L22 54 L22 46 L28 46 L29 22 L10 22 L10 16 L30 16 Z',
@@ -93,8 +99,8 @@ function normalizeCityPreset(raw) {
     name: t.name,
     lat: t.lat,
     lon: t.lon,
-    peakElevationMeters: t.peakElevationMeters ?? Math.round((t.height || 1.2) * 300),
-    radiusMeters: t.radiusMeters ?? Math.round((t.rx || 6) * 260),
+    peakElevationMeters: t.peakElevationMeters ?? Math.round((t.height || 0.8) * 89.3),
+    radiusMeters: t.radiusMeters ?? Math.round((t.rx || 6) * 180),
     steepness: t.steepness ?? 1.8,
     ridgeAzimuthDeg: t.ridgeAzimuthDeg ?? 0,
     ridgeElongation: t.ridgeElongation ?? 1.2,
@@ -217,12 +223,24 @@ function normalizeCityPreset(raw) {
       sydney: 'aboriginal_ochre_dot_art',
       london: 'royal_edwardian_underground',
       nyc: 'gotham_art_deco_vignelli',
+      porto: 'azulejo_cobalt_port_wine',
+      tokyo: 'edo_vermilion_neo_tokyo',
+      'san-francisco': 'golden_gate_fog_victorian',
+      warsaw: 'polish_crimson_amber_sgraffito',
+      zurich: 'swiss_grid_sbb_alpine',
+      melbourne: 'victorian_bluestone_tram_gold',
     };
     const badgeByCity = {
       rio: 'beveled-carnival',
       sydney: 'ochre-dot-ring',
       london: 'roundel',
       nyc: 'octagon-deco',
+      porto: 'azulejo-diamond',
+      tokyo: 'metro-ring-hanko',
+      'san-francisco': 'cable-ticket-pill',
+      warsaw: 'warsaw-fangor-shield',
+      zurich: 'swiss-sbb-grid',
+      melbourne: 'tram-fractal-shield',
     };
     uiTheme = {
       cityId: id,
@@ -292,17 +310,15 @@ export const CITY_PRESETS = {
   sydney: normalizeCityPreset(SYDNEY_PRESET),
   london: normalizeCityPreset(LONDON_PRESET),
   nyc: normalizeCityPreset(NYC_PRESET),
+  porto: normalizeCityPreset(PORTO_PRESET),
+  tokyo: normalizeCityPreset(TOKYO_PRESET),
+  'san-francisco': normalizeCityPreset(SAN_FRANCISCO_PRESET),
+  warsaw: normalizeCityPreset(WARSAW_PRESET),
+  zurich: normalizeCityPreset(ZURICH_PRESET),
+  melbourne: normalizeCityPreset(MELBOURNE_PRESET),
 };
 
 export const TODO_CITY_BACKLOG = [
-  {
-    id: 'san-francisco',
-    name: 'San Francisco',
-    country: 'United States',
-    plannedTransit: 'BART Transbay Tube, Muni Metro & Historic Cable Cars (1873–2026)',
-    plannedMonuments: 'Golden Gate Bridge, Transamerica Pyramid, Coit Tower, Ferry Building, Palace of Fine Arts, Painted Ladies, Salesforce Tower, Alcatraz',
-    plannedCulturalVibe: 'Fog City Victorian Haight-Ashbury Psychedelia & Golden Gate International Orange',
-  },
   {
     id: 'las-vegas',
     name: 'Las Vegas',
@@ -318,22 +334,6 @@ export const TODO_CITY_BACKLOG = [
     plannedTransit: 'Kyoto Municipal Subway (Karasuma & Tozai Lines), Keihan, Hankyu, Randen Tram & Tokaido Shinkansen (1895–2026)',
     plannedMonuments: 'Fushimi Inari Senbon Torii, Kinkaku-ji (Golden Pavilion), Kiyomizu-dera Wooden Stage, To-ji Five-Story Pagoda, Kyoto Station Futuristic Matrix, Yasaka Pagoda, Nijo Castle, Kyoto Tower',
     plannedCulturalVibe: 'Heian Lacquerware Vermilion, Gold Leaf (Kinpaku), Bamboo Ink Wash & Washi Paper',
-  },
-  {
-    id: 'melbourne',
-    name: 'Melbourne',
-    country: 'Australia',
-    plannedTransit: 'Melbourne Tramway Grid (World’s Largest), City Loop Underground & 2025 Metro Tunnel (1854–2026)',
-    plannedMonuments: 'Flinders Street Station Dome & Clocks, Royal Exhibition Building, Shrine of Remembrance, Federation Square Geometric Facade, Eureka / Melbourne Skydeck, MCG Stadium Bowl, Arts Centre Spire, Bolte Bridge',
-    plannedCulturalVibe: 'Victorian Gold Rush Bluestone Laneways, Street-Art Stencil & W-Class Tram Green/Gold',
-  },
-  {
-    id: 'porto',
-    name: 'Porto',
-    country: 'Portugal',
-    plannedTransit: 'Metro do Porto (Lines A–G across Dom Luís I Upper Deck), Historic Elétrico Trams & São Bento Rail Terminus (1872–2026)',
-    plannedMonuments: 'Ponte Dom Luís I (Double-Deck Iron Arch), Torre dos Clérigos, Casa da Música (Koolhaas Polyhedron), Estação de São Bento, Sé do Porto, Palácio da Bolsa, Livraria Lello, Caves de Vinho do Porto',
-    plannedCulturalVibe: 'Cobalt-Blue & White Portuguese Azulejo Ceramic Tilework & Douro Port Wine Terracotta',
   },
   {
     id: 'barcelona',

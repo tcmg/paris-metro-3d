@@ -1,0 +1,93 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Tokyo, Japan
+ * Theme Vibe: Edo Indigo (Ai-iro), Shinto Vermilion Torii (Shu-iro), Gold Leaf & Neo-Tokyo Precision (edo_vermilion_neo_tokyo)
+ * Inspiration: EDO CASTLE, SHINTO VERMILION & SHINKANSEN • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="tokyo"] {
+  --city-font-display: 'Space Grotesk', 'Cinzel', sans-serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'JetBrains Mono', monospace;
+  --city-badge-shape: metro-ring-hanko;
+  --city-bg-primary: #080b12;
+  --city-bg-glass: rgba(12, 16, 26, 0.91);
+  --city-bg-card: rgba(18, 24, 38, 0.96);
+  --city-text-primary: #f7f8fc;
+  --city-text-muted: #c4cce0;
+  --city-accent-primary: #ff4f38;
+  --city-accent-secondary: #00a896;
+  --city-accent-tertiary: #ff2a6d;
+  --city-border-color: rgba(224, 52, 38, 0.48);
+  --city-badge-bg: linear-gradient(135deg, #00a896 0%, #ff4f38 100%);
+  --city-badge-text: #080b12;
+  --city-water-color: #124668;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #d8d4ca;
+}
+
+/* Japan / Tokyo: Edo Indigo (Ai-iro), Shinto Vermilion Hanko Seal (Shu-iro), Seigaiha Waves & Neo-Tokyo Precision */
+:root[data-city-theme="tokyo"] {
+  --bg-obsidian: #080b12;
+  --bg-panel: rgba(12, 16, 26, 0.92);
+  --bg-panel-elevated: rgba(18, 24, 38, 0.96);
+  --gold-bright: #ff4f38;
+  --gold-primary: #f4c44e;
+  --gold-muted: #b8291e;
+  --gold-border: rgba(255, 79, 56, 0.50);
+  --gold-border-strong: rgba(244, 196, 78, 0.90);
+  --gold-glow: rgba(255, 79, 56, 0.34);
+  --ivory: #f7f8fc;
+  --ivory-dim: #c4cce0;
+  --ivory-subtle: #7e8ba6;
+  --emerald-guimard: #00a896;
+  --crimson-ghost: #ff2a6d;
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'64'%20height%3D'32'%20viewBox%3D'0%200%2064%2032'%3E%3Cpath%20d%3D'M0%2032%20A16%2016%200%200%201%2032%2032%20A16%2016%200%200%201%2064%2032'%20fill%3D'none'%20stroke%3D'%23ff4f38'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3Cpath%20d%3D'M8%2032%20A8%208%200%200%201%2024%2032%20M40%2032%20A8%208%200%200%201%2056%2032'%20fill%3D'none'%20stroke%3D'%23f4c44e'%20stroke-width%3D'1.0'%20stroke-opacity%3D'0.20'%2F%3E%3Cpath%20d%3D'M-16%2016%20A16%2016%200%200%201%2016%2016%20A16%2016%200%200%201%2048%2016%20A16%2016%200%200%201%2080%2016'%20fill%3D'none'%20stroke%3D'%2300a896'%20stroke-width%3D'1.0'%20stroke-opacity%3D'0.18'%2F%3E%3C%2Fsvg%3E");
+  --tokyo-hanko-corner: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'15'%20height%3D'15'%20viewBox%3D'0%200%2015%2015'%3E%3Crect%20x%3D'1.5'%20y%3D'1.5'%20width%3D'12'%20height%3D'12'%20rx%3D'2'%20fill%3D'none'%20stroke%3D'%23ff4f38'%20stroke-width%3D'1.8'%2F%3E%3Crect%20x%3D'4.5'%20y%3D'4.5'%20width%3D'6'%20height%3D'6'%20fill%3D'%23f4c44e'%20fill-opacity%3D'0.85'%2F%3E%3C%2Fsvg%3E");
+}
+
+:root[data-city-theme="tokyo"] .deco-panel,
+:root[data-city-theme="tokyo"] .city-selector-bar,
+:root[data-city-theme="tokyo"] .city-themed-panel {
+  background-color: rgba(12, 16, 26, 0.92);
+  background-image:
+    linear-gradient(155deg, rgba(224, 52, 38, 0.14) 0%, rgba(12, 16, 26, 0.94) 52%, rgba(0, 168, 150, 0.14) 100%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 64px 32px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 79, 56, 0.58);
+  border-top: 2.5px solid #ff4f38;
+  box-shadow: 0 16px 40px rgba(4, 6, 12, 0.82), inset 0 0 0 1px rgba(244, 196, 78, 0.24);
+}
+
+:root[data-city-theme="tokyo"] .deco-corner {
+  width: 14px;
+  height: 14px;
+  border: none !important;
+  background-image: var(--tokyo-hanko-corner);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+:root[data-city-theme="tokyo"] .city-cultural-banner {
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(208, 36, 28, 0.38) 0%, rgba(14, 19, 32, 0.94) 65%, rgba(0, 155, 191, 0.25) 100%);
+  border: 1.5px solid rgba(255, 79, 56, 0.72);
+  border-left: 4px solid #ff4f38;
+}
+

@@ -29,8 +29,67 @@ import {
   NYC_PARKS,
   NYC_PLACES
 } from './nyc';
+import {
+  PORTO_CITY_DATASET,
+  PORTO_WATER_CENTERLINES,
+  PORTO_BRIDGES,
+  PORTO_PARKS,
+  PORTO_PLACES
+} from './porto';
+import {
+  TOKYO_CITY_DATASET,
+  TOKYO_WATER_CENTERLINES,
+  TOKYO_BRIDGES,
+  TOKYO_PARKS,
+  TOKYO_PLACES
+} from './tokyo';
+import {
+  SAN_FRANCISCO_CITY_DATASET,
+  SAN_FRANCISCO_WATER_CENTERLINES,
+  SAN_FRANCISCO_BRIDGES,
+  SAN_FRANCISCO_PARKS,
+  SAN_FRANCISCO_PLACES
+} from './san-francisco';
+import {
+  RIO_CITY_DATASET,
+  RIO_WATER_CENTERLINES,
+  RIO_BRIDGES,
+  RIO_PARKS,
+  RIO_PLACES
+} from './rio';
+import {
+  WARSAW_CITY_DATASET,
+  WARSAW_WATER_CENTERLINES,
+  WARSAW_BRIDGES,
+  WARSAW_PARKS,
+  WARSAW_PLACES
+} from './warsaw';
+import {
+  ZURICH_CITY_DATASET,
+  ZURICH_WATER_CENTERLINES,
+  ZURICH_BRIDGES,
+  ZURICH_PARKS,
+  ZURICH_PLACES
+} from './zurich';
+import {
+  MELBOURNE_CITY_DATASET,
+  MELBOURNE_WATER_CENTERLINES,
+  MELBOURNE_BRIDGES,
+  MELBOURNE_PARKS,
+  MELBOURNE_PLACES
+} from './melbourne';
 
-export type SelectableCityId = 'paris' | 'sydney' | 'nyc';
+export type SelectableCityId =
+  | 'paris'
+  | 'sydney'
+  | 'nyc'
+  | 'porto'
+  | 'tokyo'
+  | 'san-francisco'
+  | 'rio'
+  | 'warsaw'
+  | 'zurich'
+  | 'melbourne';
 
 export interface SelectableCityMeta {
   id: SelectableCityId;
@@ -97,14 +156,137 @@ export const SELECTABLE_CITIES: readonly SelectableCityMeta[] = [
     beaconMonumentId: 'monument-empire-state',
     sparkleButtonLabel: '✨ Sparkle Empire',
     supportsLiveParisApi: false
+  },
+  {
+    id: 'porto',
+    label: 'Porto',
+    shortCode: 'OPO',
+    country: 'Portugal',
+    vibeBadge: 'Azulejo Cobalt & Douro Port',
+    pageTitle: 'METRO DO PORTO • 1877–2026 | 3D Douro Gorge Architecture & Transit Simulation',
+    districtsTabLabel: 'Bairros',
+    districtsHeaderTitle: 'BAIRROS DO PORTO & GAIA (1 → 4)',
+    tourHeaderTitle: 'DOURO BRIDGES & AZULEJO HERITAGE TOUR',
+    skylineHeaderTitle: 'WEST → EAST DOURO GORGE SKYLINE',
+    searchPlaceholder: 'Search stations, bridges, bairros...',
+    beaconMonumentId: 'monument-clerigos-tower',
+    sparkleButtonLabel: '✨ Sparkle Clérigos',
+    supportsLiveParisApi: false
+  },
+  {
+    id: 'tokyo',
+    label: 'Tokyo',
+    shortCode: 'TYO',
+    country: 'Japan',
+    vibeBadge: 'Edo Vermilion & Neo-Tokyo',
+    pageTitle: 'TOKYO METRO & JR • 1914–2026 | 3D Metropolis Architecture & Transit Simulation',
+    districtsTabLabel: 'Wards',
+    districtsHeaderTitle: 'TOKYO SPECIAL WARDS (1 → 4)',
+    tourHeaderTitle: 'EDO SHRINES & NEO-TOKYO TRANSIT TOUR',
+    skylineHeaderTitle: 'WEST → EAST TOKYO METROPOLIS SKYLINE',
+    searchPlaceholder: 'Search stations, shrines, towers, wards...',
+    beaconMonumentId: 'monument-tokyo-tower',
+    sparkleButtonLabel: '✨ Sparkle Tower',
+    supportsLiveParisApi: false
+  },
+  {
+    id: 'san-francisco',
+    label: 'San Francisco',
+    shortCode: 'SFO',
+    country: 'United States',
+    vibeBadge: 'Golden Gate & Bay Fog',
+    pageTitle: 'SF BART, MUNI & CABLE CARS • 1873–2026 | 3D Bay Architecture & Transit Simulation',
+    districtsTabLabel: 'Districts',
+    districtsHeaderTitle: 'SAN FRANCISCO HILL & BAY DISTRICTS (1 → 4)',
+    tourHeaderTitle: 'GOLDEN GATE, HILLS & CABLE CAR TOUR',
+    skylineHeaderTitle: 'WEST → EAST SAN FRANCISCO BAY SKYLINE',
+    searchPlaceholder: 'Search BART/Muni stations, hills, landmarks...',
+    beaconMonumentId: 'monument-transamerica-pyramid',
+    sparkleButtonLabel: '✨ Sparkle Pyramid',
+    supportsLiveParisApi: false
+  },
+  {
+    id: 'rio',
+    label: 'Rio',
+    shortCode: 'GIG',
+    country: 'Brazil',
+    vibeBadge: 'Carnival Samba & Burle Marx',
+    pageTitle: 'METRÔRIO, VLT & BONDE • 1896–2026 | 3D Carioca Architecture & Transit Simulation',
+    districtsTabLabel: 'Bairros',
+    districtsHeaderTitle: 'BAIRROS CARIOCAS & ZONA SUL (1 → 4)',
+    tourHeaderTitle: 'CARIOCA CULTURAL & ARCHITECTURAL ODYSSEY',
+    skylineHeaderTitle: 'WEST → EAST GUANABARA & ZONA SUL SKYLINE',
+    searchPlaceholder: 'Search MetrôRio/VLT stations, peaks, bairros...',
+    beaconMonumentId: 'monument-christ-redeemer',
+    sparkleButtonLabel: '✨ Sparkle Cristo',
+    supportsLiveParisApi: false
+  },
+  {
+    id: 'warsaw',
+    label: 'Warsaw',
+    shortCode: 'WAW',
+    country: 'Poland',
+    vibeBadge: 'Syrenka Crimson & Chopin Gold',
+    pageTitle: 'METRO WARSZAWSKIE, SKM & TRAM • 1927–2026 | 3D Vistula Architecture & Transit Simulation',
+    districtsTabLabel: 'Dzielnice',
+    districtsHeaderTitle: 'DZIELNICE WARSZAWY (1 → 4)',
+    tourHeaderTitle: 'PHOENIX CITY & CHOPIN ROYAL ROUTE TOUR',
+    skylineHeaderTitle: 'WEST → EAST VISTULA & WOLA SKYLINE',
+    searchPlaceholder: 'Search Metro/SKM stations, palaces, dzielnice...',
+    beaconMonumentId: 'monument-palace-culture',
+    sparkleButtonLabel: '✨ Sparkle PKiN',
+    supportsLiveParisApi: false
+  },
+  {
+    id: 'zurich',
+    label: 'Zurich',
+    shortCode: 'ZRH',
+    country: 'Switzerland',
+    vibeBadge: 'Swiss Grid & SBB Alpine Cyan',
+    pageTitle: 'ZÜRICH S-BAHN & TRAMS • 1847–2026 | 3D Limmat & Alpine Architecture Simulation',
+    districtsTabLabel: 'Kreise',
+    districtsHeaderTitle: 'STADTKREISE ZÜRICH & ZÜRICHSEE (1 → 4)',
+    tourHeaderTitle: 'LIMMAT, BAHNHOFSTRASSE & UETLIBERG TOUR',
+    skylineHeaderTitle: 'WEST → EAST UETLIBERG & ZÜRICHBERG SKYLINE',
+    searchPlaceholder: 'Search S-Bahn/VBZ stops, abbeys, Kreise...',
+    beaconMonumentId: 'monument-grossmuenster',
+    sparkleButtonLabel: '✨ Sparkle Minster',
+    supportsLiveParisApi: false
+  },
+  {
+    id: 'melbourne',
+    label: 'Melbourne',
+    shortCode: 'MEL',
+    country: 'Australia',
+    vibeBadge: 'W-Class Tram & Fed Square Gold',
+    pageTitle: 'MELBOURNE RAIL & TRAMS • 1854–2026 | 3D Hoddle Grid & Yarra Transit Simulation',
+    districtsTabLabel: 'Precincts',
+    districtsHeaderTitle: 'MELBOURNE PRECINCTS & HODDLE GRID (1 → 4)',
+    tourHeaderTitle: 'FLINDERS CLOCKS, LANEWAYS & METRO TUNNEL TOUR',
+    skylineHeaderTitle: 'WEST → EAST YARRA & SOUTHBANK SKYLINE',
+    searchPlaceholder: 'Search City Loop/Tram stops, landmarks, precincts...',
+    beaconMonumentId: 'monument-eureka-tower',
+    sparkleButtonLabel: '✨ Sparkle Eureka',
+    supportsLiveParisApi: false
   }
 ] as const;
 
-const ALLOWED_CITY_IDS = new Set<SelectableCityId>(['paris', 'sydney', 'nyc']);
+const ALLOWED_CITY_IDS = new Set<SelectableCityId>([
+  'paris',
+  'sydney',
+  'nyc',
+  'porto',
+  'tokyo',
+  'san-francisco',
+  'rio',
+  'warsaw',
+  'zurich',
+  'melbourne'
+]);
 
 /**
  * Parses a URL `#` fragment identifier into a validated `SelectableCityId`.
- * Supports `#paris`, `#sydney`, `#nyc` (plus `#new-york` / `#newyork` aliases).
+ * Supports `#paris`, `#sydney`, `#nyc`, `#porto`, `#tokyo`, `#san-francisco` (`#sf`), `#rio`, `#warsaw` (`#waw`), `#zurich` (`#zrh`), and `#melbourne` (`#mel`).
  * Defaults to `'paris'` so reloading or opening without a fragment always resolves cleanly.
  */
 export function parseCityFragmentHash(rawHash: string): SelectableCityId {
@@ -118,6 +300,37 @@ export function parseCityFragmentHash(rawHash: string): SelectableCityId {
   }
   if (cleaned === 'nyc' || cleaned === 'new-york' || cleaned === 'newyork') {
     return 'nyc';
+  }
+  if (cleaned === 'porto' || cleaned === 'opo') {
+    return 'porto';
+  }
+  if (cleaned === 'tokyo' || cleaned === 'tyo') {
+    return 'tokyo';
+  }
+  if (
+    cleaned === 'san-francisco' ||
+    cleaned === 'sanfrancisco' ||
+    cleaned === 'sf' ||
+    cleaned === 'sfo'
+  ) {
+    return 'san-francisco';
+  }
+  if (
+    cleaned === 'rio' ||
+    cleaned === 'rio-de-janeiro' ||
+    cleaned === 'riodejaneiro' ||
+    cleaned === 'gig'
+  ) {
+    return 'rio';
+  }
+  if (cleaned === 'warsaw' || cleaned === 'warszawa' || cleaned === 'waw') {
+    return 'warsaw';
+  }
+  if (cleaned === 'zurich' || cleaned === 'zuerich' || cleaned === 'zürich' || cleaned === 'zrh') {
+    return 'zurich';
+  }
+  if (cleaned === 'melbourne' || cleaned === 'mel' || cleaned === 'naarm') {
+    return 'melbourne';
   }
   if (cleaned === 'paris' || cleaned === 'par') {
     return 'paris';
@@ -146,40 +359,80 @@ export const ACTIVE_CITY_ID: SelectableCityId = resolveInitialCityId();
 export const ACTIVE_CITY_META: SelectableCityMeta =
   SELECTABLE_CITIES.find((c) => c.id === ACTIVE_CITY_ID) ?? SELECTABLE_CITIES[0];
 
+const PIPELINE_DATASETS: Partial<Record<SelectableCityId, CityDataset>> = {
+  sydney: SYDNEY_CITY_DATASET,
+  nyc: NYC_CITY_DATASET,
+  porto: PORTO_CITY_DATASET,
+  tokyo: TOKYO_CITY_DATASET,
+  'san-francisco': SAN_FRANCISCO_CITY_DATASET,
+  rio: RIO_CITY_DATASET,
+  warsaw: WARSAW_CITY_DATASET,
+  zurich: ZURICH_CITY_DATASET,
+  melbourne: MELBOURNE_CITY_DATASET
+};
+
+const PIPELINE_WATER: Partial<Record<SelectableCityId, [number, number, number][]>> = {
+  sydney: SYDNEY_WATER_CENTERLINES,
+  nyc: NYC_WATER_CENTERLINES,
+  porto: PORTO_WATER_CENTERLINES,
+  tokyo: TOKYO_WATER_CENTERLINES,
+  'san-francisco': SAN_FRANCISCO_WATER_CENTERLINES,
+  rio: RIO_WATER_CENTERLINES,
+  warsaw: WARSAW_WATER_CENTERLINES,
+  zurich: ZURICH_WATER_CENTERLINES,
+  melbourne: MELBOURNE_WATER_CENTERLINES
+};
+
+const PIPELINE_BRIDGES_MAP: Partial<Record<SelectableCityId, CityBridgeDef[]>> = {
+  sydney: SYDNEY_BRIDGES,
+  nyc: NYC_BRIDGES,
+  porto: PORTO_BRIDGES,
+  tokyo: TOKYO_BRIDGES,
+  'san-francisco': SAN_FRANCISCO_BRIDGES,
+  rio: RIO_BRIDGES,
+  warsaw: WARSAW_BRIDGES,
+  zurich: ZURICH_BRIDGES,
+  melbourne: MELBOURNE_BRIDGES
+};
+
+const PIPELINE_PARKS_MAP: Partial<Record<SelectableCityId, CityParkDef[]>> = {
+  sydney: SYDNEY_PARKS,
+  nyc: NYC_PARKS,
+  porto: PORTO_PARKS,
+  tokyo: TOKYO_PARKS,
+  'san-francisco': SAN_FRANCISCO_PARKS,
+  rio: RIO_PARKS,
+  warsaw: WARSAW_PARKS,
+  zurich: ZURICH_PARKS,
+  melbourne: MELBOURNE_PARKS
+};
+
+const PIPELINE_PLACES_MAP: Partial<Record<SelectableCityId, CityPlaceDef[]>> = {
+  sydney: SYDNEY_PLACES,
+  nyc: NYC_PLACES,
+  porto: PORTO_PLACES,
+  tokyo: TOKYO_PLACES,
+  'san-francisco': SAN_FRANCISCO_PLACES,
+  rio: RIO_PLACES,
+  warsaw: WARSAW_PLACES,
+  zurich: ZURICH_PLACES,
+  melbourne: MELBOURNE_PLACES
+};
+
 export const ACTIVE_PIPELINE_CITY_DATASET: CityDataset | null =
-  ACTIVE_CITY_ID === 'sydney'
-    ? SYDNEY_CITY_DATASET
-    : ACTIVE_CITY_ID === 'nyc'
-      ? NYC_CITY_DATASET
-      : null;
+  PIPELINE_DATASETS[ACTIVE_CITY_ID] ?? null;
 
 export const ACTIVE_PIPELINE_WATER_CENTERLINES: [number, number, number][] | null =
-  ACTIVE_CITY_ID === 'sydney'
-    ? SYDNEY_WATER_CENTERLINES
-    : ACTIVE_CITY_ID === 'nyc'
-      ? NYC_WATER_CENTERLINES
-      : null;
+  PIPELINE_WATER[ACTIVE_CITY_ID] ?? null;
 
 export const ACTIVE_PIPELINE_BRIDGES: CityBridgeDef[] | null =
-  ACTIVE_CITY_ID === 'sydney'
-    ? SYDNEY_BRIDGES
-    : ACTIVE_CITY_ID === 'nyc'
-      ? NYC_BRIDGES
-      : null;
+  PIPELINE_BRIDGES_MAP[ACTIVE_CITY_ID] ?? null;
 
 export const ACTIVE_PIPELINE_PARKS: CityParkDef[] | null =
-  ACTIVE_CITY_ID === 'sydney'
-    ? SYDNEY_PARKS
-    : ACTIVE_CITY_ID === 'nyc'
-      ? NYC_PARKS
-      : null;
+  PIPELINE_PARKS_MAP[ACTIVE_CITY_ID] ?? null;
 
 export const ACTIVE_PIPELINE_PLACES: CityPlaceDef[] | null =
-  ACTIVE_CITY_ID === 'sydney'
-    ? SYDNEY_PLACES
-    : ACTIVE_CITY_ID === 'nyc'
-      ? NYC_PLACES
-      : null;
+  PIPELINE_PLACES_MAP[ACTIVE_CITY_ID] ?? null;
 
 /**
  * Applies the active city's cultural CSS theme and registers the URL `#` fragment listener

@@ -1,0 +1,50 @@
+{
+  "cityId": "rio",
+  "cityName": "Rio de Janeiro",
+  "country": "Brazil",
+  "startedAt": "2026-10-19T14:49:17.194Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/rio_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 89,
+        "waterLines": 301,
+        "parks": 1811,
+        "trees": 8000,
+        "roads": 3723,
+        "buildings": 47352,
+        "topographyPeaks": 6
+      }
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/rio_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/historicalData.ts",
+      "glbRelPath": "public/models/rio_monuments.glb",
+      "glbExported": false,
+      "blenderExecutionMode": "skipped",
+      "monumentCount": 10
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/districtsData.ts",
+      "lineCount": 6,
+      "terminusCount": 2,
+      "districtCount": 4
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/rio.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/rio/index.ts"
+    }
+  },
+  "completedAt": "2026-10-20T08:59:10.165Z"
+}

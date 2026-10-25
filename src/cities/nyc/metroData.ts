@@ -228,7 +228,8 @@ export const NYC_METRO_LINES: CityMetroLine[] = [
         "z": -9.51,
         "year": 1917,
         "lines": [
-          "123"
+          "123",
+          "ACE"
         ],
         "fact": "Opened in 1917 to connect the IRT Seventh Avenue Line directly with Pennsylvania Station.",
         "isGhost": false
@@ -317,6 +318,7 @@ export const NYC_METRO_LINES: CityMetroLine[] = [
         "z": -11.67,
         "year": 1932,
         "lines": [
+          "123",
           "ACE"
         ],
         "fact": "Direct access to the Farley/Moynihan Train Hall.",

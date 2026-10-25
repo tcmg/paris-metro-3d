@@ -16,6 +16,7 @@
 
 import { projectLatLon, SEINE_CENTERLINE_LATLON } from './parisGeoData';
 import { ACTIVE_PIPELINE_CITY_DATASET } from '../cities/activeCityRuntime';
+import type { CityHeightmapGrid } from '../cities/types';
 
 export interface HistoricalMilestone {
   year: number;
@@ -562,16 +563,24 @@ const DEFAULT_PARIS_TOPOGRAPHIC_HILLS: TopographicHill[] = [
   { cx: -58.0, cz: 68.0, height: 1.22, rx: 32.0, rz: 16.0 }
 ];
 
+const ACTIVE_CITY_HEIGHTMAP: CityHeightmapGrid | null =
+  ACTIVE_PIPELINE_CITY_DATASET?.heightmap ?? null;
+
 const PARIS_TOPOGRAPHIC_HILLS: TopographicHill[] = ACTIVE_PIPELINE_CITY_DATASET
   ? ACTIVE_PIPELINE_CITY_DATASET.topography.map((peak) => {
       const proj = projectLatLon(peak.lat, peak.lon);
       const unitsPerKm = ACTIVE_PIPELINE_CITY_DATASET!.geo.worldUnitsPerKm ?? 10.5;
+      const hMeters = Math.max(0, peak.peakElevationMeters);
+      const linearPart = Math.min(hMeters, 160) / 82.0;
+      const heightWorld =
+        hMeters <= 160 ? linearPart : linearPart + Math.sqrt((hMeters - 160) / 82.0) * 1.45;
+      const baseR = Math.max(2.6, (peak.radiusMeters / 1000) * unitsPerKm);
       return {
         cx: peak.x ?? proj.x,
         cz: peak.z ?? proj.z,
-        height: Math.min(1.4, (peak.peakElevationMeters / 89.3) * 0.45),
-        rx: Math.max(8.0, (peak.radiusMeters / 1000) * unitsPerKm),
-        rz: Math.max(8.0, (peak.radiusMeters / 1000) * unitsPerKm)
+        height: heightWorld,
+        rx: baseR * (peak.ridgeElongation ?? 1.0),
+        rz: baseR
       };
     })
   : DEFAULT_PARIS_TOPOGRAPHIC_HILLS;
@@ -604,10 +613,56 @@ function distToSegmentSq2D(
 }
 
 /**
- * Returns the authentic 1:1 topographic elevation (in world units above the Seine river datum)
- * for any point (x, z) across Paris and the Petite Couronne.
+ * O(1) bilinear interpolation over the active city's real satellite DEM heightmap grid (`171 x 131` vertices).
+ */
+function sampleCityHeightmapBilinear(hm: CityHeightmapGrid, x: number, z: number): number {
+  let edgeFade = 1.0;
+  if (x < hm.minX || x > hm.maxX || z < hm.minZ || z > hm.maxZ) {
+    const dx = x < hm.minX ? hm.minX - x : x > hm.maxX ? x - hm.maxX : 0;
+    const dz = z < hm.minZ ? hm.minZ - z : z > hm.maxZ ? z - hm.maxZ : 0;
+    const outDist = Math.hypot(dx, dz);
+    if (outDist >= 18.0) return 0.0;
+    const t = 1.0 - outDist / 18.0;
+    edgeFade = t * t * (3 - 2 * t);
+  }
+
+  const clampedX = Math.max(hm.minX, Math.min(hm.maxX, x));
+  const clampedZ = Math.max(hm.minZ, Math.min(hm.maxZ, z));
+  const u = (clampedX - hm.minX) / hm.stepX;
+  const v = (clampedZ - hm.minZ) / hm.stepZ;
+
+  const c0 = Math.max(0, Math.min(hm.cols - 1, Math.floor(u)));
+  const r0 = Math.max(0, Math.min(hm.rows - 1, Math.floor(v)));
+  const c1 = Math.min(hm.cols - 1, c0 + 1);
+  const r1 = Math.min(hm.rows - 1, r0 + 1);
+
+  const fu = u - c0;
+  const fv = v - r0;
+
+  const row0 = r0 * hm.cols;
+  const row1 = r1 * hm.cols;
+  const e00 = hm.data[row0 + c0] ?? 0;
+  const e10 = hm.data[row0 + c1] ?? 0;
+  const e01 = hm.data[row1 + c0] ?? 0;
+  const e11 = hm.data[row1 + c1] ?? 0;
+
+  const top = e00 + (e10 - e00) * fu;
+  const bot = e01 + (e11 - e01) * fu;
+  return (top + (bot - top) * fv) * edgeFade;
+}
+
+/**
+ * Returns the authentic 3D topographic elevation (in world units above the river/sea datum)
+ * for any point (x, z) across the active city.
+ * - For all pipeline cities (`rio`, `san-francisco`, `porto`, `sydney`, `tokyo`, `nyc`, `warsaw`),
+ *   bilinearly samples the real AWS Terrarium satellite DEM heightmap grid (`171 x 131`).
+ * - For Paris, evaluates the 1:1 Cuvette Parisienne topographic hills and Seine valley corridor.
  */
 export function getParisTerrainElevation(x: number, z: number): number {
+  if (ACTIVE_CITY_HEIGHTMAP) {
+    return sampleCityHeightmapBilinear(ACTIVE_CITY_HEIGHTMAP, x, z);
+  }
+
   let elev = 0.0;
   for (let i = 0; i < PARIS_TOPOGRAPHIC_HILLS.length; i++) {
     const hill = PARIS_TOPOGRAPHIC_HILLS[i];

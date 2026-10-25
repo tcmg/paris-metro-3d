@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import fs from 'node:fs';
 import {
   validateCityId,
   createProjector,
+  resolveSafeWorkspacePath,
   writeSafeFile,
   runBlenderMonumentBuild,
 } from './security_utils.mjs';
 import { getCityPreset, getArchetypeSvgPath } from './city_presets.mjs';
+import {
+  inspectGlbMonumentBounds,
+  alignMonumentsToOsmMap,
+} from './geo_align_monuments.mjs';
 
 export async function runStep2MonumentsAndBlender(cityId, options = {}) {
   const safeCityId = validateCityId(cityId);
@@ -30,7 +36,7 @@ export async function runStep2MonumentsAndBlender(cityId, options = {}) {
     `\n[Step 2/4] Preparing Monuments, Historical Lore & Blender 3D Assets for ${preset.name} (${safeCityId})...`
   );
 
-  const monuments = (preset.monuments || []).map((m) => {
+  const rawMonuments = (preset.monuments || []).map((m) => {
     const [x, z] = project(m.lat, m.lon);
     return {
       id: m.id,
@@ -60,6 +66,30 @@ export async function runStep2MonumentsAndBlender(cityId, options = {}) {
     };
   });
 
+  // Load OSM map geometry from Step 1 (<city>_osm.json) for map-aware positioning & rotation alignment
+  let osmData = null;
+  try {
+    const osmPath = resolveSafeWorkspacePath('public', 'data', `${safeCityId}_osm.json`);
+    if (fs.existsSync(osmPath)) {
+      osmData = JSON.parse(fs.readFileSync(osmPath, 'utf8'));
+    }
+  } catch {
+    osmData = null;
+  }
+
+  const specRelPath = `public/data/${safeCityId}_monuments_spec.json`;
+  const glbRelPath = `public/models/${safeCityId}_monuments.glb`;
+
+  // Inspect existing GLB bounding boxes if available before Blender build
+  let glbBounds = inspectGlbMonumentBounds(glbRelPath);
+  let monuments = alignMonumentsToOsmMap(
+    rawMonuments,
+    osmData,
+    glbBounds,
+    project,
+    preset.geo
+  );
+
   const milestones = preset.milestones || [];
   const eras = preset.eras || [];
 
@@ -76,16 +106,44 @@ export async function runStep2MonumentsAndBlender(cityId, options = {}) {
     cityId: preset.id,
     cityName: preset.name,
     country: preset.country,
-    glbOutRelative: `public/models/${safeCityId}_monuments.glb`,
+    glbOutRelative: glbRelPath,
     monuments,
   };
 
-  const specRelPath = `public/data/${safeCityId}_monuments_spec.json`;
-  const glbRelPath = `public/models/${safeCityId}_monuments.glb`;
   const specPath = writeSafeFile(specRelPath, JSON.stringify(specPayload, null, 2));
   console.log(`  [✓] Wrote monument Blender spec: ${specPath}`);
 
-  const upperId = safeCityId.toUpperCase();
+  let glbExported = false;
+  let blenderExecutionMode = 'skipped';
+  if (!skipBlender) {
+    console.log(
+      `  -> Building ${monuments.length} 3D monuments into ${glbRelPath} (preferring live Blender MCP if open)...`
+    );
+    const buildResult = await runBlenderMonumentBuild(
+      'scripts/pipeline/blender/build_city_monuments.py',
+      specRelPath,
+      glbRelPath
+    );
+    glbExported = true;
+    blenderExecutionMode = buildResult.mode;
+    console.log(`  [✓] Exported 3D GLB bundle (${blenderExecutionMode}): ${glbRelPath}`);
+
+    // Re-inspect newly exported GLB bounding boxes so principal axes (X vs Z vs SQUARE) are 100% exact
+    glbBounds = inspectGlbMonumentBounds(glbRelPath);
+    monuments = alignMonumentsToOsmMap(
+      rawMonuments,
+      osmData,
+      glbBounds,
+      project,
+      preset.geo
+    );
+    specPayload.monuments = monuments;
+    writeSafeFile(specRelPath, JSON.stringify(specPayload, null, 2));
+  } else {
+    console.log(`  -> Skipping Blender execution (--skip-blender flag set).`);
+  }
+
+  const upperId = safeCityId.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
   const historicalTsSource = `// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -123,24 +181,6 @@ export const ${upperId}_TOUR_STOPS: CityTourStop[] = ${JSON.stringify(tourStops,
     historicalTsSource
   );
   console.log(`  [✓] Wrote historical lore & monument dataset: ${historicalTsPath}`);
-
-  let glbExported = false;
-  let blenderExecutionMode = 'skipped';
-  if (!skipBlender) {
-    console.log(
-      `  -> Building ${monuments.length} 3D monuments into ${glbRelPath} (preferring live Blender MCP if open)...`
-    );
-    const buildResult = await runBlenderMonumentBuild(
-      'scripts/pipeline/blender/build_city_monuments.py',
-      specRelPath,
-      glbRelPath
-    );
-    glbExported = true;
-    blenderExecutionMode = buildResult.mode;
-    console.log(`  [✓] Exported 3D GLB bundle (${blenderExecutionMode}): ${glbRelPath}`);
-  } else {
-    console.log(`  -> Skipping Blender execution (--skip-blender flag set).`);
-  }
 
   return {
     specPath,

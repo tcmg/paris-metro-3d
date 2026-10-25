@@ -36,7 +36,8 @@
       "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/nyc_monuments_spec.json",
       "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/historicalData.ts",
       "glbRelPath": "public/models/nyc_monuments.glb",
-      "glbExported": true,
+      "glbExported": false,
+      "blenderExecutionMode": "skipped",
       "monumentCount": 8
     },
     "step4": {
@@ -45,5 +46,5 @@
       "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/nyc/index.ts"
     }
   },
-  "completedAt": "2026-10-16T11:27:54.273Z"
+  "completedAt": "2026-10-20T08:59:09.976Z"
 }

@@ -232,7 +232,9 @@ export class VoxelParisBuilder {
             ? 0.22
             : m.id === 'monument-notre-dame'
               ? 0.68
-              : m.radius * 0.36;
+              : ACTIVE_CITY_ID !== 'paris'
+                ? m.radius * 0.46
+                : m.radius * 0.36;
         if (m.x - r < this.monMinX) this.monMinX = m.x - r;
         if (m.x + r > this.monMaxX) this.monMaxX = m.x + r;
         if (m.z - r < this.monMinZ) this.monMinZ = m.z - r;
@@ -2869,11 +2871,33 @@ export class VoxelParisBuilder {
     const idxPerif: number[] = [];
     const dummyUv: number[] = [];
 
+    const bridgeMonuments =
+      ACTIVE_CITY_ID !== 'paris'
+        ? PARIS_MONUMENTS.filter((m) =>
+            /bridge|arcos-lapa/i.test(m.id)
+          )
+        : [];
+
     for (const [rawPts, tier, isBridge] of data.roads) {
       if (rawPts.length < 4) continue;
       const cx = rawPts[0];
       const cz = rawPts[1];
       if (Math.abs(cx) > 220 || Math.abs(cz) > 220) continue;
+
+      if (isBridge === 1 && bridgeMonuments.length > 0) {
+        const midIdx = Math.floor(rawPts.length / 4) * 2;
+        const mx = (rawPts[0] + rawPts[midIdx] + rawPts[rawPts.length - 2]) / 3;
+        const mz = (rawPts[1] + rawPts[midIdx + 1] + rawPts[rawPts.length - 1]) / 3;
+        let overlapsMonumentBridge = false;
+        for (const bm of bridgeMonuments) {
+          const rSpan = bm.id === 'monument-golden-gate-bridge' ? 7.8 : 4.2;
+          if (Math.hypot(mx - bm.x, mz - bm.z) < rSpan) {
+            overlapsMonumentBridge = true;
+            break;
+          }
+        }
+        if (overlapsMonumentBridge) continue;
+      }
 
       const pts = this.simplifyPolyline(rawPts);
       const onIsland = this.isPointOnIsland(cx, cz);
@@ -3063,6 +3087,15 @@ export class VoxelParisBuilder {
 
   private isRingOverlappingCustomMonument(outer: number[], cx: number, cz: number): boolean {
     if (this.isOverlappingCustomMonument(cx, cz)) return true;
+
+    if (ACTIVE_CITY_ID !== 'paris') {
+      for (let i = 0; i < outer.length; i += 2) {
+        if (this.isOverlappingCustomMonument(outer[i], outer[i + 1])) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     // Also check vertices against the Louvre's large palace box so partial wing extrusions are suppressed
     const louvre = this.louvreMonument;

@@ -600,6 +600,350 @@ const MONUMENT_METADATA: Record<string, MonumentRichMetadata> = {
     connectedLines: ['B', 'D', 'F', 'M', 'E'],
     svgPaths: ['M7 20 L7 9 L9 9 L9 4 L15 4 L15 9 L17 9 L17 20 Z'],
     silhouettePath: 'M6 48 L6 22 L10 22 L10 10 L13 3 L19 3 L22 10 L22 22 L26 22 L26 48 Z'
+  },
+  // Porto Monuments
+  'monument-dom-luis-bridge': {
+    heightMeters: 85,
+    era: 'empire1900',
+    eraLabel: 'Seyrig Double-Deck Iron Arch • 1886',
+    connectedLines: ['D'],
+    svgPaths: ['M2 7 L22 7 M2 17 L22 17 M4 19 Q12 5 20 19'],
+    silhouettePath: 'M2 12 L30 12 L30 15 L2 15 Z M2 34 L30 34 M4 48 Q16 10 28 48'
+  },
+  'monument-clerigos-tower': {
+    heightMeters: 76,
+    era: 'medieval',
+    eraLabel: 'Nasoni Baroque Granite Campanile • 1763',
+    connectedLines: ['D', 'A', 'B', 'C', 'E', 'F'],
+    svgPaths: ['M9 20 L9 12 L10.5 7 L12 2 L13.5 7 L15 12 L15 20 Z'],
+    silhouettePath: 'M9 48 L9 26 L11 26 L11 16 L13 10 L16 2 L19 10 L21 16 L21 26 L23 26 L23 48 Z'
+  },
+  'monument-sao-bento-station': {
+    heightMeters: 32,
+    era: 'gares',
+    eraLabel: '20,000 Azulejo Tiles & Beaux-Arts • 1916',
+    connectedLines: ['D'],
+    svgPaths: ['M3 19 L3 9 L7 6 L17 6 L21 9 L21 19 Z M8 19 L8 12 A4 4 0 0 1 16 12 L16 19'],
+    silhouettePath: 'M2 48 L2 18 L8 10 L24 10 L30 18 L30 48 Z'
+  },
+  'monument-casa-da-musica': {
+    heightMeters: 40,
+    era: 'modern',
+    eraLabel: 'Koolhaas Faceted White Concrete • 2005',
+    connectedLines: ['A', 'B', 'C', 'E', 'F', 'G'],
+    svgPaths: ['M6 18 L4 11 L9 5 L17 6 L20 12 L16 18 Z'],
+    silhouettePath: 'M6 48 L3 26 L10 8 L23 10 L29 28 L24 48 Z'
+  },
+  'monument-se-do-porto': {
+    heightMeters: 48,
+    era: 'medieval',
+    eraLabel: 'Romanesque Twin-Tower Cathedral • 1110',
+    connectedLines: ['D'],
+    svgPaths: ['M4 19 L4 6 L8 6 L8 12 L16 12 L16 6 L20 6 L20 19 Z'],
+    silhouettePath: 'M4 48 L4 10 L10 10 L10 22 L22 22 L22 10 L28 10 L28 48 Z'
+  },
+  'monument-palacio-da-bolsa': {
+    heightMeters: 34,
+    era: 'empire1900',
+    eraLabel: 'Neoclassical & Moorish Arab Room • 1842',
+    connectedLines: ['D'],
+    svgPaths: ['M3 19 L3 10 L12 5 L21 10 L21 19 Z'],
+    silhouettePath: 'M3 48 L3 20 L16 10 L29 20 L29 48 Z'
+  },
+  'monument-livraria-lello': {
+    heightMeters: 24,
+    era: 'empire1900',
+    eraLabel: 'Neo-Gothic Façade & Crimson Stair • 1906',
+    connectedLines: ['D', 'A', 'B', 'C', 'E'],
+    svgPaths: ['M6 19 L6 6 L9 3 L12 7 L15 3 L18 6 L18 19 Z'],
+    silhouettePath: 'M7 48 L7 12 L11 4 L16 12 L21 4 L25 12 L25 48 Z'
+  },
+  'monument-port-wine-lodges': {
+    heightMeters: 36,
+    era: 'medieval',
+    eraLabel: 'Gaia Terraced Cellars & Serra do Pilar • 1678',
+    connectedLines: ['D'],
+    svgPaths: ['M2 19 L2 14 L12 11 L12 19 M12 11 A5 5 0 0 1 22 11 L22 19'],
+    silhouettePath: 'M2 48 L2 32 L14 24 L14 16 A7 7 0 0 1 28 16 L28 48 Z'
+  },
+  // Tokyo Monuments
+  'monument-tokyo-tower': {
+    heightMeters: 333,
+    era: 'modern',
+    eraLabel: 'Tachū Naitō Lattice Tower • 1958',
+    connectedLines: ['E', 'H'],
+    svgPaths: ['M5 20 Q10 12 11 4 L12 1 L13 4 Q14 12 19 20 M7 15 L17 15 M9 10 L15 10'],
+    silhouettePath: 'M4 48 Q12 28 14 10 L16 1 L18 10 Q20 28 28 48 Z'
+  },
+  'monument-tokyo-skytree': {
+    heightMeters: 634,
+    era: 'modern',
+    eraLabel: '634m Neo-Futurist Broadcast Spire • 2012',
+    connectedLines: ['Z', 'A'],
+    svgPaths: ['M9 20 L10.5 7 L12 1 L13.5 7 L15 20 M9.5 9 L14.5 9 M10 6 L14 6'],
+    silhouettePath: 'M10 48 L13 14 L11 12 L14 9 L16 1 L18 9 L21 12 L19 14 L22 48 Z'
+  },
+  'monument-sensoji-pagoda': {
+    heightMeters: 53,
+    era: 'medieval',
+    eraLabel: 'Asakusa Five-Story Pagoda & Kaminarimon • 645',
+    connectedLines: ['G', 'A'],
+    svgPaths: ['M6 19 L18 19 M5 15 L19 15 M6 11 L18 11 M7 7 L17 7 M12 2 L12 19'],
+    silhouettePath: 'M6 48 L6 10 L12 6 L16 1 L20 6 L26 10 L26 48 Z'
+  },
+  'monument-tokyo-station': {
+    heightMeters: 46,
+    era: 'gares',
+    eraLabel: 'Tatsuno Red-Brick Imperial Terminus • 1914',
+    connectedLines: ['M', 'JY', 'T', 'C'],
+    svgPaths: ['M2 19 L2 11 L6 7 L10 11 L14 11 L18 7 L22 11 L22 19 Z'],
+    silhouettePath: 'M2 48 L2 20 L7 10 L12 20 L20 20 L25 10 L30 20 L30 48 Z'
+  },
+  'monument-meiji-jingu-torii': {
+    heightMeters: 36,
+    era: 'empire1900',
+    eraLabel: 'Myōjin Hinoki Cypress Grand Torii • 1920',
+    connectedLines: ['JY', 'C', 'F'],
+    svgPaths: ['M3 6 Q12 4 21 6 M5 10 L19 10 M7 6 L7 20 M17 6 L17 20'],
+    silhouettePath: 'M2 10 Q16 6 30 10 L30 14 L24 14 L24 48 L20 48 L20 14 L12 14 L12 48 L8 48 L8 14 L2 14 Z'
+  },
+  'monument-imperial-palace': {
+    heightMeters: 38,
+    era: 'medieval',
+    eraLabel: 'Edo Castle Fujimi-yagura & Nijūbashi • 1659',
+    connectedLines: ['C', 'M', 'T'],
+    svgPaths: ['M3 19 L8 12 L16 12 L21 19 M8 12 L10 5 L14 5 L16 12'],
+    silhouettePath: 'M3 48 L7 26 L11 10 L21 10 L25 26 L29 48 Z'
+  },
+  'monument-cocoon-tower': {
+    heightMeters: 204,
+    era: 'modern',
+    eraLabel: 'Tange Shinjuku Diagrid Cocoon • 2008',
+    connectedLines: ['JY', 'M', 'E'],
+    svgPaths: ['M9 20 C6 14 6 7 9 3 L15 3 C18 7 18 14 15 20 Z M8 6 L16 17 M16 6 L8 17'],
+    silhouettePath: 'M10 48 C6 32 6 14 11 3 L21 3 C26 14 26 32 22 48 Z'
+  },
+  'monument-rainbow-bridge': {
+    heightMeters: 126,
+    era: 'modern',
+    eraLabel: 'Tokyo Bay Suspension Bridge • 1993',
+    connectedLines: ['JY', 'A', 'E'],
+    svgPaths: ['M5 19 L5 6 M19 19 L19 6 M2 14 L22 14 M2 12 Q12 6 22 12'],
+    silhouettePath: 'M5 48 L5 10 L8 10 L8 48 M24 48 L24 10 L27 10 L27 48 M2 30 L30 30'
+  },
+  // San Francisco Monuments
+  'monument-golden-gate-bridge': {
+    heightMeters: 227,
+    era: 'empire1900',
+    eraLabel: 'International Orange Art Deco Towers • 1937',
+    connectedLines: ['CA', 'PH'],
+    svgPaths: ['M5 20 L5 4 M19 20 L19 4 M2 14 L22 14 M2 6 Q12 14 22 6'],
+    silhouettePath: 'M5 48 L5 4 L9 4 L9 48 M23 48 L23 4 L27 4 L27 48 M2 28 L30 28'
+  },
+  'monument-transamerica-pyramid': {
+    heightMeters: 260,
+    era: 'modern',
+    eraLabel: 'Pereira Quartz-Aggregate Pyramid • 1972',
+    connectedLines: ['BART-Y', 'BART-R', 'CA', 'F', 'T'],
+    svgPaths: ['M6 20 L12 2 L18 20 Z M8 12 L16 12'],
+    silhouettePath: 'M5 48 L12 18 L10 18 L10 12 L13 12 L16 1 L19 12 L22 12 L22 18 L20 18 L27 48 Z'
+  },
+  'monument-coit-tower': {
+    heightMeters: 64,
+    era: 'empire1900',
+    eraLabel: 'Telegraph Hill Art Deco Fluted Column • 1933',
+    connectedLines: ['F', 'PH'],
+    svgPaths: ['M6 20 L6 16 L9 16 L9 5 L11 3 L13 3 L15 5 L15 16 L18 16 L18 20 Z'],
+    silhouettePath: 'M6 48 L6 36 L11 36 L11 8 L13 3 L19 3 L21 8 L21 36 L26 36 L26 48 Z'
+  },
+  'monument-ferry-building': {
+    heightMeters: 75,
+    era: 'gares',
+    eraLabel: 'Embarcadero Beaux-Arts Clock Tower • 1898',
+    connectedLines: ['BART-Y', 'BART-R', 'J', 'KLM', 'N', 'F', 'CA'],
+    svgPaths: ['M2 19 L2 14 L10 14 L10 5 L12 2 L14 5 L14 14 L22 14 L22 19 Z'],
+    silhouettePath: 'M2 48 L2 32 L13 32 L13 10 L16 2 L19 10 L19 32 L30 32 L30 48 Z'
+  },
+  'monument-palace-of-fine-arts': {
+    heightMeters: 49,
+    era: 'empire1900',
+    eraLabel: 'Maybeck Greco-Roman Rotunda & Peristyle • 1915',
+    connectedLines: ['F', 'PH'],
+    svgPaths: ['M4 19 L4 11 M20 19 L20 11 M7 19 L7 10 A5 5 0 0 1 17 10 L17 19'],
+    silhouettePath: 'M3 48 L3 24 L8 24 L8 18 A8 8 0 0 1 24 18 L24 24 L29 24 L29 48 Z'
+  },
+  'monument-salesforce-tower': {
+    heightMeters: 326,
+    era: 'modern',
+    eraLabel: 'Pelli Tapering Obelisk & Rooftop Park • 2018',
+    connectedLines: ['BART-Y', 'BART-R', 'J', 'KLM', 'N', 'F'],
+    svgPaths: ['M8 20 L9.5 4 Q12 2 14.5 4 L16 20 Z'],
+    silhouettePath: 'M9 48 L11 6 Q16 1 21 6 L23 48 Z'
+  },
+  'monument-painted-ladies': {
+    heightMeters: 22,
+    era: 'empire1900',
+    eraLabel: 'Alamo Square Postcard Row Victorians • 1892',
+    connectedLines: ['J', 'KLM', 'N'],
+    svgPaths: ['M2 19 L2 10 L5 6 L8 10 L11 6 L14 10 L17 6 L20 10 L22 8 L22 19 Z'],
+    silhouettePath: 'M2 48 L2 20 L6 10 L10 20 L14 10 L18 20 L22 10 L26 20 L30 12 L30 48 Z'
+  },
+  'monument-alcatraz-island': {
+    heightMeters: 41,
+    era: 'empire1900',
+    eraLabel: 'The Rock Cellhouse & 1854 Lighthouse • 1934',
+    connectedLines: ['F', 'PH'],
+    svgPaths: ['M2 18 L5 13 L16 13 L16 6 L18 3 L20 6 L20 13 L22 18 Z'],
+    silhouettePath: 'M2 48 L5 30 L18 30 L19 10 L21 4 L23 10 L24 30 L30 48 Z'
+  },
+  // Rio de Janeiro Monuments
+  'monument-christ-redeemer': {
+    heightMeters: 38,
+    era: 'empire1900',
+    eraLabel: 'Landowski Soapstone Art Deco • 1931',
+    connectedLines: ['L1', 'L2'],
+    svgPaths: ['M8 20 L10 14 L10 8 L4 8 L4 6 L10 6 L10 3 L14 3 L14 6 L20 6 L20 8 L14 8 L14 14 L16 20 Z'],
+    silhouettePath: 'M6 48 L11 32 L13 12 L4 12 L4 8 L13 8 L14 2 L18 2 L19 8 L28 8 L28 12 L19 12 L21 32 L26 48 Z'
+  },
+  'monument-sugarloaf': {
+    heightMeters: 396,
+    era: 'empire1900',
+    eraLabel: 'Pão de Açúcar & Bondinho Cableway • 1912',
+    connectedLines: ['L1', 'L2'],
+    svgPaths: ['M2 19 Q6 11 10 19 M12 19 Q17 4 22 19 M6 13 L17 6'],
+    silhouettePath: 'M2 48 Q8 22 14 48 M14 48 Q22 6 30 48 Z'
+  },
+  'monument-maracana': {
+    heightMeters: 32,
+    era: 'modern',
+    eraLabel: 'World Cup & Olympic Bowl • 1950',
+    connectedLines: ['L2'],
+    svgPaths: ['M3 14 Q12 8 21 14 L19 19 Q12 21 5 19 Z'],
+    silhouettePath: 'M2 30 Q16 18 30 30 L27 48 L5 48 Z'
+  },
+  'monument-museum-tomorrow': {
+    heightMeters: 28,
+    era: 'modern',
+    eraLabel: 'Calatrava Solar Cantilever • 2015',
+    connectedLines: ['L1', 'VLT1', 'VLT2'],
+    svgPaths: ['M2 15 L22 9 L18 18 L5 18 Z'],
+    silhouettePath: 'M2 34 L30 18 L24 48 L6 48 Z'
+  },
+  'monument-arcos-lapa': {
+    heightMeters: 18,
+    era: 'medieval',
+    eraLabel: '42-Arch Aqueduct & 1896 Bonde • 1750',
+    connectedLines: ['L1', 'L2', 'BONDE'],
+    svgPaths: ['M2 19 L2 10 L22 10 L22 19 M6 19 A2 4 0 0 1 10 19 M14 19 A2 4 0 0 1 18 19'],
+    silhouettePath: 'M2 48 L2 20 L30 20 L30 48 Z'
+  },
+  'monument-catedral-sao-sebastiao': {
+    heightMeters: 75,
+    era: 'modern',
+    eraLabel: 'Fonseca Brutalist Mayan Cone • 1979',
+    connectedLines: ['L1', 'L2', 'VLT1', 'VLT2'],
+    svgPaths: ['M5 19 L9 4 L15 4 L19 19 Z M12 4 L12 19'],
+    silhouettePath: 'M4 48 L11 6 L21 6 L28 48 Z'
+  },
+  'monument-theatro-municipal': {
+    heightMeters: 42,
+    era: 'empire1900',
+    eraLabel: 'Cinelândia Beaux-Arts Opera • 1909',
+    connectedLines: ['L1', 'L2', 'VLT1'],
+    svgPaths: ['M3 19 L3 11 L7 8 L17 8 L21 11 L21 19 Z M8 8 A4 4 0 0 1 16 8'],
+    silhouettePath: 'M3 48 L3 22 L9 14 A7 7 0 0 1 23 14 L29 22 L29 48 Z'
+  },
+  'monument-sambodromo': {
+    heightMeters: 30,
+    era: 'modern',
+    eraLabel: 'Oscar Niemeyer Apoteose Arch • 1984',
+    connectedLines: ['L1'],
+    svgPaths: ['M4 19 L6 9 L12 14 L18 9 L20 19'],
+    silhouettePath: 'M3 48 L7 12 L16 26 L25 12 L29 48 Z'
+  },
+  'monument-central-do-brasil': {
+    heightMeters: 110,
+    era: 'gares',
+    eraLabel: '110m Art Deco Clock Terminus • 1943',
+    connectedLines: ['L1', 'L2', 'VLT2'],
+    svgPaths: ['M4 19 L4 14 L9 14 L9 4 L12 2 L15 4 L15 14 L20 14 L20 19 Z'],
+    silhouettePath: 'M3 48 L3 32 L11 32 L11 8 L16 2 L21 8 L21 32 L29 32 L29 48 Z'
+  },
+  'monument-copacabana-palace': {
+    heightMeters: 35,
+    era: 'empire1900',
+    eraLabel: 'Avenida Atlântica & Burle Marx • 1923',
+    connectedLines: ['L1', 'L4'],
+    svgPaths: ['M2 19 L2 10 L7 7 L12 10 L17 7 L22 10 L22 19 Z'],
+    silhouettePath: 'M2 48 L2 20 L8 14 L16 8 L24 14 L30 20 L30 48 Z'
+  },
+  // Warsaw Monuments
+  'monument-palace-culture': {
+    heightMeters: 237,
+    era: 'modern',
+    eraLabel: 'PKiN Stepped Spire & Renaissance Attic • 1955',
+    connectedLines: ['M1', 'M2', 'S1', 'WKD', 'T9', 'T26'],
+    svgPaths: ['M4 20 L4 14 L7 14 L7 9 L10 9 L10 5 L12 1 L14 5 L14 9 L17 9 L17 14 L20 14 L20 20 Z'],
+    silhouettePath: 'M3 48 L3 34 L7 34 L7 22 L11 22 L11 10 L15.5 10 L16 1 L16.5 10 L21 10 L21 22 L25 22 L25 34 L29 34 L29 48 Z'
+  },
+  'monument-royal-castle': {
+    heightMeters: 60,
+    era: 'medieval',
+    eraLabel: 'Zamek Królewski & Sigismund Column • 1644',
+    connectedLines: ['M1', 'M2', 'T26'],
+    svgPaths: ['M3 19 L3 12 L9 12 L12 3 L15 12 L21 12 L21 19 Z M2 19 L2 8'],
+    silhouettePath: 'M3 48 L3 24 L11 24 L14 12 L16 3 L18 12 L21 24 L29 24 L29 48 Z'
+  },
+  'monument-lazienki-palace': {
+    heightMeters: 24,
+    era: 'medieval',
+    eraLabel: 'Stanislawian Neoclassical Palace on the Isle • 1793',
+    connectedLines: ['M1', 'T9'],
+    svgPaths: ['M2 18 L22 18 M4 18 L4 11 L9 11 A3 3 0 0 1 15 11 L20 11 L20 18'],
+    silhouettePath: 'M2 48 L2 24 L10 24 L10 16 A6 6 0 0 1 22 16 L22 24 L30 24 L30 48 Z'
+  },
+  'monument-warszawa-centralna': {
+    heightMeters: 310,
+    era: 'modern',
+    eraLabel: 'Centralna Cantilever & 310m Varso Tower • 1975',
+    connectedLines: ['M1', 'M2', 'S1', 'WKD', 'T9'],
+    svgPaths: ['M2 19 L2 14 L12 14 L12 19 M14 19 L14 5 L16 1 L18 5 L18 19 Z'],
+    silhouettePath: 'M2 48 L2 34 L15 34 L15 8 L19 8 L20 1 L21 8 L25 8 L25 48 Z'
+  },
+  'monument-stadion-narodowy': {
+    heightMeters: 113,
+    era: 'modern',
+    eraLabel: 'PGE Narodowy Red-and-White Crown & Spire • 2012',
+    connectedLines: ['M2', 'M3', 'S1', 'T9'],
+    svgPaths: [
+      'M5 19 L2.5 10 L21.5 10 L19 19 Z M6 19 L4.5 9 M10 19 L9 9 M14 19 L15 9 M18 19 L19.5 9 M12 2 L12 12'
+    ],
+    silhouettePath:
+      'M6 48 L2 22 L4 18 L6 24 L10 18 L12 24 L15.5 24 L16 2 L16.5 24 L20 24 L22 18 L26 24 L28 18 L30 22 L26 48 Z'
+  },
+  'monument-stare-miasto-siren': {
+    heightMeters: 32,
+    era: 'medieval',
+    eraLabel: 'Old Town Market Place & Syrenka • 1855',
+    connectedLines: ['M1', 'M2', 'T26'],
+    svgPaths: ['M2 19 L2 9 L6 6 L10 9 L14 6 L18 9 L22 6 L22 19 Z M12 19 L12 11'],
+    silhouettePath: 'M2 48 L2 18 L7 10 L12 18 L16 10 L21 18 L26 10 L30 18 L30 48 Z'
+  },
+  'monument-wilanow-palace': {
+    heightMeters: 28,
+    era: 'medieval',
+    eraLabel: 'King Jan III Sobieski Polish Baroque • 1696',
+    connectedLines: ['M1'],
+    svgPaths: ['M2 19 L2 8 L6 5 L6 12 L18 12 L18 5 L22 8 L22 19 Z'],
+    silhouettePath: 'M2 48 L2 14 L7 6 L10 14 L10 24 L22 24 L22 14 L25 6 L30 14 L30 48 Z'
+  },
+  'monument-polin-uprising': {
+    heightMeters: 26,
+    era: 'modern',
+    eraLabel: 'Lahdelma & Mahlamäki Glass Canyon & Ghetto Stele • 2013',
+    connectedLines: ['M1', 'T26'],
+    svgPaths: ['M3 19 L3 7 L15 7 L15 19 M8 7 Q10 13 7 19 M18 19 L19 8 L21 8 L22 19 Z'],
+    silhouettePath: 'M3 48 L3 12 L21 12 L21 48 M24 48 L25 14 L29 14 L30 48 Z'
   }
 };
 
@@ -1027,12 +1371,36 @@ export class ArtDecoHUD {
       topBar.appendChild(expDockWrap);
     }
 
-    // 2. Top-Right City Selector Bar (Paris | Sydney | New York)
-    const cityBar = createEl('nav', 'deco-panel city-selector-bar hud-interactive');
+    // 2. Top-Right Collapsible City Selector Drawer (compact pill, expands on hover)
+    const cityBar = createEl(
+      'nav',
+      'deco-panel city-selector-bar collapsible-city-picker hud-interactive'
+    );
     cityBar.setAttribute('aria-label', 'City Selector');
     attachDecoCorners(cityBar);
-    cityBar.appendChild(createEl('span', 'city-selector-label', 'CITY'));
 
+    const citySummaryHeader = createEl('div', 'city-selector-summary-header');
+    const citySummaryLeft = createEl('div', 'city-selector-summary-left');
+    citySummaryLeft.appendChild(createEl('span', 'city-selector-globe-icon', '🌐'));
+    citySummaryLeft.appendChild(createEl('span', 'city-selector-label', 'CITY'));
+
+    const citySummaryRight = createEl('div', 'city-selector-summary-right');
+    const activeCityBadge = createEl('span', 'city-selector-active-pill');
+    activeCityBadge.appendChild(
+      createEl('span', 'city-selector-name', ACTIVE_CITY_META.label)
+    );
+    activeCityBadge.appendChild(
+      createEl('span', 'city-selector-code', ACTIVE_CITY_META.shortCode)
+    );
+    const cityChevron = createEl('span', 'city-selector-chevron', '▾');
+    citySummaryRight.appendChild(activeCityBadge);
+    citySummaryRight.appendChild(cityChevron);
+
+    citySummaryHeader.appendChild(citySummaryLeft);
+    citySummaryHeader.appendChild(citySummaryRight);
+    cityBar.appendChild(citySummaryHeader);
+
+    const cityDrawerBody = createEl('div', 'city-selector-drawer-body');
     const cityPills = createEl('div', 'city-selector-pills');
     for (const city of SELECTABLE_CITIES) {
       const isCurrent = city.id === ACTIVE_CITY_ID;
@@ -1050,7 +1418,8 @@ export class ArtDecoHUD {
       });
       cityPills.appendChild(btn);
     }
-    cityBar.appendChild(cityPills);
+    cityDrawerBody.appendChild(cityPills);
+    cityBar.appendChild(cityDrawerBody);
     topBar.appendChild(cityBar);
 
     // Top-Center Collapsible Configuration & Atmosphere Panel (shrinks until hovered over)
@@ -1480,6 +1849,156 @@ export class ArtDecoHUD {
       archInner.setAttribute('stroke-width', '1.8');
       archInner.setAttribute('fill', 'none');
       svg.appendChild(archInner);
+    } else if (ACTIVE_CITY_ID === 'porto') {
+      // Portuguese Cobalt-Blue & Gold Azulejo Ceramic Tile Rosette
+      const frame = document.createElementNS(ns, 'rect');
+      frame.setAttribute('x', '4');
+      frame.setAttribute('y', '4');
+      frame.setAttribute('width', '28');
+      frame.setAttribute('height', '28');
+      frame.setAttribute('rx', '2');
+      frame.setAttribute('fill', 'none');
+      frame.setAttribute('stroke', '#4ea8de');
+      frame.setAttribute('stroke-width', '1.8');
+      svg.appendChild(frame);
+
+      const diamond = document.createElementNS(ns, 'path');
+      diamond.setAttribute('d', 'M18 5 L31 18 L18 31 L5 18 Z');
+      diamond.setAttribute('fill', 'none');
+      diamond.setAttribute('stroke', '#e0a938');
+      diamond.setAttribute('stroke-width', '1.6');
+      svg.appendChild(diamond);
+
+      const petals = document.createElementNS(ns, 'path');
+      petals.setAttribute(
+        'd',
+        'M18 9 Q23 18 18 27 Q13 18 18 9 Z M9 18 Q18 13 27 18 Q18 23 9 18 Z'
+      );
+      petals.setAttribute('fill', 'none');
+      petals.setAttribute('stroke', '#f8fbff');
+      petals.setAttribute('stroke-width', '1.5');
+      svg.appendChild(petals);
+    } else if (ACTIVE_CITY_ID === 'tokyo') {
+      // Shinto Vermilion Torii Gate & Crimson Sun Disc
+      const sun = document.createElementNS(ns, 'circle');
+      sun.setAttribute('cx', '18');
+      sun.setAttribute('cy', '19');
+      sun.setAttribute('r', '9');
+      sun.setAttribute('fill', 'rgba(230, 57, 70, 0.28)');
+      sun.setAttribute('stroke', '#f4a261');
+      sun.setAttribute('stroke-width', '1.4');
+      svg.appendChild(sun);
+
+      const torii = document.createElementNS(ns, 'path');
+      torii.setAttribute(
+        'd',
+        'M4 10 Q18 7 32 10 M7 15 L29 15 M11 10 L11 32 M25 10 L25 32 M18 10 L18 15'
+      );
+      torii.setAttribute('fill', 'none');
+      torii.setAttribute('stroke', '#e63946');
+      torii.setAttribute('stroke-width', '2.3');
+      torii.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(torii);
+    } else if (ACTIVE_CITY_ID === 'san-francisco') {
+      // Golden Gate International Orange Suspension Towers & Cable Catena
+      const cables = document.createElementNS(ns, 'path');
+      cables.setAttribute('d', 'M2 14 Q10 24 10 8 Q18 23 26 8 Q26 24 34 14 M2 24 L34 24');
+      cables.setAttribute('fill', 'none');
+      cables.setAttribute('stroke', '#f05a36');
+      cables.setAttribute('stroke-width', '1.8');
+      svg.appendChild(cables);
+
+      const towers = document.createElementNS(ns, 'path');
+      towers.setAttribute('d', 'M10 6 L10 31 M26 6 L26 31 M4 30 Q18 27 32 30');
+      towers.setAttribute('fill', 'none');
+      towers.setAttribute('stroke', '#f4b942');
+      towers.setAttribute('stroke-width', '2.1');
+      towers.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(towers);
+    } else if (ACTIVE_CITY_ID === 'rio') {
+      // Christ the Redeemer Outstretched Arms + Sugarloaf + Burle Marx Copacabana Waves
+      const waves = document.createElementNS(ns, 'path');
+      waves.setAttribute('d', 'M2 27 Q9 22 18 27 T34 27 M2 32 Q9 27 18 32 T34 32');
+      waves.setAttribute('fill', 'none');
+      waves.setAttribute('stroke', '#12c47a');
+      waves.setAttribute('stroke-width', '2');
+      waves.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(waves);
+
+      const cristo = document.createElementNS(ns, 'path');
+      cristo.setAttribute('d', 'M18 4 L18 22 M9 10 L27 10 M14 22 Q18 16 22 22');
+      cristo.setAttribute('fill', 'none');
+      cristo.setAttribute('stroke', '#ffda44');
+      cristo.setAttribute('stroke-width', '2.2');
+      cristo.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(cristo);
+    } else if (ACTIVE_CITY_ID === 'warsaw') {
+      // Warsaw Syrenka Shield & Sword + Stepped PKiN Spire + Vistula River Wave
+      const vistula = document.createElementNS(ns, 'path');
+      vistula.setAttribute('d', 'M3 30 Q11 26 18 30 T33 30');
+      vistula.setAttribute('fill', 'none');
+      vistula.setAttribute('stroke', '#e0a93b');
+      vistula.setAttribute('stroke-width', '1.9');
+      vistula.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(vistula);
+
+      const pkin = document.createElementNS(ns, 'path');
+      pkin.setAttribute(
+        'd',
+        'M8 26 L8 20 L12 20 L12 13 L15 13 L15 8 L18 2 L21 8 L21 13 L24 13 L24 20 L28 20 L28 26 Z'
+      );
+      pkin.setAttribute('fill', 'rgba(220, 20, 60, 0.24)');
+      pkin.setAttribute('stroke', '#dc143c');
+      pkin.setAttribute('stroke-width', '1.8');
+      pkin.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(pkin);
+    } else if (ACTIVE_CITY_ID === 'zurich') {
+      // Grossmünster Twin Towers + SBB Red Seconds Paddle + Lake Zurich Wave
+      const lake = document.createElementNS(ns, 'path');
+      lake.setAttribute('d', 'M3 31 Q11 27 18 31 T33 31');
+      lake.setAttribute('fill', 'none');
+      lake.setAttribute('stroke', '#38b6ff');
+      lake.setAttribute('stroke-width', '1.9');
+      lake.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(lake);
+
+      const towers = document.createElementNS(ns, 'path');
+      towers.setAttribute(
+        'd',
+        'M8 26 L8 10 L11 5 L14 10 L14 26 M22 26 L22 10 L25 5 L28 10 L28 26 M14 18 L22 18'
+      );
+      towers.setAttribute('fill', 'none');
+      towers.setAttribute('stroke', '#f8fafc');
+      towers.setAttribute('stroke-width', '1.8');
+      towers.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(towers);
+
+      const sbbDot = document.createElementNS(ns, 'circle');
+      sbbDot.setAttribute('cx', '18');
+      sbbDot.setAttribute('cy', '12');
+      sbbDot.setAttribute('r', '2.6');
+      sbbDot.setAttribute('fill', '#e30613');
+      svg.appendChild(sbbDot);
+    } else if (ACTIVE_CITY_ID === 'melbourne') {
+      // Flinders Street Dome + Arts Centre Spire + Yarra River Wave
+      const yarra = document.createElementNS(ns, 'path');
+      yarra.setAttribute('d', 'M3 31 Q11 27 18 31 T33 31');
+      yarra.setAttribute('fill', 'none');
+      yarra.setAttribute('stroke', '#00a88f');
+      yarra.setAttribute('stroke-width', '1.9');
+      yarra.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(yarra);
+
+      const domeAndSpire = document.createElementNS(ns, 'path');
+      domeAndSpire.setAttribute(
+        'd',
+        'M5 26 L5 18 Q12 8 19 18 L19 26 M12 8 L12 5 M23 26 L27 4 L31 26 Z'
+      );
+      domeAndSpire.setAttribute('fill', 'rgba(244, 196, 48, 0.20)');
+      domeAndSpire.setAttribute('stroke', '#f4c430');
+      domeAndSpire.setAttribute('stroke-width', '1.8');
+      domeAndSpire.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(domeAndSpire);
     } else {
       // Paris Belle Époque Hector Guimard & Eiffel Arch Filigree
       const arch = document.createElementNS(ns, 'path');
@@ -1498,13 +2017,41 @@ export class ArtDecoHUD {
         ? 'GADIGAL COUNTRY • SYDNEY HARBOUR'
         : ACTIVE_CITY_ID === 'nyc'
           ? 'GOTHAM SKYSCRAPER ART DECO'
-          : 'PARIS MÉTROPOLITAIN • LUMIÈRE';
+          : ACTIVE_CITY_ID === 'porto'
+            ? 'INVICTA • AZULEJO & RIO DOURO'
+            : ACTIVE_CITY_ID === 'tokyo'
+              ? 'EDO SHINTO • NEO-TOKYO METROPOLIS'
+              : ACTIVE_CITY_ID === 'san-francisco'
+                ? 'GOLDEN GATE • BAY & CABLE CARS'
+                : ACTIVE_CITY_ID === 'rio'
+                  ? 'CIDADE MARAVILHOSA • CARNAVAL & SAMBA'
+                  : ACTIVE_CITY_ID === 'warsaw'
+                    ? 'MIASTO STOŁECZNE WARSZAWA • SYRENKA'
+                    : ACTIVE_CITY_ID === 'zurich'
+                      ? 'ZÜRICH • LIMMAT, S-BAHN & ALPINE GRID'
+                      : ACTIVE_CITY_ID === 'melbourne'
+                        ? 'MARVELLOUS MELBOURNE • NAARM / YARRA'
+                        : 'PARIS MÉTROPOLITAIN • LUMIÈRE';
     const subStr =
       ACTIVE_CITY_ID === 'sydney'
         ? 'Aboriginal Dot-Art, Red Ochre & Sandstone'
         : ACTIVE_CITY_ID === 'nyc'
           ? 'Chrysler Sunburst • Vignelli Subway Modernism'
-          : 'Belle Époque Guimard & Haussmann Limestone';
+          : ACTIVE_CITY_ID === 'porto'
+            ? 'Cobalt-Blue Ceramic Tilework & Talha Dourada Gold'
+            : ACTIVE_CITY_ID === 'tokyo'
+              ? 'Shu-iro Vermilion Torii • Tokyo Metro & Yamanote'
+              : ACTIVE_CITY_ID === 'san-francisco'
+                ? 'International Orange Art Deco • Victorian Hills & Fog'
+                : ACTIVE_CITY_ID === 'rio'
+                  ? 'Burle Marx Copacabana Waves • Corcovado & Sugarloaf'
+                  : ACTIVE_CITY_ID === 'warsaw'
+                    ? 'Old Town Sgraffito • Chopin Amber & Vistula Escarpment'
+                    : ACTIVE_CITY_ID === 'zurich'
+                      ? 'Swiss Typographic Grid • SBB Clock Red & Lake Zurich'
+                      : ACTIVE_CITY_ID === 'melbourne'
+                        ? 'W-Class Tram Green & Gold • Bluestone & Fed Square'
+                        : 'Belle Époque Guimard & Haussmann Limestone';
 
     textCol.appendChild(createEl('span', 'city-cultural-banner-title', titleStr));
     textCol.appendChild(createEl('span', 'city-cultural-banner-sub', subStr));
@@ -1520,6 +2067,75 @@ export class ArtDecoHUD {
       for (const d of mtaDots) {
         const b = createEl('span', 'nyc-vignelli-bullet', d.label);
         b.style.backgroundColor = d.bg;
+        bullets.appendChild(b);
+      }
+      banner.appendChild(bullets);
+    } else if (ACTIVE_CITY_ID === 'tokyo') {
+      const bullets = createEl('div', 'nyc-vignelli-bullets');
+      const tyoDots: { label: string; bg: string }[] = [
+        { label: 'G', bg: '#FF9500' },
+        { label: 'M', bg: '#F62E36' },
+        { label: 'JY', bg: '#9ACD32' }
+      ];
+      for (const d of tyoDots) {
+        const b = createEl('span', 'nyc-vignelli-bullet', d.label);
+        b.style.backgroundColor = d.bg;
+        bullets.appendChild(b);
+      }
+      banner.appendChild(bullets);
+    } else if (ACTIVE_CITY_ID === 'rio') {
+      const bullets = createEl('div', 'nyc-vignelli-bullets');
+      const rioDots: { label: string; bg: string }[] = [
+        { label: 'L1', bg: '#f37021' },
+        { label: 'L2', bg: '#00a859' },
+        { label: 'L4', bg: '#ffcb05' }
+      ];
+      for (const d of rioDots) {
+        const b = createEl('span', 'nyc-vignelli-bullet', d.label);
+        b.style.backgroundColor = d.bg;
+        if (d.label === 'L4') b.style.color = '#10141c';
+        bullets.appendChild(b);
+      }
+      banner.appendChild(bullets);
+    } else if (ACTIVE_CITY_ID === 'warsaw') {
+      const bullets = createEl('div', 'nyc-vignelli-bullets');
+      const wawDots: { label: string; bg: string }[] = [
+        { label: 'M1', bg: '#0056A3' },
+        { label: 'M2', bg: '#E31E24' },
+        { label: 'S1', bg: '#F39200' }
+      ];
+      for (const d of wawDots) {
+        const b = createEl('span', 'nyc-vignelli-bullet', d.label);
+        b.style.backgroundColor = d.bg;
+        if (d.label === 'S1') b.style.color = '#10141c';
+        bullets.appendChild(b);
+      }
+      banner.appendChild(bullets);
+    } else if (ACTIVE_CITY_ID === 'zurich') {
+      const bullets = createEl('div', 'nyc-vignelli-bullets');
+      const zrhDots: { label: string; bg: string }[] = [
+        { label: 'S2', bg: '#00529b' },
+        { label: 'S10', bg: '#f39200' },
+        { label: 'T4', bg: '#1f4e8c' }
+      ];
+      for (const d of zrhDots) {
+        const b = createEl('span', 'nyc-vignelli-bullet', d.label);
+        b.style.backgroundColor = d.bg;
+        if (d.label === 'S10') b.style.color = '#10141c';
+        bullets.appendChild(b);
+      }
+      banner.appendChild(bullets);
+    } else if (ACTIVE_CITY_ID === 'melbourne') {
+      const bullets = createEl('div', 'nyc-vignelli-bullets');
+      const melDots: { label: string; bg: string }[] = [
+        { label: 'CL', bg: '#0072ce' },
+        { label: 'MT', bg: '#00a8e8' },
+        { label: '35', bg: '#78be20' }
+      ];
+      for (const d of melDots) {
+        const b = createEl('span', 'nyc-vignelli-bullet', d.label);
+        b.style.backgroundColor = d.bg;
+        if (d.label === 'MT' || d.label === '35') b.style.color = '#10141c';
         bullets.appendChild(b);
       }
       banner.appendChild(bullets);

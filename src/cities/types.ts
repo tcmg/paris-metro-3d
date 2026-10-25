@@ -77,6 +77,20 @@ export interface CityTopographicHill {
   rz: number;
 }
 
+export interface CityHeightmapGrid {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  cols: number;
+  rows: number;
+  stepX: number;
+  stepZ: number;
+  baseDatumMeters: number;
+  maxElevationMeters: number;
+  data: number[];
+}
+
 export interface CityBridgeDef {
   id: string;
   name: string;
@@ -335,6 +349,7 @@ export interface CityDataset {
   geo: CityGeoConfig;
   waterBodies: CityWaterBody[];
   topography: CityTopographyPeak[];
+  heightmap?: CityHeightmapGrid;
   monuments: CityMonument[];
   milestones: CityHistoricalMilestone[];
   eras: CityEraDescription[];

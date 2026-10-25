@@ -377,6 +377,27 @@ def build_city_monuments_from_spec(spec_path, out_glb_path):
     elif city_id == "nyc":
         from mcp_sydney_nyc_builders import build_nyc_monuments_in_scene
         build_nyc_monuments_in_scene(scene)
+    elif city_id == "porto":
+        from mcp_porto_tokyo_sf_builders import build_porto_monuments_in_scene
+        build_porto_monuments_in_scene(scene)
+    elif city_id == "tokyo":
+        from mcp_porto_tokyo_sf_builders import build_tokyo_monuments_in_scene
+        build_tokyo_monuments_in_scene(scene)
+    elif city_id == "san-francisco":
+        from mcp_porto_tokyo_sf_builders import build_san_francisco_monuments_in_scene
+        build_san_francisco_monuments_in_scene(scene)
+    elif city_id == "rio":
+        from mcp_porto_tokyo_sf_builders import build_rio_monuments_in_scene
+        build_rio_monuments_in_scene(scene)
+    elif city_id == "warsaw":
+        from mcp_porto_tokyo_sf_builders import build_warsaw_monuments_in_scene
+        build_warsaw_monuments_in_scene(scene)
+    elif city_id == "zurich":
+        from mcp_porto_tokyo_sf_builders import build_zurich_monuments_in_scene
+        build_zurich_monuments_in_scene(scene)
+    elif city_id == "melbourne":
+        from mcp_porto_tokyo_sf_builders import build_melbourne_monuments_in_scene
+        build_melbourne_monuments_in_scene(scene)
     else:
         cols = max(1, int(math.ceil(math.sqrt(len(monuments)))))
         spacing = 12.0

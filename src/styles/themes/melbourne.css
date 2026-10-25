@@ -1,0 +1,96 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Melbourne, Australia
+ * Theme Vibe: Victorian Gold Rush Bluestone Laneways, W-Class Tram Green & Gold & Fed Square Fractal Geometry (victorian_bluestone_tram_gold)
+ * Inspiration: FLINDERS CLOCKS, W-CLASS TRAMS, CITY LOOP & 2025 METRO TUNNEL • 3D SIMULATION
+ * ============================================================================ */
+
+:root[data-city-theme="melbourne"] {
+  --city-font-display: 'Fraunces', 'Cinzel Decorative', serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'JetBrains Mono', monospace;
+  --city-badge-shape: tram-fractal-shield;
+  --city-bg-primary: #0b1114;
+  --city-bg-glass: rgba(16, 24, 29, 0.91);
+  --city-bg-card: rgba(23, 35, 42, 0.96);
+  --city-text-primary: #f9f6ef;
+  --city-text-muted: #cbd6d2;
+  --city-accent-primary: #f4c430;
+  --city-accent-secondary: #0072ce;
+  --city-accent-tertiary: #d99b66;
+  --city-border-color: rgba(244, 196, 48, 0.46);
+  --city-badge-bg: linear-gradient(135deg, #0072ce 0%, #f4c430 100%);
+  --city-badge-text: #0b1114;
+  --city-water-color: #1b6478;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #ded9ce;
+}
+
+/* Australia / Melbourne: W-Class Tram Heritage Green & Gold, Victorian Bluestone & Federation Square Pinwheel Fractals */
+:root[data-city-theme="melbourne"] {
+  --bg-obsidian: #0b1114;
+  --bg-panel: rgba(16, 24, 29, 0.91);
+  --bg-panel-elevated: rgba(23, 35, 42, 0.96);
+  --gold-bright: #f4c430;
+  --gold-primary: #00a88f;
+  --gold-muted: #00843d;
+  --gold-border: rgba(244, 196, 48, 0.48);
+  --gold-border-strong: rgba(0, 168, 143, 0.90);
+  --gold-glow: rgba(244, 196, 48, 0.32);
+  --ivory: #f9f6ef;
+  --ivory-dim: #cbd6d2;
+  --ivory-subtle: #849690;
+  --emerald-guimard: #00843d;
+  --crimson-ghost: #e4002b;
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'72'%20height%3D'72'%20viewBox%3D'0%200%2072%2072'%3E%3Cpolygon%20points%3D'0%2C0%2072%2C0%2036%2C36'%20fill%3D'none'%20stroke%3D'%23f4c430'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3Cpolygon%20points%3D'0%2C72%2036%2C36%2072%2C72'%20fill%3D'none'%20stroke%3D'%2300a88f'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3Cpolygon%20points%3D'0%2C0%2036%2C36%200%2C72'%20fill%3D'none'%20stroke%3D'%23d99b66'%20stroke-width%3D'1.0'%20stroke-opacity%3D'0.20'%2F%3E%3Cpolygon%20points%3D'72%2C0%2072%2C72%2036%2C36'%20fill%3D'none'%20stroke%3D'%230072ce'%20stroke-width%3D'1.0'%20stroke-opacity%3D'0.20'%2F%3E%3C%2Fsvg%3E");
+  --melbourne-corner-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'16'%20height%3D'16'%20viewBox%3D'0%200%2016%2016'%3E%3Cpolygon%20points%3D'1%2C1%2015%2C1%201%2C15'%20fill%3D'%2300843d'%20fill-opacity%3D'0.45'%20stroke%3D'%23f4c430'%20stroke-width%3D'1.8'%2F%3E%3C%2Fsvg%3E");
+}
+
+:root[data-city-theme="melbourne"] .deco-panel,
+:root[data-city-theme="melbourne"] .city-selector-bar,
+:root[data-city-theme="melbourne"] .city-themed-panel {
+  background-color: rgba(16, 24, 29, 0.91);
+  background-image:
+    linear-gradient(160deg, rgba(0, 132, 61, 0.16) 0%, rgba(16, 24, 29, 0.94) 55%, rgba(0, 114, 206, 0.16) 100%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 72px 72px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(244, 196, 48, 0.62);
+  border-top: 3px solid #f4c430;
+  box-shadow: 0 16px 38px rgba(6, 10, 14, 0.78), inset 0 1px 0 rgba(249, 246, 239, 0.30);
+}
+
+:root[data-city-theme="melbourne"] .deco-corner {
+  width: 15px;
+  height: 15px;
+  border: none !important;
+  background-image: var(--melbourne-corner-svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+:root[data-city-theme="melbourne"] .deco-corner.tr { transform: scaleX(-1); }
+:root[data-city-theme="melbourne"] .deco-corner.bl { transform: scaleY(-1); }
+:root[data-city-theme="melbourne"] .deco-corner.br { transform: scale(-1, -1); }
+
+:root[data-city-theme="melbourne"] .city-cultural-banner {
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 132, 61, 0.38) 0%, rgba(16, 24, 29, 0.93) 55%, rgba(0, 114, 206, 0.32) 100%);
+  border: 1.5px solid rgba(244, 196, 48, 0.75);
+}
+

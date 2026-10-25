@@ -57,11 +57,17 @@ export async function runStep3MetroTransit(cityId, options = {}) {
     }
   }
 
-  // Build station line-membership map across all lines
+  // Build station line-membership map across all lines using canonical base station name
+  const canonicalKey = (rawName) =>
+    String(rawName || '')
+      .split('(')[0]
+      .trim()
+      .toLowerCase();
+
   const stationLinesLookup = new Map();
   for (const line of preset.metroLines || []) {
     for (const st of line.stations || []) {
-      const key = st.name.toLowerCase();
+      const key = canonicalKey(st.name);
       if (!stationLinesLookup.has(key)) {
         stationLinesLookup.set(key, []);
       }
@@ -74,11 +80,13 @@ export async function runStep3MetroTransit(cityId, options = {}) {
 
   const metroLines = (preset.metroLines || []).map((line) => {
     const stations = (line.stations || []).map((st) => {
-      const osmMatch = osmSubwayStationCoords.get(st.name.toLowerCase());
+      const key = canonicalKey(st.name);
+      const osmMatch =
+        osmSubwayStationCoords.get(st.name.toLowerCase()) || osmSubwayStationCoords.get(key);
       const lat = osmMatch ? osmMatch[0] : st.lat;
       const lon = osmMatch ? osmMatch[1] : st.lon;
       const [x, z] = project(lat, lon);
-      const lines = stationLinesLookup.get(st.name.toLowerCase()) || [line.line];
+      const lines = stationLinesLookup.get(key) || [line.line];
       return {
         name: st.name,
         lat,
@@ -144,7 +152,7 @@ export async function runStep3MetroTransit(cityId, options = {}) {
     };
   });
 
-  const upperId = safeCityId.toUpperCase();
+  const upperId = safeCityId.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
 
   const metroTsSource = `// Copyright 2026 Google LLC
 //

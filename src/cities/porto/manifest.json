@@ -1,0 +1,50 @@
+{
+  "cityId": "porto",
+  "cityName": "Porto",
+  "country": "Portugal",
+  "startedAt": "2026-10-19T13:49:45.550Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/porto_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 125,
+        "waterLines": 10,
+        "parks": 7355,
+        "trees": 8000,
+        "roads": 2572,
+        "buildings": 39533,
+        "topographyPeaks": 5
+      }
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/porto_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/historicalData.ts",
+      "glbRelPath": "public/models/porto_monuments.glb",
+      "glbExported": false,
+      "blenderExecutionMode": "skipped",
+      "monumentCount": 8
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/districtsData.ts",
+      "lineCount": 7,
+      "terminusCount": 2,
+      "districtCount": 4
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/porto.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/porto/index.ts"
+    }
+  },
+  "completedAt": "2026-10-20T08:59:10.041Z"
+}

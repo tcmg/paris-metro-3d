@@ -444,6 +444,43 @@ export const RIO_PRESET = {
         { id: 'vlt-parada-dos-museus', name: 'Parada dos Museus (Praça Mauá)', lat: -22.8962, lon: -43.1800, openedYear: 2016, elevated: true, arrondissement: 'Porto Maravilha', architecture: 'Open Harbor Plaza Stop', landmark: 'Museum of Tomorrow', description: 'Frames Santiago Calatrava’s Museum of Tomorrow and the Rio Art Museum (MAR).' },
         { id: 'vlt-rodoviaria', name: 'Terminal Gentileza / Rodoviária', lat: -22.8988, lon: -43.2085, openedYear: 2016, elevated: true, arrondissement: 'Santo Cristo', architecture: 'Porto Maravilha Western Hub', description: 'Western VLT hub linking with BRT Transbrasil.' }
       ]
+    },
+    {
+      id: 'VLT2',
+      name: 'VLT Carioca — Linha 2 (Praça XV ↔ Praia Formosa)',
+      shortLabel: 'VLT2',
+      color: '#12945a',
+      textColor: '#ffffff',
+      openedYear: 2017,
+      depthOffset: -0.6,
+      historicCompany: 'VLT Carioca',
+      summary: 'East-west light rail linking the Niterói ferry terminal at Praça XV through Saara and Central do Brasil to Terminal Gentileza.',
+      stations: [
+        { id: 'vlt-praca-xv', name: 'Praça XV (Barcas)', lat: -22.9035, lon: -43.1732, openedYear: 2017, elevated: true, arrondissement: 'Centro', architecture: 'Waterfront Imperial Square Stop', description: 'Connects directly with the Guanabara Bay ferries to Niterói and Paquetá Island.' },
+        { id: 'vlt-colombo', name: 'Colombo / Sete de Setembro', lat: -22.9052, lon: -43.1768, openedYear: 2017, elevated: true, arrondissement: 'Centro', architecture: 'Historic Streetcar Corridor Stop', description: 'Adjacent to the 1894 Confeitaria Colombo Belle Époque café.' },
+        { id: 'carioca', name: 'Carioca', lat: -22.9072, lon: -43.1775, openedYear: 2017, elevated: true, arrondissement: 'Centro', architecture: 'VLT / MetrôRio Transfer Stop', description: 'Crossroads of VLT Lines 1 and 2.' },
+        { id: 'vlt-saara', name: 'Saara / Tiradentes', lat: -22.9068, lon: -43.1835, openedYear: 2017, elevated: true, arrondissement: 'Centro', architecture: 'Praça Tiradentes Heritage Stop', description: 'Serves Praça Tiradentes and the Real Gabinete Português de Leitura.' },
+        { id: 'central', name: 'Central do Brasil', lat: -22.9048, lon: -43.1912, openedYear: 2017, elevated: true, arrondissement: 'Centro', architecture: 'Central Forecourt VLT Platform', description: 'Direct surface transfer to Central do Brasil SuperVia trains and MetrôRio.' },
+        { id: 'vlt-rodoviaria', name: 'Terminal Gentileza / Rodoviária', lat: -22.8988, lon: -43.2085, openedYear: 2017, elevated: true, arrondissement: 'Santo Cristo', architecture: 'Multimodal Hub', description: 'Western terminus of VLT Lines 1 and 2.' }
+      ]
+    },
+    {
+      id: 'BONDE',
+      name: 'Bonde de Santa Teresa (Carioca ↔ Dois Irmãos)',
+      shortLabel: 'BON',
+      color: '#f7c948',
+      textColor: '#10141c',
+      openedYear: 1896,
+      depthOffset: -0.2,
+      historicCompany: 'Companhia Ferro-Carril de Santa Teresa (1896)',
+      summary: 'Latin America’s oldest electric streetcar, climbing from Largo da Carioca over the 42 arches of Arcos da Lapa up the cobblestone ridge of Santa Teresa.',
+      stations: [
+        { id: 'carioca', name: 'Estação Carioca (Bonde)', lat: -22.9072, lon: -43.1775, openedYear: 1896, elevated: true, arrondissement: 'Centro', architecture: 'Elevated Tramway Terminal beside Santo Antônio Hill', description: 'Downtown boarding pavilion for the yellow open-sided Santa Teresa bondes.' },
+        { id: 'bonde-arcos', name: 'Arcos da Lapa Viaduct', lat: -22.9130, lon: -43.1801, openedYear: 1896, elevated: true, arrondissement: 'Lapa', architecture: '1750 Double-Tier Roman Aqueduct Crest', landmark: 'Arcos da Lapa', description: 'Soars 18 meters above Lapa plaza atop the 18th-century colonial aqueduct.' },
+        { id: 'bonde-curvelo', name: 'Largo do Curvelo', lat: -22.9188, lon: -43.1848, openedYear: 1896, elevated: true, arrondissement: 'Santa Teresa', architecture: 'Hilltop Cobblestone Stop & Parque das Ruínas Access', description: 'Gateway to Parque das Ruínas and the Chácara do Céu Museum overlooking Guanabara Bay.' },
+        { id: 'bonde-guimaraes', name: 'Largo dos Guimarães', lat: -22.9218, lon: -43.1888, openedYear: 1896, elevated: true, arrondissement: 'Santa Teresa', architecture: 'Bohemian Hilltop Village Square', description: 'Artistic heart of Santa Teresa lined with 19th-century mansions and studios.' },
+        { id: 'bonde-dois-irmaos', name: 'Dois Irmãos (Paula Mattos / Silvestre)', lat: -22.9310, lon: -43.1965, openedYear: 1896, elevated: true, arrondissement: 'Santa Teresa', architecture: 'Tijuca Forest Ridge Terminus', description: 'Upper Santa Teresa terminus along the forested ridge leading toward Corcovado.' }
+      ]
     }
   ],
   railTermini: [

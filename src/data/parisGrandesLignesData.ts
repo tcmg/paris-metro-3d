@@ -393,6 +393,20 @@ const PIPELINE_TERMINUS_LINK_MAP: Record<string, { metroStationId: string; monum
   },
   'gl-penn-station-nyc': {
     metroStationId: '34-st-penn-station'
+  },
+  'gl-zurich-hb': {
+    metroStationId: 'zurich-hb',
+    monumentId: 'monument-zurich-hb'
+  },
+  'gl-zurich-stadelhofen': {
+    metroStationId: 'zurich-stadelhofen'
+  },
+  'gl-flinders-street': {
+    metroStationId: 'flinders-street',
+    monumentId: 'monument-flinders-street'
+  },
+  'gl-southern-cross': {
+    metroStationId: 'southern-cross'
   }
 };
 

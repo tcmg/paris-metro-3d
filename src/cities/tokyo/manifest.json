@@ -1,0 +1,50 @@
+{
+  "cityId": "tokyo",
+  "cityName": "Tokyo",
+  "country": "Japan",
+  "startedAt": "2026-10-19T13:50:15.644Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/tokyo_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 383,
+        "waterLines": 231,
+        "parks": 3174,
+        "trees": 7794,
+        "roads": 7106,
+        "buildings": 79483,
+        "topographyPeaks": 5
+      }
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/tokyo_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/historicalData.ts",
+      "glbRelPath": "public/models/tokyo_monuments.glb",
+      "glbExported": false,
+      "blenderExecutionMode": "skipped",
+      "monumentCount": 8
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/districtsData.ts",
+      "lineCount": 16,
+      "terminusCount": 2,
+      "districtCount": 4
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/tokyo.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/tokyo/index.ts"
+    }
+  },
+  "completedAt": "2026-10-20T08:58:28.171Z"
+}

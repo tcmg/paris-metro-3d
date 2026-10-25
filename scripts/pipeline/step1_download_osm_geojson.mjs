@@ -24,6 +24,8 @@ import {
   WORKSPACE_ROOT,
 } from './security_utils.mjs';
 import { getCityPreset } from './city_presets.mjs';
+import { alignBridgesToOsmMap } from './geo_align_monuments.mjs';
+import { buildCityDemHeightmap } from './fetch_dem_heightmap.mjs';
 
 function projectFlatRingFromLatLon(geom, project, minStep = 0.025) {
   if (!Array.isArray(geom) || geom.length < 3) return [];
@@ -334,17 +336,31 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
   let roads = [];
   let buildings = [];
 
+  let alreadyFlatWorld = false;
   if (offline && fs.existsSync(existingOsmFile)) {
-    console.log(`  -> Upgrading/preserving cached ${existingOsmFile} in diorama world units...`);
+    console.log(`  -> Preserving cached ${existingOsmFile} in diorama world units...`);
     const cached = JSON.parse(fs.readFileSync(existingOsmFile, 'utf8'));
-    const upgraded = upgradeExistingOsmDatasetIfNeeded(cached, preset);
-    islands = upgraded.islands;
-    waterPolygons = upgraded.waterPolygons;
-    waterLines = upgraded.waterLines;
-    parks = upgraded.parks;
-    trees = upgraded.trees;
-    roads = upgraded.roads;
-    buildings = upgraded.buildings;
+    alreadyFlatWorld =
+      typeof cached?.buildings?.[0]?.[0]?.[0] === 'number' ||
+      typeof cached?.roads?.[0]?.[0]?.[0] === 'number';
+    if (alreadyFlatWorld) {
+      islands = cached.islands || [];
+      waterPolygons = cached.waterPolygons || [];
+      waterLines = cached.waterLines || [];
+      parks = cached.parks || [];
+      trees = cached.trees || [];
+      roads = cached.roads || [];
+      buildings = cached.buildings || [];
+    } else {
+      const upgraded = upgradeExistingOsmDatasetIfNeeded(cached, preset);
+      islands = upgraded.islands;
+      waterPolygons = upgraded.waterPolygons;
+      waterLines = upgraded.waterLines;
+      parks = upgraded.parks;
+      trees = upgraded.trees;
+      roads = upgraded.roads;
+      buildings = upgraded.buildings;
+    }
   } else if (!offline) {
     const [south, west, north, east] = preset.geo.bbox;
     const bboxStr = `${south},${west},${north},${east}`;
@@ -399,12 +415,16 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
           const w = (west + c * lonStep).toFixed(5);
           const e = (west + (c + 1) * lonStep).toFixed(5);
           console.log(`  -> Querying Overpass building tile (${r + 1},${c + 1}) of ${tileGrid}x${tileGrid}...`);
-          const bData = await queryOverpassWithRetry(`
-            [out:json][timeout:90];
-            way["building"](${s},${w},${n},${e});
-            out geom;
-          `);
-          buildings.push(...parseOsmBuildings(bData, project, seenBuildingIds));
+          try {
+            const bData = await queryOverpassWithRetry(`
+              [out:json][timeout:60];
+              way["building"](${s},${w},${n},${e});
+              out geom 28000;
+            `);
+            buildings.push(...parseOsmBuildings(bData, project, seenBuildingIds));
+          } catch (tileErr) {
+            console.warn(`  [!] Building tile (${r + 1},${c + 1}) skipped after retries: ${tileErr.message}`);
+          }
         }
       }
     } catch (err) {
@@ -469,12 +489,19 @@ export async function runStep1OsmGeoJson(cityId, options = {}) {
     buildings,
   };
 
-  const osmJsonPath = writeSafeFile(
-    `public/data/${safeCityId}_osm.json`,
-    JSON.stringify(payload)
-  );
+  const heightmap = await buildCityDemHeightmap(preset, payload, project, offline);
 
-  const upperId = safeCityId.toUpperCase();
+  const osmJsonPath =
+    offline && alreadyFlatWorld
+      ? existingOsmFile
+      : writeSafeFile(`public/data/${safeCityId}_osm.json`, JSON.stringify(payload));
+
+  const upperId = safeCityId.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+  const pascalId = safeCityId
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('');
   const geoTsSource = `// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -493,6 +520,7 @@ import type {
   CityGeoConfig,
   CityWaterBody,
   CityTopographyPeak,
+  CityHeightmapGrid,
   CityBridgeDef,
   CityParkDef,
   CityPlaceDef,
@@ -500,7 +528,7 @@ import type {
 
 export const ${upperId}_GEO_CONFIG: CityGeoConfig = ${JSON.stringify(preset.geo, null, 2)};
 
-export function latLonTo${preset.id.charAt(0).toUpperCase() + preset.id.slice(1)}World(
+export function latLonTo${pascalId}World(
   lat: number,
   lon: number
 ): [number, number] {
@@ -519,7 +547,7 @@ export function latLonTo${preset.id.charAt(0).toUpperCase() + preset.id.slice(1)
 
 export const ${upperId}_WATER_CENTERLINES: [number, number, number][] = ${JSON.stringify(preset.waterCenterlines || [], null, 2)};
 
-export const ${upperId}_BRIDGES: CityBridgeDef[] = ${JSON.stringify(preset.bridges || [], null, 2)};
+export const ${upperId}_BRIDGES: CityBridgeDef[] = ${JSON.stringify(alignBridgesToOsmMap(preset.bridges || [], payload, project), null, 2)};
 
 export const ${upperId}_PARKS: CityParkDef[] = ${JSON.stringify(preset.parks || [], null, 2)};
 
@@ -528,6 +556,8 @@ export const ${upperId}_PLACES: CityPlaceDef[] = ${JSON.stringify(preset.places 
 export const ${upperId}_WATER_BODIES: CityWaterBody[] = ${JSON.stringify(preset.waterBodies || [], null, 2)};
 
 export const ${upperId}_TOPOGRAPHY: CityTopographyPeak[] = ${JSON.stringify(topography, null, 2)};
+
+export const ${upperId}_HEIGHTMAP: CityHeightmapGrid = ${JSON.stringify(heightmap)};
 `;
 
   const geoTsPath = writeSafeFile(`src/cities/${safeCityId}/geoData.ts`, geoTsSource);

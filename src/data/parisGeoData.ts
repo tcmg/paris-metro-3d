@@ -606,10 +606,30 @@ const DEFAULT_PARIS_BRIDGES: ParisBridgeDef[] = [
   }
 ];
 
+const MONUMENT_BRIDGE_IDS = new Set([
+  'bridge-sydney-harbour',
+  'bridge-brooklyn',
+  'bridge-golden-gate',
+  'bridge-dom-luis-i',
+  'bridge-rainbow-tokyo',
+  'bridge-arcos-lapa',
+  'bridge-tower'
+]);
+
 export const PARIS_BRIDGES: ParisBridgeDef[] = ACTIVE_PIPELINE_BRIDGES
-  ? ACTIVE_PIPELINE_BRIDGES.filter(
-      (b) => b.id !== 'bridge-sydney-harbour' && b.id !== 'bridge-brooklyn'
-    ).map((b) => {
+  ? ACTIVE_PIPELINE_BRIDGES.filter((b) => {
+      if (MONUMENT_BRIDGE_IDS.has(b.id)) return false;
+      const bPos = projectLatLon(b.lat, b.lon);
+      const cityMonuments = ACTIVE_PIPELINE_CITY_DATASET?.monuments ?? [];
+      for (const m of cityMonuments) {
+        if (/bridge|aqueduct|arcos-lapa/i.test(`${m.id} ${m.archetype ?? ''}`)) {
+          if (Math.hypot(bPos.x - m.x, bPos.z - m.z) < 4.5) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }).map((b) => {
       const halfKm = (b.lengthWorld * 0.5) / WORLD_UNITS_PER_KM;
       const dLon = (Math.sin(b.rotationY) * halfKm) / KM_PER_DEG_LON;
       const dLat = -(Math.cos(b.rotationY) * halfKm) / KM_PER_DEG_LAT;

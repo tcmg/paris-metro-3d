@@ -1,0 +1,97 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Zurich, Switzerland
+ * Theme Vibe: Swiss International Typographic Grid, SBB Railway Clock Red & Lake Zurich Alpine Cyan (swiss_grid_sbb_alpine)
+ * Inspiration: LIMMAT, LAKE ZURICH, ETH & UETLIBERG • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="zurich"] {
+  --city-font-display: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  --city-badge-shape: swiss-sbb-grid;
+  --city-bg-primary: #070f1a;
+  --city-bg-glass: rgba(11, 22, 38, 0.91);
+  --city-bg-card: rgba(16, 32, 54, 0.96);
+  --city-text-primary: #f8fafc;
+  --city-text-muted: #c8d6e8;
+  --city-accent-primary: #38b6ff;
+  --city-accent-secondary: #00529b;
+  --city-accent-tertiary: #e30613;
+  --city-border-color: rgba(56, 182, 255, 0.45);
+  --city-badge-bg: linear-gradient(135deg, #00529b 0%, #38b6ff 100%);
+  --city-badge-text: #070f1a;
+  --city-water-color: #147a9c;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #e4dfd5;
+}
+
+/* Switzerland / Zurich: Swiss International Typographic Style Grid, SBB Railway Clock Red & Lake Zurich Alpine Cyan */
+:root[data-city-theme="zurich"] {
+  --bg-obsidian: #070f1a;
+  --bg-panel: rgba(11, 22, 38, 0.92);
+  --bg-panel-elevated: rgba(16, 32, 54, 0.96);
+  --gold-bright: #38b6ff;
+  --gold-primary: #e30613;
+  --gold-muted: #00529b;
+  --gold-border: rgba(56, 182, 255, 0.48);
+  --gold-border-strong: rgba(227, 6, 19, 0.90);
+  --gold-glow: rgba(56, 182, 255, 0.32);
+  --ivory: #f8fafc;
+  --ivory-dim: #c8d6e8;
+  --ivory-subtle: #7e95b2;
+  --emerald-guimard: #00843d;
+  --crimson-ghost: #e30613;
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'64'%20height%3D'64'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20x%3D'0.5'%20y%3D'0.5'%20width%3D'63'%20height%3D'63'%20fill%3D'none'%20stroke%3D'%2338b6ff'%20stroke-width%3D'0.9'%20stroke-opacity%3D'0.18'%2F%3E%3Cline%20x1%3D'32'%20y1%3D'0'%20x2%3D'32'%20y2%3D'64'%20stroke%3D'%23f8fafc'%20stroke-width%3D'0.6'%20stroke-opacity%3D'0.12'%2F%3E%3Cline%20x1%3D'0'%20y1%3D'32'%20x2%3D'64'%20y2%3D'32'%20stroke%3D'%23f8fafc'%20stroke-width%3D'0.6'%20stroke-opacity%3D'0.12'%2F%3E%3Cpath%20d%3D'M30%2025%20H34%20V30%20H39%20V34%20H34%20V39%20H30%20V34%20H25%20V30%20H30%20Z'%20fill%3D'%23e30613'%20fill-opacity%3D'0.22'%2F%3E%3C%2Fsvg%3E");
+  --zurich-corner-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'16'%20height%3D'16'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M1%2015%20L1%201%20L15%201'%20fill%3D'none'%20stroke%3D'%2338b6ff'%20stroke-width%3D'2.0'%2F%3E%3Ccircle%20cx%3D'5.5'%20cy%3D'5.5'%20r%3D'2.5'%20fill%3D'%23e30613'%2F%3E%3C%2Fsvg%3E");
+}
+
+:root[data-city-theme="zurich"] .deco-panel,
+:root[data-city-theme="zurich"] .city-selector-bar,
+:root[data-city-theme="zurich"] .city-themed-panel {
+  background-color: rgba(11, 22, 38, 0.92);
+  background-image:
+    linear-gradient(160deg, rgba(0, 82, 155, 0.18) 0%, rgba(11, 22, 38, 0.94) 55%, rgba(227, 6, 19, 0.14) 100%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 64px 64px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(56, 182, 255, 0.58);
+  border-top: 3px solid #e30613;
+  box-shadow: 0 16px 38px rgba(4, 10, 20, 0.80), inset 0 1px 0 rgba(248, 250, 252, 0.30);
+}
+
+:root[data-city-theme="zurich"] .deco-corner {
+  width: 14px;
+  height: 14px;
+  border: none !important;
+  background-image: var(--zurich-corner-svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+:root[data-city-theme="zurich"] .deco-corner.tr { transform: scaleX(-1); }
+:root[data-city-theme="zurich"] .deco-corner.bl { transform: scaleY(-1); }
+:root[data-city-theme="zurich"] .deco-corner.br { transform: scale(-1, -1); }
+
+:root[data-city-theme="zurich"] .city-cultural-banner {
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(0, 82, 155, 0.44) 0%, rgba(11, 22, 38, 0.94) 58%, rgba(227, 6, 19, 0.34) 100%);
+  border: 1.5px solid rgba(56, 182, 255, 0.72);
+  border-left: 4px solid #e30613;
+}
+

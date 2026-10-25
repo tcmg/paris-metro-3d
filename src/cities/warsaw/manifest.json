@@ -1,0 +1,50 @@
+{
+  "cityId": "warsaw",
+  "cityName": "Warsaw",
+  "country": "Poland",
+  "startedAt": "2026-10-19T15:07:46.928Z",
+  "completedSteps": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "outputs": {
+    "step1": {
+      "osmJsonPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/warsaw_osm.json",
+      "geoTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/geoData.ts",
+      "counts": {
+        "islands": 0,
+        "waterPolygons": 242,
+        "waterLines": 81,
+        "parks": 30196,
+        "trees": 8000,
+        "roads": 4566,
+        "buildings": 25349,
+        "topographyPeaks": 4
+      }
+    },
+    "step2": {
+      "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/warsaw_monuments_spec.json",
+      "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/historicalData.ts",
+      "glbRelPath": "public/models/warsaw_monuments.glb",
+      "glbExported": false,
+      "blenderExecutionMode": "skipped",
+      "monumentCount": 8
+    },
+    "step3": {
+      "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/metroData.ts",
+      "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/railTerminiData.ts",
+      "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/districtsData.ts",
+      "lineCount": 7,
+      "terminusCount": 2,
+      "districtCount": 4
+    },
+    "step4": {
+      "cssPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/styles/themes/warsaw.css",
+      "uiThemeTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/uiTheme.ts",
+      "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/warsaw/index.ts"
+    }
+  },
+  "completedAt": "2026-10-20T14:55:47.606Z"
+}

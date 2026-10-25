@@ -34,6 +34,7 @@ const SAFE_SLUG_REGEX = /^[a-z0-9][a-z0-9_-]{1,23}$/;
 
 export const OVERPASS_ENDPOINTS = Object.freeze([
   'https://lz4.overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
   'https://overpass-api.de/api/interpreter'
 ]);
 

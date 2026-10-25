@@ -14,7 +14,7 @@
 
 import type { CityMetroLine } from '../types';
 
-export const SYDNEY_METRO_SYSTEM_NAME = "SYDNEY METRO M1 & BRADFIELD CITY CIRCLE";
+export const SYDNEY_METRO_SYSTEM_NAME = "SYDNEY METRO M1, SYDNEY TRAINS (T1–T9) & LIGHT RAIL (L1–L3)";
 
 export const SYDNEY_METRO_LINES: CityMetroLine[] = [
   {
@@ -106,7 +106,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Australia’s grandest railway interchange.",
         "isGhost": false
@@ -215,7 +218,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T8",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Opened on March 19, 1932 with the Harbour Bridge; platforms 1 & 2 originally carried North Shore trams until 1958.",
         "isGhost": true
@@ -231,7 +236,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T4",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Central CBD underground interchange beneath George Street.",
         "isGhost": false
@@ -251,7 +258,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Through-platforms 16–23.",
         "isGhost": false
@@ -293,7 +303,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
         "year": 1956,
         "lines": [
           "T2",
-          "T8"
+          "T8",
+          "L2",
+          "L3"
         ],
         "fact": "Opened in January 1956 atop the Cahill Expressway viaduct, offering panoramic views of both the Opera House and Harbour Bridge.",
         "isGhost": false
@@ -341,7 +353,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Southern anchor of the City Circle.",
         "isGhost": false
@@ -427,7 +442,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T8",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Western City Circle interchange.",
         "isGhost": true
@@ -443,7 +460,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T4",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "George Street underground hub.",
         "isGhost": false
@@ -463,7 +482,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Connects City Circle to the Illawarra relief tracks.",
         "isGhost": false
@@ -585,7 +607,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Contains two completed but unused ghost platforms (26–27) directly above the active T4 tracks.",
         "isGhost": true
@@ -601,7 +626,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T4",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Cross-platform transfer with T1.",
         "isGhost": false
@@ -736,7 +763,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Origin of T7 Major Event express services to Sydney Olympic Park.",
         "isGhost": false
@@ -808,7 +838,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T8",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Northern City Circle interchange for Airport trains.",
         "isGhost": true
@@ -822,7 +854,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
         "year": 1956,
         "lines": [
           "T2",
-          "T8"
+          "T8",
+          "L2",
+          "L3"
         ],
         "fact": "Direct rail link from Sydney’s ferry terminal and Opera House to the Airport.",
         "isGhost": false
@@ -870,7 +904,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Portal where T8 trains dive south into the 2000 New Southern Railway tunnel.",
         "isGhost": false
@@ -951,7 +988,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T8",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Connects North Shore and Western/Northern tracks.",
         "isGhost": true
@@ -967,7 +1006,9 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T1",
           "T3",
           "T4",
-          "T9"
+          "T9",
+          "L2",
+          "L3"
         ],
         "fact": "Central CBD interchange.",
         "isGhost": false
@@ -987,7 +1028,10 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T4",
           "T7",
           "T8",
-          "T9"
+          "T9",
+          "L1",
+          "L2",
+          "L3"
         ],
         "fact": "Connects Harbour Bridge spine to the Main Northern corridor.",
         "isGhost": false
@@ -1023,6 +1067,570 @@ export const SYDNEY_METRO_LINES: CityMetroLine[] = [
           "T9"
         ],
         "fact": "Inner West corridor toward Strathfield and the Hawkesbury River.",
+        "isGhost": false
+      }
+    ]
+  },
+  {
+    "line": "L1",
+    "name": "L1 — Dulwich Hill Light Rail (Central Grand Concourse ↔ Darling Harbour ↔ Pyrmont ↔ Glebe ↔ Lilyfield ↔ Dulwich Hill)",
+    "color": "#be1622",
+    "textColor": "#ffffff",
+    "openedYear": 1997,
+    "rollingStockStyle": "Sydney Light Rail (CAF Urbos 3 Inner West Goods Line)",
+    "stations": [
+      {
+        "name": "Central (Grand Concourse Light Rail)",
+        "lat": -33.8832,
+        "lon": 151.2062,
+        "x": -3.31,
+        "z": 22.65,
+        "year": 1997,
+        "lines": [
+          "M1",
+          "T1",
+          "T2",
+          "T3",
+          "T4",
+          "T7",
+          "T8",
+          "T9",
+          "L1",
+          "L2",
+          "L3"
+        ],
+        "fact": "Loops directly beneath the 1906 porte-cochère of Sydney Central Station.",
+        "isGhost": false
+      },
+      {
+        "name": "Paddy’s Markets (Haymarket)",
+        "lat": -33.8798,
+        "lon": 151.2038,
+        "x": -5.79,
+        "z": 18.42,
+        "year": 1997,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Serves Chinatown and the heritage Market City halls.",
+        "isGhost": false
+      },
+      {
+        "name": "Exhibition Centre (Darling Harbour)",
+        "lat": -33.8752,
+        "lon": 151.1988,
+        "x": -10.97,
+        "z": 12.69,
+        "year": 1997,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Adjacent to the International Convention Centre and Chinese Garden of Friendship.",
+        "isGhost": false
+      },
+      {
+        "name": "Pyrmont Bay",
+        "lat": -33.8692,
+        "lon": 151.1965,
+        "x": -13.35,
+        "z": 5.23,
+        "year": 1997,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Overlooks Pyrmont Bridge (1902) and Darling Harbour.",
+        "isGhost": false
+      },
+      {
+        "name": "The Star (Pyrmont Sandstone Cutting)",
+        "lat": -33.8678,
+        "lon": 151.1942,
+        "x": -15.73,
+        "z": 3.48,
+        "year": 1997,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Threads through the historic Pyrmont sandstone cliffs and John Street Square.",
+        "isGhost": false
+      },
+      {
+        "name": "Fish Market (Blackwattle Bay)",
+        "lat": -33.8732,
+        "lon": 151.1922,
+        "x": -17.8,
+        "z": 10.2,
+        "year": 1997,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Serves the Sydney Fish Market on Blackwattle Bay.",
+        "isGhost": false
+      },
+      {
+        "name": "Glebe (Wentworth Park Brick Viaduct)",
+        "lat": -33.8788,
+        "lon": 151.1862,
+        "x": -24,
+        "z": 17.17,
+        "year": 2000,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Crosses Wentworth Park and Glebe atop the monumental 1918 brick arches of the Metropolitan Goods Line.",
+        "isGhost": false
+      },
+      {
+        "name": "Jubilee Park (Rozelle Bay)",
+        "lat": -33.8742,
+        "lon": 151.1768,
+        "x": -33.73,
+        "z": 11.45,
+        "year": 2000,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Overlooks Bicentennial Park and Rozelle Bay.",
+        "isGhost": false
+      },
+      {
+        "name": "Lilyfield",
+        "lat": -33.8705,
+        "lon": 151.1585,
+        "x": -52.66,
+        "z": 6.84,
+        "year": 2000,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Original 2000 terminus before the 2014 Dulwich Hill extension.",
+        "isGhost": false
+      },
+      {
+        "name": "Leichhardt North",
+        "lat": -33.8768,
+        "lon": 151.1518,
+        "x": -59.6,
+        "z": 14.68,
+        "year": 2014,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Runs alongside the Hawthorne Canal shared cycling and walking path.",
+        "isGhost": false
+      },
+      {
+        "name": "Lewisham West (Long Cove Creek Viaduct)",
+        "lat": -33.892,
+        "lon": 151.1475,
+        "x": -64.05,
+        "z": 33.6,
+        "year": 2014,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Connects with Lewisham Sydney Trains station (T2/T5/T7).",
+        "isGhost": false
+      },
+      {
+        "name": "Dulwich Hill (L1 / T3 / M1 Southwest Interchange)",
+        "lat": -33.9112,
+        "lon": 151.1408,
+        "x": -74.94,
+        "z": 60.7,
+        "year": 2014,
+        "lines": [
+          "L1"
+        ],
+        "fact": "Southern terminus of the L1 Light Rail with direct transfer to the Bankstown line.",
+        "isGhost": false
+      }
+    ]
+  },
+  {
+    "line": "L2",
+    "name": "L2 — Randwick Light Rail (Circular Quay ↔ Wynyard ↔ QVB ↔ Town Hall ↔ Central ↔ Moore Park ↔ Royal Randwick ↔ UNSW High St ↔ Randwick)",
+    "color": "#dd1e25",
+    "textColor": "#ffffff",
+    "openedYear": 2019,
+    "rollingStockStyle": "CBD and South East Light Rail (Alstom Citadis X05 Wire-Free George St)",
+    "stations": [
+      {
+        "name": "Circular Quay (Warrane)",
+        "lat": -33.8613,
+        "lon": 151.2108,
+        "x": 1.45,
+        "z": -4.6,
+        "year": 2019,
+        "lines": [
+          "T2",
+          "T8",
+          "L2",
+          "L3"
+        ],
+        "fact": "Wire-free 67-meter coupled Citadis trams depart directly opposite the Circular Quay ferry wharves.",
+        "isGhost": false
+      },
+      {
+        "name": "Bridge Street (First Government House Place)",
+        "lat": -33.8636,
+        "lon": 151.2078,
+        "x": -1.66,
+        "z": -1.74,
+        "year": 2019,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Serves the Museum of Sydney and heritage sandstone banks on George Street.",
+        "isGhost": false
+      },
+      {
+        "name": "Wynyard (with Tram Ghost Tunnels)",
+        "lat": -33.8655,
+        "lon": 151.206,
+        "x": -3.52,
+        "z": 0.62,
+        "year": 2019,
+        "lines": [
+          "T1",
+          "T3",
+          "T8",
+          "T9",
+          "L2",
+          "L3"
+        ],
+        "fact": "Surface tram stop directly above Wynyard’s 1932 underground Harbour Bridge tram ghost tunnels.",
+        "isGhost": false
+      },
+      {
+        "name": "QVB (Queen Victoria Building & Market Street)",
+        "lat": -33.8718,
+        "lon": 151.2067,
+        "x": -2.79,
+        "z": 8.46,
+        "year": 2019,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Glides wire-free along the tree-lined George Street pedestrian boulevard beside the QVB.",
+        "isGhost": false
+      },
+      {
+        "name": "Town Hall",
+        "lat": -33.8735,
+        "lon": 151.2068,
+        "x": -2.69,
+        "z": 10.58,
+        "year": 2019,
+        "lines": [
+          "T1",
+          "T3",
+          "T4",
+          "T9",
+          "L2",
+          "L3"
+        ],
+        "fact": "Connects George Street Light Rail with Town Hall and Gadigal Metro stations.",
+        "isGhost": false
+      },
+      {
+        "name": "Chinatown (Dixon Street Gates)",
+        "lat": -33.8782,
+        "lon": 151.2058,
+        "x": -3.72,
+        "z": 16.43,
+        "year": 2019,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Serves Sydney’s historic Chinatown and the 1928 Capitol Theatre.",
+        "isGhost": false
+      },
+      {
+        "name": "Central (Chalmers Street Light Rail)",
+        "lat": -33.8832,
+        "lon": 151.2062,
+        "x": -3.31,
+        "z": 22.65,
+        "year": 2019,
+        "lines": [
+          "M1",
+          "T1",
+          "T2",
+          "T3",
+          "T4",
+          "T7",
+          "T8",
+          "T9",
+          "L1",
+          "L2",
+          "L3"
+        ],
+        "fact": "Connects directly to Central’s eastern entrance and the 2024 M1 Metro concourse.",
+        "isGhost": false
+      },
+      {
+        "name": "Surry Hills (Devonshire Street)",
+        "lat": -33.8868,
+        "lon": 151.2122,
+        "x": 2.9,
+        "z": 27.13,
+        "year": 2019,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Climbs through the Victorian terrace streets of Surry Hills.",
+        "isGhost": false
+      },
+      {
+        "name": "Moore Park (SCG & Allianz Stadium Tunnel)",
+        "lat": -33.8918,
+        "lon": 151.2218,
+        "x": 12.83,
+        "z": 33.35,
+        "year": 2019,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Serves the Sydney Cricket Ground (SCG) and Centennial Parklands.",
+        "isGhost": false
+      },
+      {
+        "name": "Royal Randwick (Alison Road)",
+        "lat": -33.9045,
+        "lon": 151.2335,
+        "x": 24.94,
+        "z": 49.15,
+        "year": 2019,
+        "lines": [
+          "L2"
+        ],
+        "fact": "Runs along the southern boundary of Centennial Park.",
+        "isGhost": false
+      },
+      {
+        "name": "Randwick (High Street Hospital & UNSW Hub)",
+        "lat": -33.9145,
+        "lon": 151.2412,
+        "x": 32.9,
+        "z": 61.59,
+        "year": 2019,
+        "lines": [
+          "L2"
+        ],
+        "fact": "Eastern terminus of the L2 Randwick Line.",
+        "isGhost": false
+      }
+    ]
+  },
+  {
+    "line": "L3",
+    "name": "L3 — Kingsford Light Rail (Circular Quay ↔ Wynyard ↔ QVB ↔ Town Hall ↔ Central ↔ Moore Park ↔ Kensington ↔ UNSW Anzac Parade ↔ Juniors Kingsford)",
+    "color": "#781f40",
+    "textColor": "#ffffff",
+    "openedYear": 2020,
+    "rollingStockStyle": "CBD and South East Light Rail (Alstom Citadis X05 Anzac Parade Spine)",
+    "stations": [
+      {
+        "name": "Circular Quay (Warrane)",
+        "lat": -33.8613,
+        "lon": 151.2108,
+        "x": 1.45,
+        "z": -4.6,
+        "year": 2020,
+        "lines": [
+          "T2",
+          "T8",
+          "L2",
+          "L3"
+        ],
+        "fact": "Northern terminus of both the L2 and L3 CBD Light Rail lines.",
+        "isGhost": false
+      },
+      {
+        "name": "Bridge Street (First Government House Place)",
+        "lat": -33.8636,
+        "lon": 151.2078,
+        "x": -1.66,
+        "z": -1.74,
+        "year": 2020,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Shared L2/L3 wire-free trunk.",
+        "isGhost": false
+      },
+      {
+        "name": "Wynyard (with Tram Ghost Tunnels)",
+        "lat": -33.8655,
+        "lon": 151.206,
+        "x": -3.52,
+        "z": 0.62,
+        "year": 2020,
+        "lines": [
+          "T1",
+          "T3",
+          "T8",
+          "T9",
+          "L2",
+          "L3"
+        ],
+        "fact": "Shared L2/L3 CBD stop.",
+        "isGhost": false
+      },
+      {
+        "name": "QVB (Queen Victoria Building & Market Street)",
+        "lat": -33.8718,
+        "lon": 151.2067,
+        "x": -2.79,
+        "z": 8.46,
+        "year": 2020,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Shared L2/L3 stop alongside the Queen Victoria Building.",
+        "isGhost": false
+      },
+      {
+        "name": "Town Hall",
+        "lat": -33.8735,
+        "lon": 151.2068,
+        "x": -2.69,
+        "z": 10.58,
+        "year": 2020,
+        "lines": [
+          "T1",
+          "T3",
+          "T4",
+          "T9",
+          "L2",
+          "L3"
+        ],
+        "fact": "Shared L2/L3 transfer hub.",
+        "isGhost": false
+      },
+      {
+        "name": "Chinatown (Dixon Street Gates)",
+        "lat": -33.8782,
+        "lon": 151.2058,
+        "x": -3.72,
+        "z": 16.43,
+        "year": 2020,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Shared L2/L3 Haymarket stop.",
+        "isGhost": false
+      },
+      {
+        "name": "Central (Chalmers Street Light Rail)",
+        "lat": -33.8832,
+        "lon": 151.2062,
+        "x": -3.31,
+        "z": 22.65,
+        "year": 2020,
+        "lines": [
+          "M1",
+          "T1",
+          "T2",
+          "T3",
+          "T4",
+          "T7",
+          "T8",
+          "T9",
+          "L1",
+          "L2",
+          "L3"
+        ],
+        "fact": "Connects L3 directly with Central Station and M1 Metro.",
+        "isGhost": false
+      },
+      {
+        "name": "Surry Hills (Devonshire Street)",
+        "lat": -33.8868,
+        "lon": 151.2122,
+        "x": 2.9,
+        "z": 27.13,
+        "year": 2020,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "Shared L2/L3 climb to Moore Park.",
+        "isGhost": false
+      },
+      {
+        "name": "Moore Park (SCG & Allianz Stadium Tunnel)",
+        "lat": -33.8918,
+        "lon": 151.2218,
+        "x": 12.83,
+        "z": 33.35,
+        "year": 2020,
+        "lines": [
+          "L2",
+          "L3"
+        ],
+        "fact": "South of Moore Park, L3 diverges down Anzac Parade.",
+        "isGhost": false
+      },
+      {
+        "name": "ES Marks (Anzac Parade)",
+        "lat": -33.9035,
+        "lon": 151.2225,
+        "x": 13.55,
+        "z": 47.91,
+        "year": 2020,
+        "lines": [
+          "L3"
+        ],
+        "fact": "Runs down the historic Anzac Parade tramway median.",
+        "isGhost": false
+      },
+      {
+        "name": "Kensington",
+        "lat": -33.9102,
+        "lon": 151.2242,
+        "x": 15.31,
+        "z": 56.24,
+        "year": 2020,
+        "lines": [
+          "L3"
+        ],
+        "fact": "Serves the Kensington village strip.",
+        "isGhost": false
+      },
+      {
+        "name": "UNSW Anzac Parade (University Mall)",
+        "lat": -33.9175,
+        "lon": 151.2262,
+        "x": 17.38,
+        "z": 65.33,
+        "year": 2020,
+        "lines": [
+          "L3"
+        ],
+        "fact": "Primary light-rail gateway at the foot of the UNSW Sydney campus.",
+        "isGhost": false
+      },
+      {
+        "name": "Juniors Kingsford (Nine Ways Terminus)",
+        "lat": -33.9245,
+        "lon": 151.2278,
+        "x": 19.04,
+        "z": 74.04,
+        "year": 2020,
+        "lines": [
+          "L3"
+        ],
+        "fact": "Southern terminus of the L3 Kingsford Line.",
         "isGhost": false
       }
     ]

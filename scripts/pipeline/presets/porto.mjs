@@ -1,0 +1,806 @@
+/**
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+export const PORTO_PRESET = {
+  cityId: 'porto',
+  cityName: 'Porto',
+  localName: 'Porto (Invicta)',
+  countryName: 'Portugal',
+  region: 'Norte / Douro Litoral',
+  timelineRange: [1877, 2026],
+  geo: {
+    centerLat: 41.1456,
+    centerLon: -8.6108,
+    bbox: [41.125, -8.675, 41.175, -8.575],
+    kmPerDegLat: 111.1,
+    kmPerDegLon: 83.75,
+    worldUnitsPerKm: 12.0,
+    coreRadiusKm: 5.8,
+    isCoastal: true
+  },
+  topography: [
+    // Sé do Porto & Pena Ventosa Granite Acropolis
+    { name: 'Morro da Sé & Pena Ventosa Granite Acropolis', lat: 41.1428, lon: -8.6112, height: 0.62, rx: 4.8, rz: 4.2 },
+    // Clérigos & Vitória Granite Ridge
+    { name: 'Colina dos Clérigos & Vitória', lat: 41.1458, lon: -8.6145, height: 0.68, rx: 5.6, rz: 4.8 },
+    // Serra do Pilar & Morro de Gaia Southern Douro Cliff
+    { name: 'Serra do Pilar & Santa Marinha Escarpment (Gaia)', lat: 41.1378, lon: -8.6082, height: 0.78, rx: 8.5, rz: 5.8 },
+    // Fontainhas & Monte dos Congregados Eastern Gorge Rim
+    { name: 'Fontainhas & Santo Ildefonso Granite Bluff', lat: 41.1445, lon: -8.6015, height: 0.66, rx: 6.5, rz: 5.2 },
+    // Palácio de Cristal & Massarelos Overlook
+    { name: 'Miradouro do Palácio de Cristal & Massarelos', lat: 41.1482, lon: -8.6262, height: 0.58, rx: 6.2, rz: 4.8 }
+  ],
+  waterCenterlines: [
+    // Rio Douro deep granite canyon from Freixo -> Maria Pia -> Dom Luís I -> Ribeira -> Arrábida -> Foz do Douro (Atlantic)
+    [41.1422, -8.5785, 2.5], // Freixo / Eastern Douro Bend
+    [41.1400, -8.5955, 2.3], // Beneath Ponte Maria Pia & Ponte de São João
+    [41.1415, -8.6018, 2.1], // Beneath Ponte do Infante (Fontainhas gorge)
+    [41.1400, -8.6095, 2.2], // Beneath Ponte Dom Luís I (Ribeira ↔ Cais de Gaia)
+    [41.1408, -8.6165, 2.5], // Ribeira & Alfândega bends
+    [41.1474, -8.6400, 2.8], // Beneath Ponte da Arrábida
+    [41.1485, -8.6680, 3.8]  // Foz do Douro (Atlantic Ocean Estuary)
+  ],
+  bridges: [
+    {
+      id: 'bridge-dom-luis-i',
+      name: 'Ponte Dom Luís I (Double-Deck Iron Arch)',
+      lat: 41.1400,
+      lon: -8.6095,
+      builtYear: 1886,
+      lengthWorld: 4.8,
+      widthWorld: 0.52,
+      rotationY: 0.18,
+      style: 'iron-arch'
+    },
+    {
+      id: 'bridge-maria-pia',
+      name: 'Ponte Maria Pia (Gustave Eiffel & Théophile Seyrig)',
+      lat: 41.1400,
+      lon: -8.5960,
+      builtYear: 1877,
+      lengthWorld: 4.6,
+      widthWorld: 0.38,
+      rotationY: -0.22,
+      style: 'iron-arch'
+    },
+    {
+      id: 'bridge-infante',
+      name: 'Ponte do Infante Dom Henrique',
+      lat: 41.1414,
+      lon: -8.6019,
+      builtYear: 2003,
+      lengthWorld: 4.2,
+      widthWorld: 0.44,
+      rotationY: 0.12,
+      style: 'stone-arch'
+    },
+    {
+      id: 'bridge-arrabida',
+      name: 'Ponte da Arrábida (Edgar Cardoso Concrete Arch)',
+      lat: 41.1474,
+      lon: -8.6400,
+      builtYear: 1963,
+      lengthWorld: 5.4,
+      widthWorld: 0.56,
+      rotationY: 0.25,
+      style: 'stone-arch'
+    }
+  ],
+  parks: [
+    { name: 'Jardins do Palácio de Cristal (Torreão & Douro Belvedere)', lat: 41.1481, lon: -8.6258, rx: 4.2, rz: 4.8, rotation: 0.12, hasBasin: true },
+    { name: 'Jardim da Cordoaria (Campo dos Mártires da Pátria)', lat: 41.1462, lon: -8.6165, rx: 2.6, rz: 1.8, rotation: 0.08, hasBasin: true },
+    { name: 'Jardim do Morro (Vila Nova de Gaia)', lat: 41.1376, lon: -8.6092, rx: 2.4, rz: 2.2, rotation: -0.15 },
+    { name: 'Jardim de São Lázaro', lat: 41.1452, lon: -8.6018, rx: 2.0, rz: 2.2, rotation: 0.0, hasBasin: true },
+    { name: 'Parque da Cidade do Porto (Atlantic Parklands)', lat: 41.1685, lon: -8.6745, rx: 7.5, rz: 6.8, rotation: 0.2, hasBasin: true }
+  ],
+  places: [
+    { name: 'Avenida dos Aliados & Praça da Liberdade', lat: 41.1485, lon: -8.6108, radius: 2.6, hasColumnOrObelisk: true },
+    { name: 'Praça da Ribeira (Cais da Ribeira)', lat: 41.1408, lon: -8.6130, radius: 2.0 },
+    { name: 'Praça de Mouzinho de Albuquerque (Rotunda da Boavista)', lat: 41.1579, lon: -8.6291, radius: 3.0, hasColumnOrObelisk: true },
+    { name: 'Praça da Batalha', lat: 41.1452, lon: -8.6068, radius: 1.9 }
+  ],
+  monuments: [
+    {
+      id: 'monument-dom-luis-bridge',
+      nodeName: 'Monument_dom_luis_bridge',
+      name: 'Ponte Dom Luís I',
+      lat: 41.1400,
+      lon: -8.6095,
+      builtYear: 1886,
+      constructionStartYear: 1881,
+      radius: 4.8,
+      heightMeters: 85,
+      era: 'empire1900',
+      eraLabel: 'Seyrig Iron Arch • 1886',
+      connectedLines: ['D'],
+      style: '172m Double-Deck Riveted Belgian Wrought-Iron Arch (Théophile Seyrig / Société de Willebroeck, 1886)',
+      arrondissement: 'Ribeira ↔ Vila Nova de Gaia',
+      rotationY: 0.18,
+      scale: 0.86,
+      archetype: 'steel_arch_bridge',
+      primaryColor: '#48525c',
+      secondaryColor: '#b5ada2',
+      accentColor: '#ffc709',
+      description: 'Designed by Gustave Eiffel’s former partner Théophile Seyrig and inaugurated on October 31, 1886 with the longest iron arch span in the world (172m); its upper deck 60 meters above the Douro carries Metro do Porto Line D.'
+    },
+    {
+      id: 'monument-clerigos-tower',
+      nodeName: 'Monument_clerigos_tower',
+      name: 'Torre dos Clérigos',
+      lat: 41.1458,
+      lon: -8.6140,
+      builtYear: 1763,
+      constructionStartYear: 1754,
+      radius: 3.4,
+      heightMeters: 76,
+      era: 'medieval',
+      eraLabel: 'Nasoni Baroque • 1763',
+      connectedLines: ['D', 'G'],
+      style: '75.6m Six-Story Carved Granite Baroque Campanile & Elliptical Church (Nicolau Nasoni, 1763)',
+      arrondissement: 'Vitória / Clérigos',
+      rotationY: -0.15,
+      scale: 0.80,
+      archetype: 'clock_tower_terminus',
+      primaryColor: '#b8b0a4',
+      secondaryColor: '#dcd6cc',
+      accentColor: '#c95b3c',
+      description: 'Masterpiece of Italian architect Nicolau Nasoni completed in 1763; its 75.6-meter carved granite bell tower served for centuries as the maritime beacon for Port wine ships entering the Douro estuary.'
+    },
+    {
+      id: 'monument-sao-bento-station',
+      nodeName: 'Monument_sao_bento_station',
+      name: 'Estação de São Bento',
+      lat: 41.1456,
+      lon: -8.6106,
+      builtYear: 1916,
+      constructionStartYear: 1900,
+      radius: 3.8,
+      heightMeters: 42,
+      era: 'gares',
+      eraLabel: 'Azulejo Beaux-Arts • 1916',
+      connectedLines: ['D', 'G'],
+      style: 'French Beaux-Arts Granite Mansard Terminal & 20,000 Cobalt-Blue Azulejo Tiles (José Marques da Silva & Jorge Colaço, 1916)',
+      arrondissement: 'Centro Histórico (Sé)',
+      rotationY: -0.22,
+      scale: 0.78,
+      archetype: 'beaux_arts_terminus',
+      primaryColor: '#c8c2b8',
+      secondaryColor: '#364554',
+      accentColor: '#1b569c',
+      description: 'Built on the site of the 16th-century Convent of São Bento de Avé-Maria by architect José Marques da Silva and adorned with 20,000 hand-painted cobalt-blue and white Azulejo ceramic tiles by Jorge Colaço depicting Portuguese history and transport.'
+    },
+    {
+      id: 'monument-casa-da-musica',
+      nodeName: 'Monument_casa_da_musica',
+      name: 'Casa da Música',
+      lat: 41.1589,
+      lon: -8.6307,
+      builtYear: 2005,
+      constructionStartYear: 1999,
+      radius: 3.8,
+      heightMeters: 40,
+      era: 'modern',
+      eraLabel: 'OMA Polyhedron • 2005',
+      connectedLines: ['A', 'B', 'C', 'E', 'F', 'G'],
+      style: 'Faceted White Concrete Polyhedron & Corrugated Glass Curtain Walls on Travertine Wave Plaza (Rem Koolhaas / OMA, 2005)',
+      arrondissement: 'Boavista',
+      rotationY: 0.35,
+      scale: 0.80,
+      archetype: 'calatrava_cantilever',
+      primaryColor: '#f2efe9',
+      secondaryColor: '#72a8c8',
+      accentColor: '#e2b878',
+      description: 'Conceived for Porto 2001 European Capital of Culture by Rem Koolhaas (OMA) and inaugurated in April 2005 beside Casa da Música Metro station, resting like a crystalline white meteor on a golden travertine wave.'
+    },
+    {
+      id: 'monument-se-do-porto',
+      nodeName: 'Monument_se_do_porto',
+      name: 'Sé do Porto (Porto Cathedral)',
+      lat: 41.1428,
+      lon: -8.6111,
+      builtYear: 1110,
+      radius: 3.8,
+      heightMeters: 48,
+      era: 'medieval',
+      eraLabel: 'Romanesque Fortress • 1110',
+      connectedLines: ['D'],
+      style: 'Romanesque Crenellated Granite Twin-Tower Cathedral, Gothic Rose Window & Nasoni Baroque Loggia (1110–1737)',
+      arrondissement: 'Morro da Sé',
+      rotationY: 0.12,
+      scale: 0.78,
+      archetype: 'twin_spire_cathedral',
+      primaryColor: '#9e978e',
+      secondaryColor: '#d9d2c7',
+      accentColor: '#1b569c',
+      description: 'Founded around 1110 atop the ancient Roman and Suebi citadel overlooking the Douro, where King João I wed Philippa of Lancaster in 1387 to seal the Anglo-Portuguese Alliance, and enriched with silver Baroque cloister azulejos.'
+    },
+    {
+      id: 'monument-palacio-da-bolsa',
+      nodeName: 'Monument_palacio_da_bolsa',
+      name: 'Palácio da Bolsa & Igreja de São Francisco',
+      lat: 41.1414,
+      lon: -8.6156,
+      builtYear: 1850,
+      constructionStartYear: 1842,
+      radius: 3.8,
+      heightMeters: 36,
+      era: 'empire1900',
+      eraLabel: 'Neoclassical & Moorish • 1850',
+      connectedLines: ['D'],
+      style: 'Neoclassical Granite Stock Exchange, Octagonal Glass Pátio das Nações & Gilded Moorish Salão Árabe (1842–1910)',
+      arrondissement: 'São Nicolau / Ribeira',
+      rotationY: 0.25,
+      scale: 0.76,
+      archetype: 'domed_sandstone_arcade',
+      primaryColor: '#d4cec3',
+      secondaryColor: '#8c857b',
+      accentColor: '#d4af37',
+      description: 'Erected by the Commercial Association of Porto next to the 14th-century Gothic Church of São Francisco (famed for its gilded talha dourada woodwork), featuring the glass-domed Pátio das Nações and dazzling golden Salão Árabe.'
+    },
+    {
+      id: 'monument-livraria-lello',
+      nodeName: 'Monument_livraria_lello',
+      name: 'Livraria Lello',
+      lat: 41.1468,
+      lon: -8.6148,
+      builtYear: 1906,
+      radius: 3.0,
+      heightMeters: 28,
+      era: 'empire1900',
+      eraLabel: 'Neo-Gothic Bookshop • 1906',
+      connectedLines: ['D', 'G'],
+      style: 'Neo-Gothic & Art Nouveau Tracery Facade, Stained-Glass Skylight & Crimson Forked Staircase (Xavier Esteves, 1906)',
+      arrondissement: 'Carmo / Clérigos',
+      rotationY: 0.0,
+      scale: 0.74,
+      archetype: 'twin_tower_gateway',
+      primaryColor: '#f5f0e6',
+      secondaryColor: '#7a2021',
+      accentColor: '#1b569c',
+      description: 'Inaugurated on January 13, 1906 by brothers José and António Lello and engineered by Francisco Xavier Esteves, featuring a sculpted Neo-Gothic white facade and a sinuous crimson-red double staircase beneath a stained-glass motto "Decus in Labore".'
+    },
+    {
+      id: 'monument-port-wine-lodges',
+      nodeName: 'Monument_port_wine_lodges',
+      name: 'Caves de Vinho do Porto & Serra do Pilar',
+      lat: 41.1375,
+      lon: -8.6125,
+      builtYear: 1678,
+      radius: 4.4,
+      heightMeters: 52,
+      era: 'medieval',
+      eraLabel: 'Port Wine Cellars • 1678',
+      connectedLines: ['D'],
+      style: 'Terraced Whitewashed Port Wine Lodges, Rabelo Boats & Circular Renaissance Dome of Serra do Pilar (1538–1890)',
+      arrondissement: 'Vila Nova de Gaia (Cais de Gaia)',
+      rotationY: -0.18,
+      scale: 0.80,
+      archetype: 'baroque_dome_cathedral',
+      primaryColor: '#f4efe6',
+      secondaryColor: '#c4512d',
+      accentColor: '#721b29',
+      description: 'Rising in terraced terracotta-roofed ranks up the north-facing granite slopes of Vila Nova de Gaia where Port wine from the Douro Valley ages in oak vats below the UNESCO circular church and cloister of Mosteiro da Serra do Pilar.'
+    }
+  ],
+  milestones: [
+    { year: 1877, shortLabel: '1877', headline: 'Nov 4, 1877: Gustave Eiffel & Théophile Seyrig inaugurate Ponte Maria Pia & Porto-Campanhã rail link' },
+    { year: 1886, shortLabel: '1886', headline: 'Oct 31, 1886: Opening of Théophile Seyrig’s double-deck Ponte Dom Luís I across the Douro gorge' },
+    { year: 1895, shortLabel: '1895', headline: 'Sept 12, 1895: Porto inaugurates the Iberian Peninsula’s first electric tramway network (Elétricos do Porto)' },
+    { year: 1906, shortLabel: '1906', headline: 'Jan 13, 1906: Opening of Livraria Lello & remodeling of Avenida dos Aliados civic core' },
+    { year: 1916, shortLabel: '1916', headline: 'Oct 5, 1916: Inauguration of Estação de São Bento with 20,000 cobalt-blue Azulejo tiles by Jorge Colaço' },
+    { year: 1963, shortLabel: '1963', headline: 'June 22, 1963: Edgar Cardoso’s Ponte da Arrábida opens with the world’s longest concrete arch span' },
+    { year: 1996, shortLabel: '1996', headline: 'Dec 1996: Historic Centre of Porto, Ponte Luís I & Serra do Pilar inscribed as UNESCO World Heritage' },
+    { year: 2002, shortLabel: '2002', headline: 'Dec 7, 2002: Metro do Porto Line A (Linha Azul) opens between Senhor de Matosinhos and Trindade' },
+    { year: 2005, shortLabel: '2005', headline: '2005: Casa da Música opens & Line D (Linha Amarela) crosses the upper deck of Ponte Dom Luís I to Gaia' },
+    { year: 2006, shortLabel: '2006', headline: 'May 2006: Line E (Violeta) connects Francisco Sá Carneiro Airport & Line B/C/F trunk expands' },
+    { year: 2026, shortLabel: '2026', headline: '2025–2026: Line G (Linha Rosa) underground arc links São Bento, Hospital Santo António & Casa da Música' }
+  ],
+  eras: [
+    {
+      startYear: 1877,
+      endYear: 1915,
+      eraTag: 'IRON BRIDGES & ELECTRIC TRAMS • 1877–1915',
+      title: 'Eiffel, Seyrig & the Douro Iron Arch Revolution',
+      description: 'Perched on twin granite cliffs above the Douro River, Porto leaped into the industrial age with Gustave Eiffel and Théophile Seyrig’s 1877 Ponte Maria Pia and 1886 double-deck Ponte Dom Luís I, followed by the Iberian Peninsula’s first electric tramway in 1895.',
+      urbanChanges: [
+        'Ponte Maria Pia railway arch & Estação de Campanhã open (Nov 1877)',
+        'Double-deck Ponte Dom Luís I links Ribeira and Vila Nova de Gaia (1886)',
+        'First electric trams in Iberia (1895) & Livraria Lello Neo-Gothic jewel (1906)'
+      ]
+    },
+    {
+      startYear: 1916,
+      endYear: 1962,
+      eraTag: 'AZULEJO & GRANITE MODERNITY • 1916–1962',
+      title: 'Estação de São Bento & Avenida dos Aliados',
+      description: 'Architect José Marques da Silva and ceramicist Jorge Colaço crowned Porto’s railway heart at São Bento in 1916 with 20,000 blue-and-white Azulejo tiles while Englisharchitect Barry Parker carved the grand granite boulevard of Avenida dos Aliados.',
+      urbanChanges: [
+        'Estação de São Bento opens with 20,000 historic Azulejo tiles (Oct 5, 1916)',
+        'Construction of Avenida dos Aliados & Câmara Municipal do Porto granite tower',
+        'Leixões Harbour & Boavista urban expansion toward the Atlantic coast'
+      ]
+    },
+    {
+      startYear: 1963,
+      endYear: 2001,
+      eraTag: 'ARRÁBIDA ARCH & UNESCO HERITAGE • 1963–2001',
+      title: 'Edgar Cardoso’s Bridges, Siza Vieira & UNESCO Inscription',
+      description: 'Pioneering structural engineer Edgar Cardoso spanned the Douro estuary with Ponte da Arrábida (1963) and Ponte de São João (1991), while Pritzker laureates Álvaro Siza Vieira and Eduardo Souto de Moura shaped contemporary Portuguese architecture.',
+      urbanChanges: [
+        'Ponte da Arrábida reinforced-concrete arch opens near Foz do Douro (1963)',
+        'Ponte de São João high-speed rail bridge replaces Maria Pia mainline traffic (1991)',
+        'UNESCO World Heritage inscription (1996) & Porto 2001 Capital of Culture'
+      ]
+    },
+    {
+      startYear: 2002,
+      endYear: 2026,
+      eraTag: 'METRO DO PORTO & SOUTO DE MOURA • 2002–2026',
+      title: 'Subterranean Granite Stations, Casa da Música & Line G',
+      description: 'Designed with architectural coordination by Pritzker Prize winner Eduardo Souto de Moura, Metro do Porto wove six underground and surface lines through Trindade, São Bento, Casa da Música, and across the upper deck of Ponte Dom Luís I, joined in 2025–2026 by the subterranean Pink Line (Linha G).',
+      urbanChanges: [
+        'Metro do Porto Lines A, B, C, E, F & Souto de Moura’s Trindade hub (2002–2006)',
+        'Line D crosses Ponte Dom Luís I to Gaia & OMA’s Casa da Música opens (2005)',
+        'Vila Nova de Gaia extension to Vila d’Este (2024) & Line G Pink Line tunnel (2026)'
+      ]
+    }
+  ],
+  metroLines: [
+    {
+      id: 'A',
+      name: 'Linha A (Azul) — Senhor de Matosinhos ↔ Trindade ↔ Estádio do Dragão',
+      shortLabel: 'A',
+      color: '#0079c1',
+      textColor: '#ffffff',
+      openedYear: 2002,
+      depthOffset: -2.2,
+      historicCompany: 'Metro do Porto (Eurotram / Flexity Outlook)',
+      summary: 'Inaugural line of Metro do Porto (opened December 7, 2002), running from the Atlantic port of Matosinhos through Casa da Música, Lapa, Trindade, Bolhão, and Campanhã to Estádio do Dragão.',
+      stations: [
+        { id: 'senhor-matosinhos', name: 'Senhor de Matosinhos', lat: 41.1880, lon: -8.6852, openedYear: 2002, arrondissement: 'Matosinhos', architecture: 'Atlantic Coastal Surface Terminus', description: 'Western coastal terminus beside the Church of Bom Jesus de Matosinhos.' },
+        { id: 'matosinhos-sul', name: 'Matosinhos Sul', lat: 41.1778, lon: -8.6865, openedYear: 2002, arrondissement: 'Matosinhos', architecture: 'Praia de Matosinhos Avenue Stop', description: 'Steps from the Atlantic surf and Álvaro Siza’s marginal promenade.' },
+        { id: 'parque-cidade', name: 'Parque Real / Parque da Cidade', lat: 41.1712, lon: -8.6655, openedYear: 2002, arrondissement: 'Nevogilde / Matosinhos', architecture: 'Greenway Parkland Alignment', description: 'Borders Porto’s 83-hectare Atlantic urban park.' },
+        { id: 'casa-da-musica', name: 'Casa da Música', lat: 41.1606, lon: -8.6292, openedYear: 2002, arrondissement: 'Boavista', architecture: 'Eduardo Souto de Moura Open Skylight Cut-Granite Trench', landmark: 'Casa da Música', description: 'Signature station by Pritzker Prize architect Eduardo Souto de Moura featuring open circular skylights and raw granite walls.' },
+        { id: 'carolina-michaelis', name: 'Carolina Michaëlis', lat: 41.1585, lon: -8.6220, openedYear: 2002, arrondissement: 'Cedofeita', architecture: 'Historic 19th-Century Railway Cut & Escalator Tower', description: 'Named after pioneering philologist Carolina Michaëlis de Vasconcelos.' },
+        { id: 'lapa', name: 'Lapa', lat: 41.1569, lon: -8.6168, openedYear: 2002, arrondissement: 'Cedofeita / Lapa', architecture: 'Historic Lapa Tunnel Portal Station', description: 'Western portal of the 1888 Lapa railway tunnel converted for Metro do Porto.' },
+        { id: 'trindade', name: 'Trindade', lat: 41.1523, lon: -8.6093, openedYear: 2002, arrondissement: 'Centro / Santo Ildefonso', architecture: 'Souto de Moura Dual-Level Granite Central Interchange (Lines A–F)', description: 'Central nexus of the entire Metro do Porto network where the east–west trunk (A/B/C/E/F) meets north–south Line D.' },
+        { id: 'bolhao', name: 'Bolhão', lat: 41.1498, lon: -8.6058, openedYear: 2004, arrondissement: 'Santo Ildefonso', architecture: 'Subterranean Granite Vault Beside Mercado do Bolhão & Capela das Almas', description: 'Exits directly to the blue-azulejo facade of Capela das Almas and the historic Mercado do Bolhão.' },
+        { id: 'campo-24-agosto', name: 'Campo 24 de Agosto', lat: 41.1489, lon: -8.5988, openedYear: 2004, arrondissement: 'Bonfim', architecture: 'Deep Cut-and-Cover Granite & Skylight Hall', description: 'Serves the historic Bonfim plaza and eastern civic arcades.' },
+        { id: 'heroismo', name: 'Heroísmo', lat: 41.1466, lon: -8.5932, openedYear: 2004, arrondissement: 'Bonfim', architecture: 'Subterranean Box Station', description: 'Named after the Siege of Porto (1832–1833) that earned the city the title Invicta.' },
+        { id: 'campanha-metro', name: 'Campanhã', lat: 41.1496, lon: -8.5855, openedYear: 2004, arrondissement: 'Campanhã', architecture: 'Multi-Modal Rail & Metro Hub', description: 'Direct interchange with CP Alfa Pendular and Intercidades national railway trains.' },
+        { id: 'estadio-dragao', name: 'Estádio do Dragão', lat: 41.1608, lon: -8.5822, openedYear: 2004, arrondissement: 'Antas / Campanhã', architecture: 'Three-Track Underground Terminus Beneath FC Porto Stadium Plaza', description: 'Opened in June 2004 for UEFA Euro 2004.' }
+      ]
+    },
+    {
+      id: 'B',
+      name: 'Linha B (Vermelha) — Póvoa / Fonte do Cuco ↔ Trindade ↔ Estádio do Dragão',
+      shortLabel: 'B',
+      color: '#e31b23',
+      textColor: '#ffffff',
+      openedYear: 2005,
+      depthOffset: -2.35,
+      historicCompany: 'Metro do Porto (Flexity Swift Tram-Train)',
+      summary: 'Converted the historic 1875 narrow-gauge Linha da Póvoa into a high-speed tram-train feeding into the central Porto underground trunk at Senhora da Hora, Casa da Música, and Trindade.',
+      stations: [
+        { id: 'fonte-do-cuco', name: 'Fonte do Cuco', lat: 41.1965, lon: -8.6595, openedYear: 2005, arrondissement: 'Senhora da Hora', architecture: 'Northern Trunk Bifurcation Junction', description: 'Junction where Lines B, C, and E converge onto the Porto trunk.' },
+        { id: 'senhora-da-hora', name: 'Senhora da Hora', lat: 41.1882, lon: -8.6545, openedYear: 2002, arrondissement: 'Senhora da Hora', architecture: 'Major Northern Cross-Platform Interchange', description: 'Connects Line A from Matosinhos with Lines B, C, E, and F.' },
+        { id: 'sete-bicas', name: 'Sete Bicas', lat: 41.1802, lon: -8.6495, openedYear: 2002, arrondissement: 'Senhora da Hora / Ramalde', architecture: 'Shallow Trench Station', description: 'Serves NorteShopping and the northern business park.' },
+        { id: 'viso', name: 'Viso', lat: 41.1732, lon: -8.6462, openedYear: 2002, arrondissement: 'Ramalde', architecture: 'Granite Retaining Wall Trench Station', description: 'Ramalde residential and industrial district stop.' },
+        { id: 'ramalde', name: 'Ramalde', lat: 41.1682, lon: -8.6418, openedYear: 2002, arrondissement: 'Ramalde', architecture: 'Surface Viaduct & Trench Alignment', description: 'Follows the historic 1875 Boavista–Póvoa railway right-of-way.' },
+        { id: 'francos', name: 'Francos', lat: 41.1636, lon: -8.6355, openedYear: 2002, arrondissement: 'Ramalde / Boavista', architecture: 'Open Trench Station', description: 'Western approach to the Boavista cultural district.' },
+        { id: 'casa-da-musica', name: 'Casa da Música', lat: 41.1606, lon: -8.6292, openedYear: 2002, arrondissement: 'Boavista', architecture: 'Souto de Moura Granite Trench', landmark: 'Casa da Música', description: 'Connects with Line G (Pink Line) and Boavista bus terminal.' },
+        { id: 'trindade', name: 'Trindade', lat: 41.1523, lon: -8.6093, openedYear: 2002, arrondissement: 'Centro', architecture: 'Central Interchange', description: 'Transfers to Line D for São Bento and Gaia.' },
+        { id: 'bolhao', name: 'Bolhão', lat: 41.1498, lon: -8.6058, openedYear: 2004, arrondissement: 'Santo Ildefonso', architecture: 'Underground Vault', description: 'Commercial heart of Santa Catarina.' },
+        { id: 'campanha-metro', name: 'Campanhã', lat: 41.1496, lon: -8.5855, openedYear: 2004, arrondissement: 'Campanhã', architecture: 'Intercity Railway Hub', description: 'Mainline rail connection.' },
+        { id: 'estadio-dragao', name: 'Estádio do Dragão', lat: 41.1608, lon: -8.5822, openedYear: 2004, arrondissement: 'Antas', architecture: 'Eastern Trunk Terminus', description: 'Terminus of Lines A, B, and E.' }
+      ]
+    },
+    {
+      id: 'C',
+      name: 'Linha C (Verde) — ISMAI / Araújos ↔ Trindade ↔ Campanhã',
+      shortLabel: 'C',
+      color: '#66b032',
+      textColor: '#ffffff',
+      openedYear: 2005,
+      depthOffset: -2.5,
+      historicCompany: 'Metro do Porto (Linha de Guimarães Heritage)',
+      summary: 'Follows the historic Linha de Guimarães corridor from Maia through Fonte do Cuco, Senhora da Hora, Casa da Música, and Trindade to Campanhã.',
+      stations: [
+        { id: 'candido-dos-reis', name: 'Cândido dos Reis', lat: 41.2015, lon: -8.6512, openedYear: 2005, arrondissement: 'Maia / Custóias', architecture: 'Green Corridor Viaduct Station', description: 'Serves the Maia branch before joining the central trunk.' },
+        { id: 'fonte-do-cuco', name: 'Fonte do Cuco', lat: 41.1965, lon: -8.6595, openedYear: 2005, arrondissement: 'Senhora da Hora', architecture: 'Branch Convergence Junction', description: 'Merges with Lines B and E.' },
+        { id: 'senhora-da-hora', name: 'Senhora da Hora', lat: 41.1882, lon: -8.6545, openedYear: 2002, arrondissement: 'Senhora da Hora', architecture: 'Northern Hub', description: 'Five-line interchange.' },
+        { id: 'casa-da-musica', name: 'Casa da Música', lat: 41.1606, lon: -8.6292, openedYear: 2002, arrondissement: 'Boavista', architecture: 'Souto de Moura Station', description: 'Boavista cultural hub.' },
+        { id: 'lapa', name: 'Lapa', lat: 41.1569, lon: -8.6168, openedYear: 2002, arrondissement: 'Lapa', architecture: 'Tunnel Portal', description: 'Enters the central Porto tunnel.' },
+        { id: 'trindade', name: 'Trindade', lat: 41.1523, lon: -8.6093, openedYear: 2002, arrondissement: 'Centro', architecture: 'Central Interchange', description: 'Line D transfer.' },
+        { id: 'bolhao', name: 'Bolhão', lat: 41.1498, lon: -8.6058, openedYear: 2004, arrondissement: 'Santo Ildefonso', architecture: 'Underground Vault', description: 'Baixa do Porto shopping district.' },
+        { id: 'campo-24-agosto', name: 'Campo 24 de Agosto', lat: 41.1489, lon: -8.5988, openedYear: 2004, arrondissement: 'Bonfim', architecture: 'Granite Underground Hall', description: 'Eastern Baixa hub.' },
+        { id: 'campanha-metro', name: 'Campanhã', lat: 41.1496, lon: -8.5855, openedYear: 2004, arrondissement: 'Campanhã', architecture: 'Railway Interchange', description: 'Eastern terminus of Line C.' }
+      ]
+    },
+    {
+      id: 'D',
+      name: 'Linha D (Amarela) — Hospital São João ↔ Trindade ↔ São Bento ↔ Ponte Dom Luís I ↔ Vila d’Este',
+      shortLabel: 'D',
+      color: '#ffc709',
+      textColor: '#10141c',
+      openedYear: 2005,
+      depthOffset: -3.1,
+      historicCompany: 'Metro do Porto (North–South Douro Spine)',
+      summary: 'Porto’s signature north–south line (opened September 18, 2005 and extended to Vila d’Este in 2024): bores deep beneath the granite center at Trindade, Aliados, and São Bento before emerging onto the upper deck of Ponte Dom Luís I 60 meters above the Douro River into Vila Nova de Gaia.',
+      stations: [
+        { id: 'hospital-sao-joao', name: 'Hospital São João', lat: 41.1832, lon: -8.6022, openedYear: 2005, arrondissement: 'Paranhos (Asprela)', architecture: 'University Campus & Hospital Terminus', description: 'Serves the University of Porto Asprela campus and São João Hospital.' },
+        { id: 'ipo', name: 'IPO', lat: 41.1792, lon: -8.6042, openedYear: 2005, arrondissement: 'Paranhos', architecture: 'Medical & University Boulevard Stop', description: 'Serves the Portuguese Oncology Institute.' },
+        { id: 'polo-universitario', name: 'Pólo Universitário', lat: 41.1745, lon: -8.6038, openedYear: 2005, arrondissement: 'Paranhos', architecture: 'Skylit Underground University Station', description: 'Cut-and-cover station with lawn-covered skylights in the university garden.' },
+        { id: 'salgueiros', name: 'Salgueiros', lat: 41.1695, lon: -8.6052, openedYear: 2005, arrondissement: 'Paranhos', architecture: 'Deep Granite Cavern', description: 'Deep underground station beneath Rua da Constituição.' },
+        { id: 'combatentes', name: 'Combatentes', lat: 41.1652, lon: -8.6068, openedYear: 2005, arrondissement: 'Paranhos / Antas', architecture: 'Avenida dos Combatentes Underground Box', description: 'Serves the historic Marquês and Combatentes avenues.' },
+        { id: 'marques', name: 'Marquês', lat: 41.1612, lon: -8.6062, openedYear: 2005, arrondissement: 'Santo Ildefonso', architecture: 'Deep Circular Shaft Beneath Praça do Marquês de Pombal', description: 'Excavated beneath the tree-lined Praça do Marquês de Pombal.' },
+        { id: 'faria-guimaraes', name: 'Faria Guimarães', lat: 41.1568, lon: -8.6078, openedYear: 2005, arrondissement: 'Santo Ildefonso', architecture: 'Granite Mined Cavern', description: 'Serves the upper Santa Catarina and Faria Guimarães quarter.' },
+        { id: 'trindade', name: 'Trindade', lat: 41.1523, lon: -8.6093, openedYear: 2002, arrondissement: 'Centro', architecture: 'Souto de Moura Upper Viaduct & Lower Cavern Hub', description: 'Line D crosses above the five-line east–west trunk.' },
+        { id: 'aliados', name: 'Aliados', lat: 41.1486, lon: -8.6108, openedYear: 2005, arrondissement: 'Avenida dos Aliados', architecture: 'Subterranean Granite Hall Beneath Siza Vieira’s Aliados Esplanade', landmark: 'Avenida dos Aliados', description: 'Located directly beneath Porto’s grand civic boulevard and City Hall.' },
+        { id: 'sao-bento', name: 'São Bento', lat: 41.1456, lon: -8.6106, openedYear: 2005, arrondissement: 'Centro Histórico (Sé)', architecture: 'Deep Granite Cavern Beneath the 1916 Azulejo Railway Terminal', landmark: 'Estação de São Bento & Sé do Porto', description: 'Steps from the 20,000 azulejos of São Bento railway station, Sé do Porto, and Torre dos Clérigos; future interchange with Line G.' },
+        { id: 'jardim-do-morro', name: 'Jardim do Morro (Gaia Bridge Portal)', lat: 41.1376, lon: -8.6088, openedYear: 2005, elevated: true, arrondissement: 'Vila Nova de Gaia', architecture: 'Southern Portal of Ponte Dom Luís I Upper Deck & Serra do Pilar Overlook', landmark: 'Ponte Dom Luís I & Caves de Vinho do Porto', description: 'Immediately south of the breathtaking crossing of Ponte Dom Luís I, overlooking Ribeira and the Port wine lodges alongside the Teleférico de Gaia.' },
+        { id: 'general-torres', name: 'General Torres', lat: 41.1335, lon: -8.6078, openedYear: 2005, arrondissement: 'Vila Nova de Gaia', architecture: 'Gaia Suburban Rail & Metro Interchange', description: 'Connects Line D with the CP Linha do Norte railway in Vila Nova de Gaia.' },
+        { id: 'camara-de-gaia', name: 'Câmara de Gaia', lat: 41.1298, lon: -8.6062, openedYear: 2005, arrondissement: 'Vila Nova de Gaia', architecture: 'Avenida da República Elevated Viaduct', description: 'Heart of Vila Nova de Gaia’s commercial spine.' },
+        { id: 'santo-ovidio', name: 'Santo Ovídio', lat: 41.1195, lon: -8.6065, openedYear: 2011, arrondissement: 'Vila Nova de Gaia', architecture: 'Álvaro Siza Vieira Circular Rotunda Station', description: 'Designed by Pritzker laureate Álvaro Siza Vieira; extended further south to Vila d’Este in 2024.' }
+      ]
+    },
+    {
+      id: 'E',
+      name: 'Linha E (Violeta) — Aeroporto ↔ Senhora da Hora ↔ Trindade ↔ Estádio do Dragão',
+      shortLabel: 'E',
+      color: '#6f2c91',
+      textColor: '#ffffff',
+      openedYear: 2006,
+      depthOffset: -2.65,
+      historicCompany: 'Metro do Porto (Airport Link)',
+      summary: 'Opened on May 27, 2006 to connect Francisco Sá Carneiro International Airport directly to Casa da Música, Trindade, Bolhão, Campanhã, and Estádio do Dragão.',
+      stations: [
+        { id: 'aeroporto-porto', name: 'Aeroporto (Francisco Sá Carneiro)', lat: 41.2370, lon: -8.6702, openedYear: 2006, arrondissement: 'Moreira / Maia', architecture: 'Glass Canopy Sub-Terminal Airport Station', description: 'Direct covered connection to Porto’s international airport terminal.' },
+        { id: 'fonte-do-cuco', name: 'Fonte do Cuco', lat: 41.1965, lon: -8.6595, openedYear: 2005, arrondissement: 'Senhora da Hora', architecture: 'Airport Branch Junction', description: 'Joins the main Metro do Porto trunk.' },
+        { id: 'senhora-da-hora', name: 'Senhora da Hora', lat: 41.1882, lon: -8.6545, openedYear: 2002, arrondissement: 'Senhora da Hora', architecture: 'Northern Trunk Hub', description: 'Cross-platform transfer with Line A.' },
+        { id: 'casa-da-musica', name: 'Casa da Música', lat: 41.1606, lon: -8.6292, openedYear: 2002, arrondissement: 'Boavista', architecture: 'Souto de Moura Granite Trench', description: 'Serves the Boavista hotel and concert district.' },
+        { id: 'trindade', name: 'Trindade', lat: 41.1523, lon: -8.6093, openedYear: 2002, arrondissement: 'Centro', architecture: 'Central Interchange', description: 'Downtown Porto hub.' },
+        { id: 'bolhao', name: 'Bolhão', lat: 41.1498, lon: -8.6058, openedYear: 2004, arrondissement: 'Santo Ildefonso', architecture: 'Underground Vault', description: 'Historic market stop.' },
+        { id: 'campanha-metro', name: 'Campanhã', lat: 41.1496, lon: -8.5855, openedYear: 2004, arrondissement: 'Campanhã', architecture: 'Mainline Rail Hub', description: 'Direct airport-to-high-speed-rail transfer.' },
+        { id: 'estadio-dragao', name: 'Estádio do Dragão', lat: 41.1608, lon: -8.5822, openedYear: 2004, arrondissement: 'Antas', architecture: 'Eastern Terminus', description: 'Terminus of Airport Line E.' }
+      ]
+    },
+    {
+      id: 'F',
+      name: 'Linha F (Laranja) — Senhora da Hora ↔ Trindade ↔ Campanhã ↔ Fânzeres',
+      shortLabel: 'F',
+      color: '#f58220',
+      textColor: '#ffffff',
+      openedYear: 2011,
+      depthOffset: -2.8,
+      historicCompany: 'Metro do Porto (Gondomar Extension)',
+      summary: 'Opened on January 2, 2011, extending the five-line central trunk eastward beyond Estádio do Dragão through Contumil and Rio Tinto to Fânzeres (Gondomar).',
+      stations: [
+        { id: 'senhora-da-hora', name: 'Senhora da Hora', lat: 41.1882, lon: -8.6545, openedYear: 2002, arrondissement: 'Senhora da Hora', architecture: 'Western Terminus of Line F', description: 'Western anchor of the Orange Line.' },
+        { id: 'casa-da-musica', name: 'Casa da Música', lat: 41.1606, lon: -8.6292, openedYear: 2002, arrondissement: 'Boavista', architecture: 'Souto de Moura Station', description: 'Boavista cultural hub.' },
+        { id: 'trindade', name: 'Trindade', lat: 41.1523, lon: -8.6093, openedYear: 2002, arrondissement: 'Centro', architecture: 'Central Interchange', description: 'Transfers to Line D.' },
+        { id: 'bolhao', name: 'Bolhão', lat: 41.1498, lon: -8.6058, openedYear: 2004, arrondissement: 'Santo Ildefonso', architecture: 'Underground Vault', description: 'Santa Catarina & Bolhão.' },
+        { id: 'campo-24-agosto', name: 'Campo 24 de Agosto', lat: 41.1489, lon: -8.5988, openedYear: 2004, arrondissement: 'Bonfim', architecture: 'Underground Hall', description: 'Bonfim hub.' },
+        { id: 'campanha-metro', name: 'Campanhã', lat: 41.1496, lon: -8.5855, openedYear: 2004, arrondissement: 'Campanhã', architecture: 'Railway Hub', description: 'National rail connection.' },
+        { id: 'estadio-dragao', name: 'Estádio do Dragão', lat: 41.1608, lon: -8.5822, openedYear: 2004, arrondissement: 'Antas', architecture: 'Stadium Underground Hub', description: 'Line F continues east from here toward Rio Tinto and Gondomar.' },
+        { id: 'contumil', name: 'Contumil', lat: 41.1665, lon: -8.5768, openedYear: 2011, arrondissement: 'Campanhã / Rio Tinto', architecture: 'Eastern Portal & Suburban Rail Interchange', description: 'Connects with CP Linha do Minho / Douro suburban trains.' }
+      ]
+    },
+    {
+      id: 'G',
+      name: 'Linha G (Rosa) — São Bento ↔ Hospital Santo António ↔ Galiza ↔ Casa da Música',
+      shortLabel: 'G',
+      color: '#e85c9c',
+      textColor: '#ffffff',
+      openedYear: 2025,
+      depthOffset: -3.5,
+      historicCompany: 'Metro do Porto (100% Subterranean Pink Line)',
+      summary: 'Porto’s newest 100% underground metro line (2025–2026), bored through solid Porto granite to link São Bento and Clérigos directly with Hospital de Santo António, Praça da Galiza, and Casa da Música.',
+      stations: [
+        { id: 'sao-bento', name: 'São Bento', lat: 41.1456, lon: -8.6106, openedYear: 2005, arrondissement: 'Centro Histórico (Sé)', architecture: 'Dual-Line Deep Granite Interchange (Lines D & G)', landmark: 'Estação de São Bento & Torre dos Clérigos', description: 'Southern terminus of the Pink Line with direct underground passage to Line D and the 1916 Azulejo railway terminal.' },
+        { id: 'hospital-santo-antonio', name: 'Hospital Santo António (Cordoaria)', lat: 41.1468, lon: -8.6185, openedYear: 2025, arrondissement: 'Miragaia / Vitória', architecture: 'Deep Mined Cavern Beside Neoclassical Hospital & Jardim da Cordoaria', landmark: 'Torre dos Clérigos & Livraria Lello', description: 'Serves John Carr’s monumental 1770 Neoclassical Hospital de Santo António, Jardim da Cordoaria, Clérigos, and Livraria Lello.' },
+        { id: 'galiza', name: 'Galiza', lat: 41.1508, lon: -8.6258, openedYear: 2025, arrondissement: 'Massarelos / Palácio de Cristal', architecture: 'Cut-and-Cover Granite Box at Praça da Galiza', landmark: 'Jardins do Palácio de Cristal', description: 'Connects the Palácio de Cristal gardens and Massarelos university faculties to the underground network.' },
+        { id: 'casa-da-musica', name: 'Casa da Música', lat: 41.1606, lon: -8.6292, openedYear: 2002, arrondissement: 'Boavista', architecture: 'Expanded Souto de Moura Multi-Line Hub (Lines A, B, C, E, F & G)', landmark: 'Casa da Música', description: 'Northern terminus of Line G, creating a western underground loop between Boavista and São Bento.' }
+      ]
+    }
+  ],
+  railTermini: [
+    {
+      id: 'gl-porto-sao-bento',
+      metroStationId: 'sao-bento',
+      monumentId: 'monument-sao-bento-station',
+      name: 'Estação de Porto-São Bento',
+      shortName: 'SÃO BENTO (1916)',
+      historicCompany: 'Caminhos de Ferro Portugueses (Minho & Douro, 1896 / 1916)',
+      modernNetwork: 'CP Urbanos do Porto • Linha do Douro Historical Wine Trains',
+      openedYear: 1916,
+      trainStartYear: 1896,
+      trainEndYear: 2026,
+      buildingEndYear: 2026,
+      arrondissement: 'Centro Histórico',
+      destinationLabel: 'TO POCINHO (DOURO VALLEY) • BRAGA • GUIMARÃES • AVEIRO',
+      colorHex: '#1b569c',
+      lat: 41.1456,
+      lon: -8.6106,
+      rotationY: -0.95,
+      trackCount: 8,
+      shedWidth: 1.9,
+      shedLength: 2.5,
+      shedHeight: 0.78,
+      shedSpans: 2,
+      hasClockTower: true,
+      description: 'Designed by José Marques da Silva in French Beaux-Arts style and famous worldwide for Jorge Colaço’s 20,000 cobalt-blue Azulejo ceramic tiles; trains depart directly into the granite Túnel das Fontainhas toward Campanhã and the Douro Valley.',
+      corridorLatLon: [
+        [41.1456, -8.6106],
+        [41.1448, -8.6020],
+        [41.1465, -8.5920],
+        [41.1496, -8.5855]
+      ]
+    },
+    {
+      id: 'gl-porto-campanha',
+      metroStationId: 'campanha-metro',
+      name: 'Estação de Porto-Campanhã',
+      shortName: 'CAMPANHÃ (CP)',
+      historicCompany: 'Companhia Real dos Caminhos de Ferro Portugueses (1877)',
+      modernNetwork: 'CP Alfa Pendular • Intercidades • Celta International',
+      openedYear: 1877,
+      trainStartYear: 1877,
+      trainEndYear: 2026,
+      buildingEndYear: 2026,
+      arrondissement: 'Campanhã',
+      destinationLabel: 'TO LISBOA SANTA APOLÓNIA • COIMBRA • VIGO (GALICIA)',
+      colorHex: '#d4af37',
+      lat: 41.1496,
+      lon: -8.5855,
+      rotationY: 0.15,
+      trackCount: 12,
+      shedWidth: 2.4,
+      shedLength: 3.0,
+      shedHeight: 0.85,
+      shedSpans: 3,
+      hasClockTower: true,
+      description: 'Inaugurated on November 4, 1877 alongside Gustave Eiffel’s Ponte Maria Pia to bring the Linha do Norte from Lisbon across the Douro into Porto; today it serves as Northern Portugal’s primary high-speed Alfa Pendular hub.',
+      corridorLatLon: [
+        [41.1496, -8.5855],
+        [41.1445, -8.5875],
+        [41.1398, -8.5948],
+        [41.1335, -8.6078]
+      ]
+    }
+  ],
+  districts: [
+    {
+      id: 'dist-ribeira-se',
+      number: 1,
+      shortLabel: 'Ribeira & Sé',
+      name: '1 — Ribeira, Morro da Sé & São Nicolau (UNESCO Core)',
+      officialName: 'Centro Histórico do Porto',
+      quartiers: 'Cais da Ribeira • Morro da Sé • Barredo • São Nicolau • Miragaia',
+      bank: 'North Douro Bank',
+      filterGroup: 'core',
+      eraBadge: 'ROMANESQUE CITADEL & DOURO WATERFRONT',
+      foundedLabel: 'PORTUCALE • 1110 • UNESCO 1996',
+      lat: 41.1418,
+      lon: -8.6125,
+      standOffRadius: 27.0,
+      cameraHeightOffset: 16.5,
+      haloRadiusScale: 2.2,
+      metroLines: ['D', 'G'],
+      history: 'Cradle of Portugal’s very name (Portus Cale), cascading from the 1110 fortress-cathedral of Sé do Porto and the 20,000 azulejos of São Bento down medieval granite steps to the colorful arcades of Praça da Ribeira and the Palácio da Bolsa.',
+      notableLandmarks: 'Ponte Dom Luís I, Sé do Porto, Estação de São Bento, Palácio da Bolsa, Igreja de São Francisco'
+    },
+    {
+      id: 'dist-clerigos-aliados',
+      number: 2,
+      shortLabel: 'Aliados & Clérigos',
+      name: '2 — Avenida dos Aliados, Clérigos, Carmo & Bolhão',
+      officialName: 'Baixa do Porto & Civic Spine',
+      quartiers: 'Avenida dos Aliados • Clérigos • Vitória • Bolhão • Santa Catarina',
+      bank: 'North Douro Plateau',
+      filterGroup: 'core',
+      eraBadge: 'BAROQUE GRANITE, AZULEJOS & BEAUX-ARTS',
+      foundedLabel: 'CLÉRIGOS 1763 • LELLO 1906 • METRO 2002',
+      lat: 41.1482,
+      lon: -8.6118,
+      standOffRadius: 28.0,
+      cameraHeightOffset: 17.5,
+      haloRadiusScale: 2.2,
+      metroLines: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+      history: 'Dominated by Nicolau Nasoni’s 75.6m Torre dos Clérigos (1763), the Neo-Gothic staircase of Livraria Lello (1906), and the monumental granite boulevard of Avenida dos Aliados, underpinned by Souto de Moura’s Trindade and Aliados Metro hubs.',
+      notableLandmarks: 'Torre dos Clérigos, Livraria Lello, Avenida dos Aliados, Capela das Almas, Mercado do Bolhão'
+    },
+    {
+      id: 'dist-boavista-foz',
+      number: 3,
+      shortLabel: 'Boavista & Foz',
+      name: '3 — Boavista, Casa da Música, Massarelos & Foz do Douro',
+      officialName: 'Western Cultural Axis & Atlantic Estuary',
+      quartiers: 'Rotunda da Boavista • Massarelos • Palácio de Cristal • Lordelo do Ouro • Foz do Douro',
+      bank: 'North Bank & Atlantic Coast',
+      filterGroup: 'riveDroite',
+      eraBadge: 'CONTEMPORARY ARCHITECTURE & ATLANTIC ESTUARY',
+      foundedLabel: 'ARRÁBIDA 1963 • CASA DA MÚSICA 2005',
+      lat: 41.1555,
+      lon: -8.6310,
+      standOffRadius: 30.0,
+      cameraHeightOffset: 18.0,
+      haloRadiusScale: 2.3,
+      metroLines: ['A', 'B', 'C', 'E', 'F', 'G'],
+      history: 'Stretching from the belvederes of Jardins do Palácio de Cristal to Rem Koolhaas’s polyhedral Casa da Música at Rotunda da Boavista, Serralves (Álvaro Siza), Edgar Cardoso’s Ponte da Arrábida, and the Atlantic surf at Foz do Douro.',
+      notableLandmarks: 'Casa da Música, Jardins do Palácio de Cristal, Ponte da Arrábida, Rotunda da Boavista'
+    },
+    {
+      id: 'dist-vila-nova-gaia',
+      number: 4,
+      shortLabel: 'Vila Nova de Gaia',
+      name: '4 — Cais de Gaia, Port Wine Lodges & Serra do Pilar',
+      officialName: 'Southern Douro Amphitheatre',
+      quartiers: 'Santa Marinha • Cais de Gaia • Serra do Pilar • Jardim do Morro • General Torres',
+      bank: 'South Douro Bank',
+      filterGroup: 'riveGauche',
+      eraBadge: 'PORT WINE CELLARS & SERRA DO PILAR BELVEDERE',
+      foundedLabel: 'SERRA DO PILAR 1538 • PORT LODGES 1678',
+      lat: 41.1365,
+      lon: -8.6105,
+      standOffRadius: 29.0,
+      cameraHeightOffset: 17.5,
+      haloRadiusScale: 2.3,
+      metroLines: ['D'],
+      history: 'Across the Douro gorge via the upper and lower decks of Ponte Dom Luís I, the cooler north-facing granite slopes of Vila Nova de Gaia have sheltered the historic British and Portuguese Port wine lodges since the 17th century, crowned by the circular Renaissance monastery of Serra do Pilar.',
+      notableLandmarks: 'Caves de Vinho do Porto, Mosteiro da Serra do Pilar, Jardim do Morro, Rabelo Waterfront'
+    }
+  ],
+  tourStops: [
+    {
+      id: 'tour-porto-dom-luis-seyrig',
+      stopNumber: 1,
+      title: 'Ponte Dom Luís I: Eiffel’s Partner & the 1886 Double-Deck Iron Arch',
+      historicalDate: '1877 • October 31, 1886 • 2005',
+      timelineYear: 1886,
+      locationName: 'Ponte Dom Luís I (Ribeira ↔ Gaia)',
+      arrondissement: 'Douro Gorge',
+      lat: 41.1400,
+      lon: -8.6095,
+      radiusScale: 1.85,
+      monumentId: 'monument-dom-luis-bridge',
+      stationId: 'jardim-do-morro',
+      interviewQuestion: 'Who designed Ponte Dom Luís I, and how does it differ from Gustave Eiffel’s 1877 Ponte Maria Pia just upstream?',
+      fact: 'After co-designing the single-deck railway Ponte Maria Pia with Gustave Eiffel in 1877, Belgian-born engineer Théophile Seyrig broke away to win the 1880 competition for Ponte Dom Luís I with a bold 172m arch carrying two roadways—one at river level and one 60m high that now carries Metro Line D.'
+    },
+    {
+      id: 'tour-porto-sao-bento-azulejos',
+      stopNumber: 2,
+      title: 'Estação de São Bento: 20,000 Cobalt-Blue Azulejo Tiles',
+      historicalDate: '1900 • October 5, 1916',
+      timelineYear: 1916,
+      locationName: 'Estação de São Bento',
+      arrondissement: 'Centro Histórico',
+      lat: 41.1456,
+      lon: -8.6106,
+      radiusScale: 1.65,
+      monumentId: 'monument-sao-bento-station',
+      stationId: 'sao-bento',
+      interviewQuestion: 'What historical stories are painted across the 20,000 azulejo tiles inside Estação de São Bento?',
+      fact: 'Between 1905 and 1916, painter Jorge Colaço glazed 20,000 tin-glazed ceramic tiles inside José Marques da Silva’s Beaux-Arts vestibule, depicting King João I and Philippa of Lancaster’s 1387 wedding in Porto, Prince Henry the Navigator’s 1415 conquest of Ceuta, and a colorful frieze of transport history.'
+    },
+    {
+      id: 'tour-porto-clerigos-nasoni',
+      stopNumber: 3,
+      title: 'Torre dos Clérigos & Nicolau Nasoni’s Baroque Skyline',
+      historicalDate: '1732–1763',
+      timelineYear: 1900,
+      locationName: 'Torre dos Clérigos',
+      arrondissement: 'Vitória / Clérigos',
+      lat: 41.1458,
+      lon: -8.6140,
+      radiusScale: 1.6,
+      monumentId: 'monument-clerigos-tower',
+      stationId: 'hospital-santo-antonio',
+      interviewQuestion: 'How did Tuscan artist Nicolau Nasoni transform 18th-century Porto into a Baroque city of carved granite?',
+      fact: 'Arriving from Tuscany in 1725, Nicolau Nasoni spent 30 years sculpting the elliptical Igreja and 75.6m Torre dos Clérigos out of hard Porto granite—refusing any payment from the Brotherhood of the Clérigos and asking only to be buried in its crypt.'
+    },
+    {
+      id: 'tour-porto-livraria-lello',
+      stopNumber: 4,
+      title: 'Livraria Lello: Neo-Gothic Craft & the Crimson Staircase',
+      historicalDate: 'January 13, 1906',
+      timelineYear: 1906,
+      locationName: 'Livraria Lello (Rua das Carmelitas)',
+      arrondissement: 'Carmo / Clérigos',
+      lat: 41.1468,
+      lon: -8.6148,
+      radiusScale: 1.55,
+      monumentId: 'monument-livraria-lello',
+      stationId: 'aliados',
+      interviewQuestion: 'What engineering innovation lies hidden inside the ornate crimson staircase of Livraria Lello (1906)?',
+      fact: 'Though its interior looks like carved dark wood and crimson plaster, engineer Francisco Xavier Esteves built Livraria Lello’s famous forked floating staircase in 1906 as one of Portugal’s earliest daring experiments in reinforced concrete.'
+    },
+    {
+      id: 'tour-porto-gaia-port-wine',
+      stopNumber: 5,
+      title: 'Cais de Gaia, Rabelo Boats & Three Centuries of Port Wine',
+      historicalDate: '1678 • 1703 Methuen Treaty • 1756',
+      timelineYear: 1900,
+      locationName: 'Caves de Vinho do Porto & Serra do Pilar',
+      arrondissement: 'Vila Nova de Gaia',
+      lat: 41.1375,
+      lon: -8.6125,
+      radiusScale: 1.75,
+      monumentId: 'monument-port-wine-lodges',
+      stationId: 'jardim-do-morro',
+      interviewQuestion: 'Why were all the historic Port wine lodges built across the river in Vila Nova de Gaia rather than on the Porto bank?',
+      fact: 'In 1756, the Marquis of Pombal demarcated the Douro Valley as the world’s first regulated wine region; wooden Rabelo boats carried barrels down the rapids to age in the cooler, north-facing granite cellars of Vila Nova de Gaia, sheltered from the direct southern sun.'
+    },
+    {
+      id: 'tour-porto-casa-da-musica-souto-moura',
+      stopNumber: 6,
+      title: 'Casa da Música & Eduardo Souto de Moura’s Metro Architecture',
+      historicalDate: '2002 • April 15, 2005 • 2026',
+      timelineYear: 2005,
+      locationName: 'Casa da Música & Rotunda da Boavista',
+      arrondissement: 'Boavista',
+      lat: 41.1589,
+      lon: -8.6307,
+      radiusScale: 1.7,
+      monumentId: 'monument-casa-da-musica',
+      stationId: 'casa-da-musica',
+      interviewQuestion: 'How did Porto pair Pritzker-winning architecture with modern public transit in the 2000s?',
+      fact: 'While Rem Koolhaas (OMA) sculpted the faceted white concrete polyhedron of Casa da Música (2005), Porto-born Pritzker laureates Eduardo Souto de Moura and Álvaro Siza Vieira designed the raw granite and skylit stations of Metro do Porto directly alongside it.'
+    }
+  ],
+  uiTheme: {
+    culturalMovement: 'Portuguese Cobalt-Blue Azulejo Ceramic Tilework, Talha Dourada Gold & Douro Ruby Port',
+    hudTitle: 'PORTO INVICTA • 1877–2026',
+    hudSubtitle: 'AZULEJO CERAMICS, DOURO BRIDGES & METRO DO PORTO • 3D ARCHITECTURE & TRANSIT',
+    networkTitle: 'METRO DO PORTO & DOURO RAILWAYS',
+    districtsTabLabel: 'Bairros & Gaia',
+    tourTabLabel: 'Azulejo & Douro Tour',
+    tourPanelTitle: 'PORTO INVICTA, AZULEJOS & DOURO BRIDGES ODYSSEY',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap',
+    palette: {
+      bgObsidian: '#071120',
+      bgPanel: 'rgba(10, 23, 44, 0.90)',
+      bgPanelElevated: 'rgba(15, 34, 64, 0.95)',
+      primaryBright: '#e8c15a',
+      primaryMain: '#1e64b4',
+      primaryMuted: '#123e73',
+      borderSubtle: 'rgba(66, 142, 224, 0.48)',
+      borderStrong: 'rgba(232, 193, 90, 0.88)',
+      accentGlow: 'rgba(30, 100, 180, 0.34)',
+      textPrimary: '#f6f8fc',
+      textDim: '#c2d4ec',
+      textSubtle: '#7e9bc2',
+      secondaryAccent: '#1e64b4',
+      alertAccent: '#9e2432',
+      worldGroundBase: '#d8cfc2',
+      worldWaterTint: '#114b6e',
+      worldWallBase: '#e8e0d2',
+      worldRoofBase: '#b84a2c'
+    },
+    fonts: {
+      display: "'Cinzel Decorative', 'Cormorant Garamond', Georgia, serif",
+      serif: "'Cormorant Garamond', Georgia, serif",
+      sans: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+      mono: "'JetBrains Mono', monospace"
+    },
+    svgOrnamentPaths: [
+      'M16 2 L30 16 L16 30 L2 16 Z',
+      'M16 7 L25 16 L16 25 L7 16 Z',
+      'M16 12 A4 4 0 1 0 16 20 A4 4 0 1 0 16 12'
+    ]
+  }
+};

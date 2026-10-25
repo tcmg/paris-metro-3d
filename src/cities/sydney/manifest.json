@@ -28,7 +28,7 @@
       "metroTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/metroData.ts",
       "railTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/railTerminiData.ts",
       "districtsTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/districtsData.ts",
-      "lineCount": 9,
+      "lineCount": 12,
       "terminusCount": 1,
       "districtCount": 4
     },
@@ -36,8 +36,8 @@
       "specPath": "/Users/tomgreenaway/Code/paris-metro-launch/public/data/sydney_monuments_spec.json",
       "historicalTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/historicalData.ts",
       "glbRelPath": "public/models/sydney_monuments.glb",
-      "glbExported": true,
-      "blenderExecutionMode": "blender-headless-cli",
+      "glbExported": false,
+      "blenderExecutionMode": "skipped",
       "monumentCount": 8
     },
     "step4": {
@@ -46,5 +46,5 @@
       "indexTsPath": "/Users/tomgreenaway/Code/paris-metro-launch/src/cities/sydney/index.ts"
     }
   },
-  "completedAt": "2026-10-16T12:51:00.220Z"
+  "completedAt": "2026-10-20T11:20:43.847Z"
 }

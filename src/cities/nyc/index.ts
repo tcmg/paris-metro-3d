@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import type { CityDataset } from '../types';
-import { NYC_GEO_CONFIG, NYC_WATER_BODIES, NYC_TOPOGRAPHY } from './geoData';
+import { NYC_GEO_CONFIG, NYC_WATER_BODIES, NYC_TOPOGRAPHY, NYC_HEIGHTMAP } from './geoData';
 import {
   NYC_MONUMENTS_GLB_PATH,
   NYC_MONUMENTS,
@@ -38,6 +38,7 @@ export const NYC_CITY_DATASET: CityDataset = {
   geo: NYC_GEO_CONFIG,
   waterBodies: NYC_WATER_BODIES,
   topography: NYC_TOPOGRAPHY,
+  heightmap: NYC_HEIGHTMAP,
   monuments: NYC_MONUMENTS,
   milestones: NYC_MILESTONES,
   eras: NYC_ERAS,

@@ -1,0 +1,101 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Rio de Janeiro, Brazil
+ * Theme Vibe: Carnival Samba & Roberto Burle Marx Tropical Modernism (carnival_copacabana_wave)
+ * Inspiration: CARNAVAL, BURLE MARX & GUANABARA BAY • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="rio"] {
+  --city-font-display: 'Syne', 'Cinzel Decorative', sans-serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'JetBrains Mono', monospace;
+  --city-badge-shape: beveled-carnival;
+  --city-bg-primary: #05151f;
+  --city-bg-glass: rgba(6, 24, 36, 0.86);
+  --city-bg-card: rgba(10, 34, 48, 0.94);
+  --city-text-primary: #fcf9f0;
+  --city-text-muted: #b8d0c8;
+  --city-accent-primary: #ffda44;
+  --city-accent-secondary: #12c47a;
+  --city-accent-tertiary: #ff3b7f;
+  --city-border-color: rgba(255, 218, 68, 0.38);
+  --city-badge-bg: linear-gradient(135deg, #12c47a 0%, #ffda44 100%);
+  --city-badge-text: #05151f;
+  --city-water-color: #0d6e8a;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #e6dcc5;
+}
+
+/* Brazil / Rio de Janeiro: Carnival Samba, Guanabara Emerald & Roberto Burle Marx Copacabana Calçadão Motif */
+:root[data-city-theme="rio"] {
+  --bg-obsidian: #05151f;
+  --bg-panel: rgba(6, 24, 36, 0.90);
+  --bg-panel-elevated: rgba(10, 34, 48, 0.95);
+  --gold-bright: #ffda44;
+  --gold-primary: #12c47a;
+  --gold-muted: #b88400;
+  --gold-border: rgba(255, 218, 68, 0.50);
+  --gold-border-strong: rgba(18, 196, 122, 0.90);
+  --gold-glow: rgba(255, 218, 68, 0.34);
+  --ivory: #fcf9f0;
+  --ivory-dim: #b8d0c8;
+  --ivory-subtle: #6e948a;
+  --emerald-guimard: #12c47a;
+  --crimson-ghost: #ff3b7f;
+  --font-display: 'Syne', 'Cinzel Decorative', sans-serif;
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'40'%20viewBox%3D'0%200%20120%2040'%3E%3Cpath%20d%3D'M0%2012%20Q30%200%2060%2012%20T120%2012'%20fill%3D'none'%20stroke%3D'%23ffda44'%20stroke-width%3D'2.4'%20stroke-opacity%3D'0.28'%2F%3E%3Cpath%20d%3D'M0%2028%20Q30%2016%2060%2028%20T120%2028'%20fill%3D'none'%20stroke%3D'%2312c47a'%20stroke-width%3D'2.4'%20stroke-opacity%3D'0.22'%2F%3E%3C%2Fsvg%3E");
+  --rio-calcadao-wave: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'48'%20height%3D'8'%20viewBox%3D'0%200%2048%208'%3E%3Cpath%20d%3D'M0%205%20Q12%200%2024%205%20T48%205'%20fill%3D'none'%20stroke%3D'%23ffda44'%20stroke-width%3D'2'%2F%3E%3Cpath%20d%3D'M0%207.5%20Q12%202.5%2024%207.5%20T48%207.5'%20fill%3D'none'%20stroke%3D'%2312c47a'%20stroke-width%3D'1.5'%2F%3E%3C%2Fsvg%3E");
+}
+
+:root[data-city-theme="rio"] .deco-panel,
+:root[data-city-theme="rio"] .city-selector-bar,
+:root[data-city-theme="rio"] .city-themed-panel {
+  background-color: rgba(6, 24, 36, 0.90);
+  background-image:
+    radial-gradient(circle at 86% 14%, rgba(255, 218, 68, 0.20), transparent 52%),
+    radial-gradient(circle at 14% 86%, rgba(18, 196, 122, 0.18), transparent 50%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 100% 100%, 120px 40px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 218, 68, 0.58);
+  box-shadow: 0 14px 36px rgba(3, 14, 22, 0.72), inset 0 1px 0 rgba(255, 218, 68, 0.35);
+}
+
+:root[data-city-theme="rio"] .explorer-tabs-header::after,
+:root[data-city-theme="rio"] .city-themed-header::after {
+  content: "";
+  display: block;
+  height: 7px;
+  margin-top: 6px;
+  background-image: var(--rio-calcadao-wave);
+  background-repeat: repeat-x;
+  background-size: 48px 8px;
+}
+
+:root[data-city-theme="rio"] .line-badge-btn {
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.82);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-city-theme="rio"] .city-banner-rio {
+  background: linear-gradient(90deg, rgba(18, 196, 122, 0.26) 0%, rgba(255, 218, 68, 0.20) 52%, rgba(255, 59, 127, 0.20) 100%);
+  border: 1px solid rgba(255, 218, 68, 0.65);
+  border-radius: 10px;
+}
+

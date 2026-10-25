@@ -1,0 +1,96 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Warsaw, Poland
+ * Theme Vibe: Polish Crimson & White Eagle, Chopin Nocturne Gold & Old Town Sgraffito (polish_crimson_amber_sgraffito)
+ * Inspiration: SYRENKA, VISTULA ESCARPMENT & VARSO SKYLINE • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="warsaw"] {
+  --city-font-display: 'Cinzel Decorative', 'Cormorant Garamond', serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'JetBrains Mono', monospace;
+  --city-badge-shape: warsaw-fangor-shield;
+  --city-bg-primary: #110b0e;
+  --city-bg-glass: rgba(24, 15, 20, 0.90);
+  --city-bg-card: rgba(36, 22, 29, 0.95);
+  --city-text-primary: #fcf9f5;
+  --city-text-muted: #dfd2c8;
+  --city-accent-primary: #f4b942;
+  --city-accent-secondary: #005ca9;
+  --city-accent-tertiary: #e30613;
+  --city-border-color: rgba(220, 20, 60, 0.45);
+  --city-badge-bg: linear-gradient(135deg, #005ca9 0%, #f4b942 100%);
+  --city-badge-text: #110b0e;
+  --city-water-color: #1f5e7a;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #e3dcd2;
+}
+
+/* Poland / Warsaw: Old Town Renaissance Sgraffito, Biało-Czerwoni Crimson & Baltic Amber-Gold Motif */
+:root[data-city-theme="warsaw"] {
+  --bg-obsidian: #110b0e;
+  --bg-panel: rgba(24, 15, 20, 0.91);
+  --bg-panel-elevated: rgba(36, 22, 29, 0.96);
+  --gold-bright: #f4b942;
+  --gold-primary: #dc143c;
+  --gold-muted: #9e1b34;
+  --gold-border: rgba(220, 20, 60, 0.50);
+  --gold-border-strong: rgba(244, 185, 66, 0.90);
+  --gold-glow: rgba(220, 20, 60, 0.34);
+  --ivory: #fcf9f5;
+  --ivory-dim: #dfd2c8;
+  --ivory-subtle: #a38f82;
+  --emerald-guimard: #48967a;
+  --crimson-ghost: #e30613;
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'64'%20height%3D'64'%20viewBox%3D'0%200%2064%2064'%3E%3Cpolygon%20points%3D'32%2C4%2060%2C32%2032%2C60%204%2C32'%20fill%3D'none'%20stroke%3D'%23dc143c'%20stroke-width%3D'1.5'%20stroke-opacity%3D'0.24'%2F%3E%3Cpolygon%20points%3D'32%2C14%2050%2C32%2032%2C50%2014%2C32'%20fill%3D'none'%20stroke%3D'%23f4b942'%20stroke-width%3D'1.3'%20stroke-opacity%3D'0.26'%2F%3E%3Ccircle%20cx%3D'32'%20cy%3D'32'%20r%3D'4'%20fill%3D'none'%20stroke%3D'%23fcf9f5'%20stroke-width%3D'1.2'%20stroke-opacity%3D'0.22'%2F%3E%3C%2Fsvg%3E");
+  --warsaw-corner-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'16'%20height%3D'16'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M1%2015%20L1%201%20L15%201'%20fill%3D'none'%20stroke%3D'%23f4b942'%20stroke-width%3D'2.2'%2F%3E%3Cpath%20d%3D'M4%2012%20L4%204%20L12%204'%20fill%3D'none'%20stroke%3D'%23dc143c'%20stroke-width%3D'1.6'%2F%3E%3C%2Fsvg%3E");
+}
+
+:root[data-city-theme="warsaw"] .deco-panel,
+:root[data-city-theme="warsaw"] .city-selector-bar,
+:root[data-city-theme="warsaw"] .city-themed-panel {
+  background-color: rgba(24, 15, 20, 0.91);
+  background-image:
+    linear-gradient(160deg, rgba(220, 20, 60, 0.16) 0%, rgba(24, 15, 20, 0.94) 55%, rgba(0, 92, 169, 0.16) 100%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 64px 64px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(244, 185, 66, 0.62);
+  border-top: 3px solid #dc143c;
+  box-shadow: 0 16px 38px rgba(8, 4, 6, 0.78), inset 0 1px 0 rgba(252, 249, 245, 0.35);
+}
+
+:root[data-city-theme="warsaw"] .deco-corner {
+  width: 15px;
+  height: 15px;
+  border: none !important;
+  background-image: var(--warsaw-corner-svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+:root[data-city-theme="warsaw"] .deco-corner.tr { transform: scaleX(-1); }
+:root[data-city-theme="warsaw"] .deco-corner.bl { transform: scaleY(-1); }
+:root[data-city-theme="warsaw"] .deco-corner.br { transform: scale(-1, -1); }
+
+:root[data-city-theme="warsaw"] .city-cultural-banner {
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(220, 20, 60, 0.38) 0%, rgba(24, 15, 20, 0.92) 55%, rgba(0, 92, 169, 0.32) 100%);
+  border: 1.5px solid rgba(244, 185, 66, 0.75);
+}
+

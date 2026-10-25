@@ -1,0 +1,101 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ============================================================================
+ * Cultural UI Theme: Porto, Portugal
+ * Theme Vibe: Portuguese Cobalt-Blue Azulejo Ceramic Tilework, Talha Dourada Gold & Douro Ruby Port (azulejo_cobalt_port_wine)
+ * Inspiration: AZULEJO CERAMICS, DOURO BRIDGES & METRO DO PORTO • 3D ARCHITECTURE & TRANSIT
+ * ============================================================================ */
+
+:root[data-city-theme="porto"] {
+  --city-font-display: 'Cinzel Decorative', 'Cormorant Garamond', Georgia, serif;
+  --city-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --city-font-mono: 'JetBrains Mono', monospace;
+  --city-badge-shape: azulejo-diamond;
+  --city-bg-primary: #071120;
+  --city-bg-glass: rgba(10, 23, 44, 0.90);
+  --city-bg-card: rgba(15, 34, 64, 0.95);
+  --city-text-primary: #f6f8fc;
+  --city-text-muted: #c2d4ec;
+  --city-accent-primary: #e8c15a;
+  --city-accent-secondary: #1e64b4;
+  --city-accent-tertiary: #9e2432;
+  --city-border-color: rgba(66, 142, 224, 0.48);
+  --city-badge-bg: linear-gradient(135deg, #1e64b4 0%, #e8c15a 100%);
+  --city-badge-text: #071120;
+  --city-water-color: #114b6e;
+  --city-park-color: #1b7a43;
+  --city-terrain-color: #d8cfc2;
+}
+
+/* Portugal / Porto: Cobalt-Blue & White Azulejo Ceramic Tilework, Talha Dourada Gold & Douro Ruby Port */
+:root[data-city-theme="porto"] {
+  --bg-obsidian: #071120;
+  --bg-panel: rgba(10, 23, 44, 0.91);
+  --bg-panel-elevated: rgba(15, 34, 64, 0.96);
+  --gold-bright: #e8c15a;
+  --gold-primary: #428ee0;
+  --gold-muted: #1e64b4;
+  --gold-border: rgba(66, 142, 224, 0.52);
+  --gold-border-strong: rgba(232, 193, 90, 0.90);
+  --gold-glow: rgba(66, 142, 224, 0.34);
+  --ivory: #f6f8fc;
+  --ivory-dim: #c2d4ec;
+  --ivory-subtle: #7e9bc2;
+  --emerald-guimard: #1e64b4;
+  --crimson-ghost: #b8293d;
+  --city-pattern-svg: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'64'%20height%3D'64'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20x%3D'2'%20y%3D'2'%20width%3D'60'%20height%3D'60'%20fill%3D'none'%20stroke%3D'%23428ee0'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.24'%2F%3E%3Cpath%20d%3D'M32%204%20L60%2032%20L32%2060%20L4%2032%20Z'%20fill%3D'none'%20stroke%3D'%23e8c15a'%20stroke-width%3D'1.2'%20stroke-opacity%3D'0.22'%2F%3E%3Ccircle%20cx%3D'32'%20cy%3D'32'%20r%3D'11'%20fill%3D'none'%20stroke%3D'%23f6f8fc'%20stroke-width%3D'1.2'%20stroke-opacity%3D'0.20'%2F%3E%3Cpath%20d%3D'M32%2014%20C36%2024%2040%2028%2050%2032%20C40%2036%2036%2040%2032%2050%20C28%2040%2024%2036%2014%2032%20C24%2028%2028%2024%2032%2014%20Z'%20fill%3D'none'%20stroke%3D'%23428ee0'%20stroke-width%3D'1.2'%20stroke-opacity%3D'0.28'%2F%3E%3Ccircle%20cx%3D'4'%20cy%3D'4'%20r%3D'4'%20fill%3D'none'%20stroke%3D'%23e8c15a'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3Ccircle%20cx%3D'60'%20cy%3D'4'%20r%3D'4'%20fill%3D'none'%20stroke%3D'%23e8c15a'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3Ccircle%20cx%3D'4'%20cy%3D'60'%20r%3D'4'%20fill%3D'none'%20stroke%3D'%23e8c15a'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3Ccircle%20cx%3D'60'%20cy%3D'60'%20r%3D'4'%20fill%3D'none'%20stroke%3D'%23e8c15a'%20stroke-width%3D'1.1'%20stroke-opacity%3D'0.22'%2F%3E%3C%2Fsvg%3E");
+  --porto-corner-tile: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'16'%20height%3D'16'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M8%201%20L15%208%20L8%2015%20L1%208%20Z'%20fill%3D'%231e64b4'%20fill-opacity%3D'0.45'%20stroke%3D'%23e8c15a'%20stroke-width%3D'1.4'%2F%3E%3Ccircle%20cx%3D'8'%20cy%3D'8'%20r%3D'2.5'%20fill%3D'%23f6f8fc'%2F%3E%3C%2Fsvg%3E");
+}
+
+:root[data-city-theme="porto"] .deco-panel,
+:root[data-city-theme="porto"] .city-selector-bar,
+:root[data-city-theme="porto"] .city-themed-panel {
+  background-color: rgba(10, 23, 44, 0.91);
+  background-image:
+    radial-gradient(circle at 14% 16%, rgba(66, 142, 224, 0.22), transparent 52%),
+    radial-gradient(circle at 88% 84%, rgba(158, 36, 50, 0.18), transparent 48%),
+    var(--city-pattern-svg);
+  background-size: 100% 100%, 100% 100%, 64px 64px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(66, 142, 224, 0.65);
+  box-shadow: 0 16px 38px rgba(4, 10, 22, 0.78), inset 0 0 0 1.5px rgba(232, 193, 90, 0.28);
+}
+
+:root[data-city-theme="porto"] .deco-panel::before {
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(246, 248, 252, 0.26);
+}
+
+:root[data-city-theme="porto"] .deco-corner {
+  width: 15px;
+  height: 15px;
+  border: none !important;
+  background-image: var(--porto-corner-tile);
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+:root[data-city-theme="porto"] .city-cultural-banner {
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(24, 78, 148, 0.52) 0%, rgba(10, 23, 44, 0.92) 60%, rgba(138, 28, 44, 0.36) 100%);
+  border: 1.5px solid rgba(232, 193, 90, 0.68);
+}
+

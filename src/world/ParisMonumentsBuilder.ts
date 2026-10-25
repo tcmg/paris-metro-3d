@@ -983,7 +983,7 @@ export class ParisMonumentsBuilder {
    */
   private loadBlenderMonumentsGLB(): void {
     const loader = new GLTFLoader();
-    const glbUrl = `./models/${ACTIVE_CITY_ID}_monuments.glb?v=20261016a`;
+    const glbUrl = `./models/${ACTIVE_CITY_ID}_monuments.glb?v=20261020b`;
     loader.load(
       glbUrl,
       (gltf) => {
