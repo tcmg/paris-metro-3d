@@ -30,6 +30,7 @@ import {
   fetchParisWeatherOnly
 } from './data/parisLiveClient';
 import { initActiveCityEnvironment } from './cities/activeCityRuntime';
+import { DEPLOYMENT_CONFIG } from './config/deploymentConfig';
 
 function bootstrapApp(): void {
   initActiveCityEnvironment();
@@ -41,7 +42,7 @@ function bootstrapApp(): void {
 
   let currentYear = 2026;
   let selectedLineId: string | null = null;
-  let showGhostStations = true;
+  let showGhostStations = DEPLOYMENT_CONFIG.defaultShowGhostStations;
   let liveWeatherIntervalId: number | null = null;
   let liveMetroIntervalId: number | null = null;
 
@@ -430,8 +431,26 @@ function bootstrapApp(): void {
     }
   };
 
-  hud.setSurfaceSimulation(voxelParis.surfaceSimulation);
-  voxelParis.setSurfaceOpacity(1.0);
+  if (DEPLOYMENT_CONFIG.enableSimulationModes) {
+    hud.setSurfaceSimulation(voxelParis.surfaceSimulation);
+  }
+  metroNetwork.setShowLightColumns(DEPLOYMENT_CONFIG.defaultShowLightColumns);
+  hud.setLightColumnsValue(DEPLOYMENT_CONFIG.defaultShowLightColumns);
+  if (DEPLOYMENT_CONFIG.defaultCameraPreset === 'xray') {
+    sceneManager.setCameraPreset('xray');
+    voxelParis.setSurfaceOpacity(0.14);
+    hud.setOpacityValue(0.14);
+    hud.setActiveCameraPresetUI('xray');
+  } else if (DEPLOYMENT_CONFIG.defaultCameraPreset === 'underground') {
+    sceneManager.setCameraPreset('underground');
+    voxelParis.setUndergroundDarkMode(true);
+    sceneManager.setUndergroundDarkMode(true);
+    voxelParis.setSurfaceOpacity(0.0);
+    hud.setOpacityValue(0.0);
+    hud.setActiveCameraPresetUI('underground');
+  } else {
+    voxelParis.setSurfaceOpacity(1.0);
+  }
   syncWorldToState();
 
   const viewParam = new URLSearchParams(window.location.search).get('view');

@@ -15,6 +15,7 @@
  */
 
 import type { CityDataset, CityBridgeDef, CityParkDef, CityPlaceDef } from './types';
+import { DEPLOYMENT_CONFIG } from '../config/deploymentConfig';
 import {
   SYDNEY_CITY_DATASET,
   SYDNEY_WATER_CENTERLINES,
@@ -335,12 +336,12 @@ export function parseCityFragmentHash(rawHash: string): SelectableCityId {
   if (cleaned === 'paris' || cleaned === 'par') {
     return 'paris';
   }
-  return 'paris';
+  return DEPLOYMENT_CONFIG.defaultCityId;
 }
 
 function resolveInitialCityId(): SelectableCityId {
   if (typeof window === 'undefined') {
-    return 'paris';
+    return DEPLOYMENT_CONFIG.defaultCityId;
   }
   const resolved = parseCityFragmentHash(window.location.hash);
   const canonicalHash = `#${resolved}`;

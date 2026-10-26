@@ -54,6 +54,7 @@ import {
   SELECTABLE_CITIES,
   switchActiveCity
 } from '../cities/activeCityRuntime';
+import { DEPLOYMENT_CONFIG } from '../config/deploymentConfig';
 import {
   A2uiComponentDef,
   ParisHeroProbe,
@@ -1077,7 +1078,7 @@ export class ArtDecoHUD {
   private eventHeadlineEl!: HTMLElement;
   private milestoneBtns: Map<number, HTMLButtonElement> = new Map();
   private camPresetBtns: Map<CameraPresetId, HTMLButtonElement> = new Map();
-  private activeCameraPreset: CameraPresetId = 'overground';
+  private activeCameraPreset: CameraPresetId = DEPLOYMENT_CONFIG.defaultCameraPreset;
 
   private lineBadgeBtns: Map<string, HTMLButtonElement> = new Map();
   private allLinesBtn!: HTMLButtonElement;
@@ -1244,8 +1245,8 @@ export class ArtDecoHUD {
   private selectedLineId: string | null = null;
   private isPlaying = false;
   private playSpeed = 1; // 1x, 2x, 5x
-  private showGhostStations = true;
-  private showLightColumns = true;
+  private showGhostStations = DEPLOYMENT_CONFIG.defaultShowGhostStations;
+  private showLightColumns = DEPLOYMENT_CONFIG.defaultShowLightColumns;
   private isPaperModel = false;
   private autoTimeCycle = false;
   private monumentOrbitEnabled = true;
@@ -1316,11 +1317,42 @@ export class ArtDecoHUD {
     this.settingsSummaryPillEl.textContent = `${this.lastFormattedClock}${weatherBadge} • ${camLabels[this.activeCameraPreset]}`;
   }
 
+  private setUiScalePreference(scaleMode: 'auto' | '0.80' | '0.88' | '1.00'): void {
+    const rootEl = document.documentElement;
+    if (scaleMode === 'auto') {
+      rootEl.removeAttribute('data-ui-scale');
+      rootEl.style.removeProperty('--hud-scale-override');
+    } else {
+      rootEl.setAttribute('data-ui-scale', scaleMode);
+      rootEl.style.setProperty('--hud-scale-override', scaleMode);
+    }
+    try {
+      window.localStorage.setItem('lumiere_ui_scale', scaleMode);
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+
   private buildTopBar(): HTMLElement {
     const topBar = createEl('header', 'hud-top-bar');
 
+    // Initialize saved UI scale preference if set, falling back to deployment config default
+    try {
+      const savedScale = window.localStorage.getItem('lumiere_ui_scale');
+      if (savedScale === '0.80' || savedScale === '0.88' || savedScale === '1.00') {
+        this.setUiScalePreference(savedScale);
+      } else if (DEPLOYMENT_CONFIG.defaultUiScale !== 'auto') {
+        this.setUiScalePreference(DEPLOYMENT_CONFIG.defaultUiScale);
+      }
+    } catch {
+      if (DEPLOYMENT_CONFIG.defaultUiScale !== 'auto') {
+        this.setUiScalePreference(DEPLOYMENT_CONFIG.defaultUiScale);
+      }
+    }
+
     // 1. Top-Left 3-Mode Experience Switcher: [📖 1. Learn] | [📋 2. Plan] | [⚡ 3. Simulate]
-    if (ACTIVE_CITY_ID === 'paris') {
+    // Hidden when deployment config uses the default 'learn-only' preset across all cities.
+    if (DEPLOYMENT_CONFIG.enableSimulationModes && ACTIVE_CITY_ID === 'paris') {
       const expDockWrap = createEl('div', 'exp-mode-dock-wrap hud-interactive');
       const expDock = createEl('nav', 'deco-panel exp-mode-bar');
       expDock.setAttribute('aria-label', 'Experience Mode');
@@ -1369,60 +1401,11 @@ export class ArtDecoHUD {
       expDockWrap.appendChild(this.expLockNoticeEl);
 
       topBar.appendChild(expDockWrap);
+    } else {
+      topBar.appendChild(createEl('div', 'exp-mode-dock-spacer'));
     }
 
-    // 2. Top-Right Collapsible City Selector Drawer (compact pill, expands on hover)
-    const cityBar = createEl(
-      'nav',
-      'deco-panel city-selector-bar collapsible-city-picker hud-interactive'
-    );
-    cityBar.setAttribute('aria-label', 'City Selector');
-    attachDecoCorners(cityBar);
-
-    const citySummaryHeader = createEl('div', 'city-selector-summary-header');
-    const citySummaryLeft = createEl('div', 'city-selector-summary-left');
-    citySummaryLeft.appendChild(createEl('span', 'city-selector-globe-icon', '🌐'));
-    citySummaryLeft.appendChild(createEl('span', 'city-selector-label', 'CITY'));
-
-    const citySummaryRight = createEl('div', 'city-selector-summary-right');
-    const activeCityBadge = createEl('span', 'city-selector-active-pill');
-    activeCityBadge.appendChild(
-      createEl('span', 'city-selector-name', ACTIVE_CITY_META.label)
-    );
-    activeCityBadge.appendChild(
-      createEl('span', 'city-selector-code', ACTIVE_CITY_META.shortCode)
-    );
-    const cityChevron = createEl('span', 'city-selector-chevron', '▾');
-    citySummaryRight.appendChild(activeCityBadge);
-    citySummaryRight.appendChild(cityChevron);
-
-    citySummaryHeader.appendChild(citySummaryLeft);
-    citySummaryHeader.appendChild(citySummaryRight);
-    cityBar.appendChild(citySummaryHeader);
-
-    const cityDrawerBody = createEl('div', 'city-selector-drawer-body');
-    const cityPills = createEl('div', 'city-selector-pills');
-    for (const city of SELECTABLE_CITIES) {
-      const isCurrent = city.id === ACTIVE_CITY_ID;
-      const btn = createEl(
-        'button',
-        `city-selector-btn${isCurrent ? ' active' : ''}`
-      );
-      btn.type = 'button';
-      btn.title = `Switch to ${city.label}, ${city.country} (${city.vibeBadge})`;
-      btn.setAttribute('aria-pressed', isCurrent ? 'true' : 'false');
-      btn.appendChild(createEl('span', 'city-selector-name', city.label));
-      btn.appendChild(createEl('span', 'city-selector-code', city.shortCode));
-      btn.addEventListener('click', () => {
-        switchActiveCity(city.id);
-      });
-      cityPills.appendChild(btn);
-    }
-    cityDrawerBody.appendChild(cityPills);
-    cityBar.appendChild(cityDrawerBody);
-    topBar.appendChild(cityBar);
-
-    // Top-Center Collapsible Configuration & Atmosphere Panel (shrinks until hovered over)
+    // 2. Top-Center Collapsible Configuration & Atmosphere Panel (compact pill, expands on hover)
     const viewPanel = createEl(
       'div',
       'deco-panel view-controls-panel collapsible-settings hud-interactive'
@@ -1441,36 +1424,10 @@ export class ArtDecoHUD {
       '☀ 14:12 • Overground'
     );
 
-    const quickLiveWeatherBtn = createEl(
-      'button',
-      'deco-btn settings-quick-orbit-btn live-toggle-btn',
-      '🌡 Live Weather'
-    );
-    quickLiveWeatherBtn.title =
-      'Sync 3D sky, time of day, and wet cobblestone sheen with live Paris weather (Open-Meteo via Firebase App Hosting)';
-    quickLiveWeatherBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.toggleLiveWeather();
-    });
-    this.liveWeatherBtns.push(quickLiveWeatherBtn);
-
-    const quickLiveMetroBtn = createEl(
-      'button',
-      'deco-btn settings-quick-orbit-btn live-toggle-btn',
-      '🚇 Live Metro'
-    );
-    quickLiveMetroBtn.title =
-      'Sync 3D Metro train speeds, RATP/IDFM line QoS, and underground station air sensors (Firebase App Hosting)';
-    quickLiveMetroBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.toggleLiveMetro();
-    });
-    this.liveMetroBtns.push(quickLiveMetroBtn);
-
     this.quickCityOrbitBtn = createEl(
       'button',
       'deco-btn settings-quick-orbit-btn',
-      '⟳ Orbit City'
+      '⟳ Orbit'
     );
     this.quickCityOrbitBtn.title =
       `Continuously orbit the camera 360° around ${ACTIVE_CITY_META.label} (Key R)`;
@@ -1479,26 +1436,11 @@ export class ArtDecoHUD {
       this.toggleCityOrbit();
     });
 
-    const quickSparkleBtn = createEl(
-      'button',
-      'deco-btn settings-quick-orbit-btn',
-      ACTIVE_CITY_META.sparkleButtonLabel
-    );
-    quickSparkleBtn.title =
-      'Trigger the tower flashing diamond lights on demand';
-    quickSparkleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.toggleEiffelSparkle();
-    });
-    this.eiffelSparkleBtns.push(quickSparkleBtn);
+    const settingsChevron = createEl('span', 'city-selector-chevron', '▾');
 
     summaryRight.appendChild(this.settingsSummaryPillEl);
-    if (ACTIVE_CITY_META.supportsLiveParisApi) {
-      summaryRight.appendChild(quickLiveWeatherBtn);
-      summaryRight.appendChild(quickLiveMetroBtn);
-    }
     summaryRight.appendChild(this.quickCityOrbitBtn);
-    summaryRight.appendChild(quickSparkleBtn);
+    summaryRight.appendChild(settingsChevron);
 
     summaryBar.appendChild(summaryLeft);
     summaryBar.appendChild(summaryRight);
@@ -1678,9 +1620,13 @@ export class ArtDecoHUD {
     });
     timeBtnGroup.appendChild(this.timeCycleBtn);
 
-    const drawerSparkleBtn = createEl('button', 'deco-btn', '✨ Sparkle Eiffel');
+    const drawerSparkleBtn = createEl(
+      'button',
+      'deco-btn',
+      ACTIVE_CITY_META.sparkleButtonLabel
+    );
     drawerSparkleBtn.title =
-      'Trigger the Eiffel Tower flashing diamond lights (Scintillement de la Tour Eiffel) on demand';
+      'Trigger the tower flashing diamond lights on demand';
     drawerSparkleBtn.addEventListener('click', () => {
       this.toggleEiffelSparkle();
     });
@@ -1695,18 +1641,20 @@ export class ArtDecoHUD {
     weatherRow.appendChild(createEl('span', 'control-label', 'WEATHER & SKY'));
 
     const weatherBtnGroup = createEl('div', 'deco-btn-group');
-    const drawerLiveWeatherBtn = createEl(
-      'button',
-      'deco-btn live-toggle-btn',
-      '🌡 Live Weather'
-    );
-    drawerLiveWeatherBtn.title =
-      'Sync 3D sky, time of day, and wet cobblestone sheen with live Paris weather (Open-Meteo via Firebase App Hosting)';
-    drawerLiveWeatherBtn.addEventListener('click', () => {
-      this.toggleLiveWeather();
-    });
-    this.liveWeatherBtns.push(drawerLiveWeatherBtn);
-    weatherBtnGroup.appendChild(drawerLiveWeatherBtn);
+    if (ACTIVE_CITY_META.supportsLiveParisApi) {
+      const drawerLiveWeatherBtn = createEl(
+        'button',
+        'deco-btn live-toggle-btn',
+        '🌡 Live Weather'
+      );
+      drawerLiveWeatherBtn.title =
+        'Sync 3D sky, time of day, and wet cobblestone sheen with live Paris weather (Open-Meteo via Firebase App Hosting)';
+      drawerLiveWeatherBtn.addEventListener('click', () => {
+        this.toggleLiveWeather();
+      });
+      this.liveWeatherBtns.push(drawerLiveWeatherBtn);
+      weatherBtnGroup.appendChild(drawerLiveWeatherBtn);
+    }
 
     const weatherModes: { id: WeatherModeId; label: string; title: string }[] = [
       { id: 'clear', label: '☀ Clear Sky', title: 'Bright Parisian azure sky & sunshine' },
@@ -1753,6 +1701,21 @@ export class ArtDecoHUD {
     liftRow.appendChild(this.liftSlider);
 
     const liftBtnGroup = createEl('div', 'deco-btn-group');
+    if (ACTIVE_CITY_META.supportsLiveParisApi) {
+      const drawerLiveMetroBtn = createEl(
+        'button',
+        'deco-btn live-toggle-btn',
+        '🚇 Live Metro'
+      );
+      drawerLiveMetroBtn.title =
+        'Sync 3D Metro train speeds, RATP/IDFM line QoS, and underground station air sensors (Firebase App Hosting)';
+      drawerLiveMetroBtn.addEventListener('click', () => {
+        this.toggleLiveMetro();
+      });
+      this.liveMetroBtns.push(drawerLiveMetroBtn);
+      liftBtnGroup.appendChild(drawerLiveMetroBtn);
+    }
+
     this.liftToggleBtn = createEl('button', 'deco-btn', '▲ Lift Metro');
     this.liftToggleBtn.title =
       'Lift or lower the entire Metro network above the rooftops of Paris (Key L)';
@@ -1772,8 +1735,100 @@ export class ArtDecoHUD {
     liftRow.appendChild(liftBtnGroup);
     drawerBody.appendChild(liftRow);
 
+    // Row 6: Responsive HUD Scale (Auto Laptop 85% | 80% | 88% | 100%)
+    const scaleRow = createEl('div', 'control-row');
+    scaleRow.appendChild(createEl('span', 'control-label', 'UI SCALE'));
+    const scaleGroup = createEl('div', 'deco-btn-group');
+    const currentSavedScale =
+      document.documentElement.getAttribute('data-ui-scale') ?? 'auto';
+    const scaleOptions: { id: 'auto' | '0.80' | '0.88' | '1.00'; label: string; title: string }[] = [
+      {
+        id: 'auto',
+        label: 'Auto (85% Laptop)',
+        title: 'Automatically scales HUD to 85% on 13"–14" laptops and 100% on large external monitors'
+      },
+      { id: '0.80', label: '80% Compact', title: 'Compact 80% HUD scale for maximum 3D map area' },
+      { id: '0.88', label: '88% Balanced', title: 'Balanced 88% HUD scale' },
+      { id: '1.00', label: '100% Full', title: 'Full 100% desktop HUD scale' }
+    ];
+    const scaleBtns: HTMLButtonElement[] = [];
+    for (const opt of scaleOptions) {
+      const sBtn = createEl(
+        'button',
+        `deco-btn${opt.id === currentSavedScale ? ' active' : ''}`,
+        opt.label
+      );
+      sBtn.type = 'button';
+      sBtn.title = opt.title;
+      sBtn.addEventListener('click', () => {
+        for (const b of scaleBtns) b.classList.remove('active');
+        sBtn.classList.add('active');
+        this.setUiScalePreference(opt.id);
+      });
+      scaleBtns.push(sBtn);
+      scaleGroup.appendChild(sBtn);
+    }
+    scaleRow.appendChild(scaleGroup);
+    drawerBody.appendChild(scaleRow);
+
     viewPanel.appendChild(drawerBody);
     topBar.appendChild(viewPanel);
+
+    // 3. Top-Right Collapsible City Selector Drawer (compact pill, expands on hover)
+    if (DEPLOYMENT_CONFIG.enableCitySelector) {
+      const cityBar = createEl(
+        'nav',
+        'deco-panel city-selector-bar collapsible-city-picker hud-interactive'
+      );
+      cityBar.setAttribute('aria-label', 'City Selector');
+      attachDecoCorners(cityBar);
+
+      const citySummaryHeader = createEl('div', 'city-selector-summary-header');
+      const citySummaryLeft = createEl('div', 'city-selector-summary-left');
+      citySummaryLeft.appendChild(createEl('span', 'city-selector-globe-icon', '🌐'));
+      citySummaryLeft.appendChild(createEl('span', 'city-selector-label', 'CITY'));
+
+      const citySummaryRight = createEl('div', 'city-selector-summary-right');
+      const activeCityBadge = createEl('span', 'city-selector-active-pill');
+      activeCityBadge.appendChild(
+        createEl('span', 'city-selector-name', ACTIVE_CITY_META.label)
+      );
+      activeCityBadge.appendChild(
+        createEl('span', 'city-selector-code', ACTIVE_CITY_META.shortCode)
+      );
+      const cityChevron = createEl('span', 'city-selector-chevron', '▾');
+      citySummaryRight.appendChild(activeCityBadge);
+      citySummaryRight.appendChild(cityChevron);
+
+      citySummaryHeader.appendChild(citySummaryLeft);
+      citySummaryHeader.appendChild(citySummaryRight);
+      cityBar.appendChild(citySummaryHeader);
+
+      const cityDrawerBody = createEl('div', 'city-selector-drawer-body');
+      const cityPills = createEl('div', 'city-selector-pills');
+      for (const city of SELECTABLE_CITIES) {
+        const isCurrent = city.id === ACTIVE_CITY_ID;
+        const btn = createEl(
+          'button',
+          `city-selector-btn${isCurrent ? ' active' : ''}`
+        );
+        btn.type = 'button';
+        btn.title = `Switch to ${city.label}, ${city.country} (${city.vibeBadge})`;
+        btn.setAttribute('aria-pressed', isCurrent ? 'true' : 'false');
+        btn.appendChild(createEl('span', 'city-selector-name', city.label));
+        btn.appendChild(createEl('span', 'city-selector-code', city.shortCode));
+        btn.addEventListener('click', () => {
+          switchActiveCity(city.id);
+        });
+        cityPills.appendChild(btn);
+      }
+      cityDrawerBody.appendChild(cityPills);
+      cityBar.appendChild(cityDrawerBody);
+      topBar.appendChild(cityBar);
+    } else {
+      topBar.appendChild(createEl('div', 'exp-mode-dock-spacer'));
+    }
+
     return topBar;
   }
 
@@ -2385,7 +2440,11 @@ export class ArtDecoHUD {
   }
 
   public setExperienceMode(mode: ExperienceModeId): void {
-    this.experienceMode = mode;
+    const resolvedMode: ExperienceModeId = DEPLOYMENT_CONFIG.enableSimulationModes
+      ? mode
+      : 'learn';
+    this.experienceMode = resolvedMode;
+    mode = resolvedMode;
     if (this.expLockNoticeEl) {
       this.expLockNoticeEl.style.display = 'none';
     }

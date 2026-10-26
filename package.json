@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
+    "dev:sim": "VITE_ENABLE_SIMULATION_MODES=true vite --host 127.0.0.1 --port 5173",
     "build": "tsc && vite build --base=./",
+    "build:sim": "VITE_ENABLE_SIMULATION_MODES=true tsc && VITE_ENABLE_SIMULATION_MODES=true vite build --base=./",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "city:pipeline": "node scripts/pipeline/run_city_pipeline.mjs",
     "city:list": "node scripts/pipeline/run_city_pipeline.mjs --list"
